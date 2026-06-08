@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Playwright
+/backend/playwright-browsers/
+
+# Config with secrets — copy config.example.json and fill in locally
+backend/config.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Debug artifacts
+backend/debug_*.png
+backend/debug_*.txt
+
+# Logs
+*.log

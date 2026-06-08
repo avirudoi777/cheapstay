@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cheapstay — Always the cheapest hotel price</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<header class="site-header">
+  <div class="header-inner">
+    <img src="logo.png" alt="Cheapstay" class="site-logo" />
+    <button id="btn-settings-open" class="btn-nav">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      Settings
+    </button>
+  </div>
+</header>
+
+<!-- ── Hero ───────────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <h1 class="hero-title">Always the cheapest hotel price</h1>
+    <p class="hero-sub">Search smarter. Stay cheaper. Every search, automatically.</p>
+  </div>
+</section>
+
+<!-- ── Search card (floats over hero) ────────────────────────────────────── -->
+<div class="container">
+  <div class="search-card">
+    <form id="search-form" autocomplete="off">
+
+      <!-- Destination -->
+      <div class="field-block full-row" style="position:relative">
+        <label class="flabel" for="hotel_name">Where are you going?</label>
+        <div class="icon-wrap">
+          <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="hotel_name" class="finput finput-lg"
+            placeholder="City or hotel — e.g. Bangkok or Mandarin Oriental" required />
+        </div>
+        <input type="hidden" id="search-mode" value="hotel" />
+        <input type="hidden" id="search-location" value="" />
+        <ul id="hotel-suggestions" class="suggestions-list" style="display:none"></ul>
+      </div>
+
+      <!-- Dates + adults + URL + button -->
+      <div class="search-cols">
+        <div class="field-block">
+          <label class="flabel" for="checkin">Check-in</label>
+          <input type="date" id="checkin" class="finput" required />
+        </div>
+        <div class="field-block">
+          <label class="flabel" for="checkout">Check-out</label>
+          <input type="date" id="checkout" class="finput" required />
+        </div>
+        <div class="field-block field-narrow">
+          <label class="flabel" for="adults">Adults</label>
+          <input type="number" id="adults" class="finput" value="2" min="1" max="8" />
+        </div>
+        <div class="field-block field-grow">
+          <label class="flabel" for="direct_url">Direct URL <span class="flabel-opt">(optional)</span></label>
+          <input type="url" id="direct_url" class="finput" placeholder="https://www.marriott.com/..." />
+        </div>
+        <div class="field-block field-btn">
+          <label class="flabel" aria-hidden="true">&nbsp;</label>
+          <button type="submit" id="btn-search" class="btn-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            Search
+          </button>
+        </div>
+      </div>
+
+      <!-- Force refresh -->
+      <div class="search-footer">
+        <label class="checkbox-label">
+          <input type="checkbox" id="force-refresh" />
+          <span>Force fresh search</span>
+        </label>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- Progress + status + results -->
+  <div id="progress-bar" style="display:none"><div id="progress-fill"></div></div>
+  <div id="status" class="status" style="display:none"></div>
+  <div id="results"></div>
+</div>
+
+<!-- ── Popular Destinations ───────────────────────────────────────────────── -->
+<section class="section-destinations">
+  <div class="container">
+    <h2 class="section-title">Popular Destinations</h2>
+    <div class="dest-grid">
+      <button class="dest-card" data-city="Bangkok" data-country="Thailand">
+        <span class="dest-flag">🇹🇭</span>
+        <span class="dest-name">Bangkok</span>
+        <span class="dest-country">Thailand</span>
+      </button>
+      <button class="dest-card" data-city="Bali" data-country="Indonesia">
+        <span class="dest-flag">🇮🇩</span>
+        <span class="dest-name">Bali</span>
+        <span class="dest-country">Indonesia</span>
+      </button>
+      <button class="dest-card" data-city="Tokyo" data-country="Japan">
+        <span class="dest-flag">🇯🇵</span>
+        <span class="dest-name">Tokyo</span>
+        <span class="dest-country">Japan</span>
+      </button>
+      <button class="dest-card" data-city="Dubai" data-country="UAE">
+        <span class="dest-flag">🇦🇪</span>
+        <span class="dest-name">Dubai</span>
+        <span class="dest-country">UAE</span>
+      </button>
+      <button class="dest-card" data-city="Singapore" data-country="Singapore">
+        <span class="dest-flag">🇸🇬</span>
+        <span class="dest-name">Singapore</span>
+        <span class="dest-country">City-state</span>
+      </button>
+      <button class="dest-card" data-city="Paris" data-country="France">
+        <span class="dest-flag">🇫🇷</span>
+        <span class="dest-name">Paris</span>
+        <span class="dest-country">France</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ── Stats bar ──────────────────────────────────────────────────────────── -->
+<section class="stats-bar">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <span class="stat-icon">🏨</span>
+        <div>
+          <div class="stat-value">500,000+</div>
+          <div class="stat-label">Hotels worldwide</div>
+        </div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-icon">💰</span>
+        <div>
+          <div class="stat-value">Save up to 40%</div>
+          <div class="stat-label">vs standard rates</div>
+        </div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-icon">⚡</span>
+        <div>
+          <div class="stat-value">Real-time prices</div>
+          <div class="stat-label">Updated every search</div>
+        </div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-icon">🌍</span>
+        <div>
+          <div class="stat-value">190+ Countries</div>
+          <div class="stat-label">Global coverage</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <img src="logo.png" alt="Cheapstay" class="footer-logo-img" />
+      <span class="footer-tagline">Powered by Cheapstay</span>
+    </div>
+    <nav class="footer-links">
+      <a href="#" class="footer-link">Privacy Policy</a>
+      <span class="footer-dot">·</span>
+      <a href="#" class="footer-link">Terms of Use</a>
+      <span class="footer-dot">·</span>
+      <a href="#" class="footer-link">Contact</a>
+    </nav>
+    <div class="footer-copy">© 2026 Cheapstay. All rights reserved.</div>
+  </div>
+</footer>
+
+<!-- ── Settings modal ─────────────────────────────────────────────────────── -->
+<div id="settings-modal" class="modal-overlay" style="display:none" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2 class="modal-title">Settings</h2>
+      <button id="btn-settings-close" class="btn-close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-desc">Affiliate ID and cashback rates. Saved to your local config.</p>
+
+      <div class="modal-section">
+        <div class="section-label">Affiliate</div>
+        <div class="field-block">
+          <label class="flabel" for="agoda-affiliate-id">
+            Agoda Affiliate ID
+            <span class="flabel-opt"> — from partner.agoda.com, leave blank until approved</span>
+          </label>
+          <input type="text" id="agoda-affiliate-id" class="finput" placeholder="e.g. 1234567" style="max-width:280px" />
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-label">Cashback Rates</div>
+        <div class="rates-grid">
+          <div class="field-block">
+            <label class="flabel" for="rate-agoda">Agoda — TopCashBack (%)</label>
+            <input type="number" id="rate-agoda" class="finput" step="0.1" min="0" max="50" placeholder="6.0" />
+          </div>
+          <div class="field-block">
+            <label class="flabel" for="rate-booking">Booking.com — TopCashBack (%)</label>
+            <input type="number" id="rate-booking" class="finput" step="0.1" min="0" max="50" placeholder="4.0" />
+          </div>
+          <div class="field-block">
+            <label class="flabel" for="rate-priceline">Priceline — TopCashBack (%)</label>
+            <input type="number" id="rate-priceline" class="finput" step="0.1" min="0" max="50" placeholder="7.0" />
+          </div>
+          <div class="field-block">
+            <label class="flabel" for="rate-cc">Credit card cashback (%)</label>
+            <input type="number" id="rate-cc" class="finput" step="0.1" min="0" max="10" placeholder="3.0" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button id="btn-save-rates" class="btn-save">Save Settings</button>
+      <span id="save-msg" class="save-msg"></span>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
