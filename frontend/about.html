@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About — Cheapstay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/png" href="s_logo.png" />
+  <link rel="apple-touch-icon" href="s_logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── Sub-page header nav ── */
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .header-nav-link {
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.75);
+      text-decoration: none;
+      transition: background 0.18s, color 0.18s;
+    }
+    .header-nav-link:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .header-nav-link.active { color: #fff; font-weight: 600; }
+
+    /* ── Page banner ── */
+    .page-banner {
+      background: linear-gradient(135deg, #080d18 0%, #0d1a2e 60%, #081c1a 100%);
+      padding: 72px 24px 64px;
+      text-align: center;
+    }
+    .page-banner-label {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 16px;
+    }
+    .page-banner h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      color: #fff;
+      margin: 0 0 16px;
+      line-height: 1.15;
+    }
+    .page-banner p {
+      font-size: 1.05rem;
+      color: rgba(255,255,255,0.6);
+      max-width: 520px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* ── Page content ── */
+    .page-content {
+      max-width: 740px;
+      margin: 0 auto;
+      padding: 64px 24px 80px;
+    }
+    .page-content p {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: #374151;
+      margin: 0 0 28px;
+    }
+    .page-content p:last-child { margin-bottom: 0; }
+
+    /* ── How it works section ── */
+    .how-section {
+      background: #f8fafc;
+      border-top: 1px solid #e8edf3;
+      border-bottom: 1px solid #e8edf3;
+      padding: 64px 24px;
+    }
+    .how-inner {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .how-inner h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #111827;
+      margin: 0 0 40px;
+      text-align: center;
+    }
+    .how-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 32px;
+    }
+    .how-step {
+      text-align: center;
+    }
+    .how-step-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(0,201,167,0.12) 0%, rgba(26,115,232,0.1) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 1.6rem;
+    }
+    .how-step h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #111827;
+      margin: 0 0 8px;
+    }
+    .how-step p {
+      font-size: 0.9rem;
+      color: #6b7280;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    /* ── Values section ── */
+    .values-section {
+      max-width: 740px;
+      margin: 0 auto;
+      padding: 64px 24px 80px;
+    }
+    .values-section h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #111827;
+      margin: 0 0 32px;
+    }
+    .value-item {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .value-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--teal);
+      flex-shrink: 0;
+      margin-top: 8px;
+    }
+    .value-item h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #111827;
+      margin: 0 0 6px;
+    }
+    .value-item p {
+      font-size: 0.93rem;
+      color: #6b7280;
+      line-height: 1.65;
+      margin: 0;
+    }
+
+    /* ── CTA strip ── */
+    .cta-strip {
+      background: linear-gradient(135deg, #00C9A7 0%, #1A73E8 100%);
+      padding: 56px 24px;
+      text-align: center;
+    }
+    .cta-strip h2 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: #fff;
+      margin: 0 0 12px;
+    }
+    .cta-strip p {
+      color: rgba(255,255,255,0.85);
+      font-size: 1rem;
+      margin: 0 0 28px;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: #fff;
+      color: #0d9e84;
+      font-weight: 700;
+      font-size: 0.97rem;
+      padding: 14px 32px;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: transform 0.18s, box-shadow 0.18s;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.2); }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" style="display:flex;align-items:center;">
+      <img src="logo.png" alt="Cheapstay" class="site-logo" />
+    </a>
+    <nav class="header-nav">
+      <a href="index.html" class="header-nav-link">Home</a>
+      <a href="about.html" class="header-nav-link active">About</a>
+      <a href="privacy.html" class="header-nav-link">Privacy</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ── Page banner ────────────────────────────────────────────────────────── -->
+<div class="page-banner">
+  <span class="page-banner-label">About Cheapstay</span>
+  <h1>Hotel prices, simplified.</h1>
+  <p>We believe finding a great hotel deal shouldn't require hours of comparison shopping.</p>
+</div>
+
+<!-- ── About text ─────────────────────────────────────────────────────────── -->
+<section>
+  <div class="page-content">
+    <p>
+      Cheapstay is a hotel price comparison tool built for travellers who want the lowest rate —
+      without the hassle. We search across top booking platforms like Agoda, Booking.com, and more
+      in real time, so you can instantly see where your next stay is cheapest and book with a single click.
+    </p>
+    <p>
+      We started Cheapstay because we were frustrated. Finding the best hotel price used to mean
+      opening five tabs, comparing currencies, factoring in hidden fees, and still wondering if you'd
+      missed a better deal somewhere. We fixed that. Every search on Cheapstay surfaces the lowest
+      available prices across multiple platforms in seconds.
+    </p>
+    <p>
+      Cheapstay doesn't charge you anything. We earn a small referral commission from booking
+      platforms when you click through and complete a reservation — at no extra cost to you. That's
+      how we keep the lights on and the service free.
+    </p>
+  </div>
+</section>
+
+<!-- ── How it works ───────────────────────────────────────────────────────── -->
+<section class="how-section">
+  <div class="how-inner">
+    <h2>How it works</h2>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="how-step-icon">🔍</div>
+        <h3>Search your destination</h3>
+        <p>Enter a city or hotel name, pick your dates and number of guests.</p>
+      </div>
+      <div class="how-step">
+        <div class="how-step-icon">📊</div>
+        <h3>Compare prices instantly</h3>
+        <p>We pull live prices from multiple booking platforms and display them side by side.</p>
+      </div>
+      <div class="how-step">
+        <div class="how-step-icon">🏨</div>
+        <h3>Click and book</h3>
+        <p>Choose the best deal and book directly on the platform. No middleman, no markup.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Our values ─────────────────────────────────────────────────────────── -->
+<section class="values-section">
+  <h2>What we stand for</h2>
+
+  <div class="value-item">
+    <div class="value-dot"></div>
+    <div>
+      <h3>Transparency</h3>
+      <p>We show you the prices we find — nothing hidden, nothing inflated. What you see is what you pay on the booking platform.</p>
+    </div>
+  </div>
+
+  <div class="value-item">
+    <div class="value-dot"></div>
+    <div>
+      <h3>Speed</h3>
+      <p>Real-time price lookups mean you're never working with outdated data. Prices refresh every time you search.</p>
+    </div>
+  </div>
+
+  <div class="value-item">
+    <div class="value-dot"></div>
+    <div>
+      <h3>Simplicity</h3>
+      <p>No accounts, no subscriptions, no clutter. Just search, compare, and book. Travel planning should be this easy.</p>
+    </div>
+  </div>
+
+  <div class="value-item">
+    <div class="value-dot"></div>
+    <div>
+      <h3>Always free</h3>
+      <p>Cheapstay is completely free for travellers. We're funded by referral partnerships with the platforms we link to — you never pay a premium for using us.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA strip ──────────────────────────────────────────────────────────── -->
+<div class="cta-strip">
+  <h2>Ready to find your best price?</h2>
+  <p>Search hundreds of hotels and compare prices across top booking platforms.</p>
+  <a href="index.html" class="cta-btn">Start searching →</a>
+</div>
+
+<!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <img src="logo.png" alt="Cheapstay" class="footer-logo-img" />
+      <span class="footer-tagline">Powered by Cheapstay</span>
+    </div>
+    <nav class="footer-links">
+      <a href="privacy.html" class="footer-link">Privacy Policy</a>
+      <span class="footer-dot">·</span>
+      <a href="about.html" class="footer-link">About</a>
+      <span class="footer-dot">·</span>
+      <a href="mailto:support@cheapstay.co" class="footer-link">Contact</a>
+    </nav>
+    <div class="footer-copy">© 2026 Cheapstay. All rights reserved.</div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,10 +1,13 @@
 {
   "scraperapi_key": "YOUR_SCRAPERAPI_KEY",
   "agoda_affiliate_id": "",
+  "travelpayouts_token": "YOUR_TRAVELPAYOUTS_TOKEN",
+  "travelpayouts_marker": "",
   "credit_card_rate": 0.03,
   "sites": {
     "agoda":     { "portal": "TopCashBack", "rate": 0.06, "country_code": "TH" },
     "booking":   { "portal": "TopCashBack", "rate": 0.04, "country_code": "TH" },
-    "priceline": { "portal": "TopCashBack", "rate": 0.07, "country_code": "US" }
+    "priceline": { "portal": "TopCashBack", "rate": 0.07, "country_code": "US" },
+    "hotellook": { "portal": "Travelpayouts", "rate": 0.0 }
   }
 }

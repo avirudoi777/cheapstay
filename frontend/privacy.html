@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Cheapstay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/png" href="s_logo.png" />
+  <link rel="apple-touch-icon" href="s_logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── Sub-page header nav ── */
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .header-nav-link {
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.75);
+      text-decoration: none;
+      transition: background 0.18s, color 0.18s;
+    }
+    .header-nav-link:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .header-nav-link.active { color: #fff; font-weight: 600; }
+
+    /* ── Page banner ── */
+    .page-banner {
+      background: linear-gradient(135deg, #080d18 0%, #0d1a2e 60%, #081c1a 100%);
+      padding: 72px 24px 64px;
+      text-align: center;
+    }
+    .page-banner-label {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 16px;
+    }
+    .page-banner h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      color: #fff;
+      margin: 0 0 16px;
+      line-height: 1.15;
+    }
+    .page-banner p {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.5);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── Policy layout ── */
+    .policy-wrap {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      max-width: 940px;
+      margin: 0 auto;
+      padding: 64px 24px 80px;
+      gap: 56px;
+      align-items: start;
+    }
+
+    /* ── Sticky sidebar TOC ── */
+    .policy-toc {
+      position: sticky;
+      top: 88px;
+    }
+    .policy-toc-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin: 0 0 14px;
+    }
+    .policy-toc a {
+      display: block;
+      font-size: 0.85rem;
+      color: #6b7280;
+      text-decoration: none;
+      padding: 5px 0 5px 12px;
+      border-left: 2px solid #e5e7eb;
+      line-height: 1.45;
+      transition: color 0.15s, border-color 0.15s;
+      margin-bottom: 2px;
+    }
+    .policy-toc a:hover { color: var(--teal); border-color: var(--teal); }
+
+    /* ── Policy body ── */
+    .policy-body { min-width: 0; }
+
+    .policy-body h2 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #111827;
+      margin: 0 0 14px;
+      padding-top: 8px;
+    }
+    .policy-body h2:not(:first-child) {
+      margin-top: 48px;
+      padding-top: 48px;
+      border-top: 1px solid #f0f2f5;
+    }
+    .policy-body p {
+      font-size: 0.96rem;
+      line-height: 1.8;
+      color: #4b5563;
+      margin: 0 0 18px;
+    }
+    .policy-body ul {
+      margin: 0 0 18px;
+      padding-left: 20px;
+    }
+    .policy-body ul li {
+      font-size: 0.96rem;
+      line-height: 1.75;
+      color: #4b5563;
+      margin-bottom: 6px;
+    }
+    .policy-body a {
+      color: var(--teal);
+      text-decoration: none;
+    }
+    .policy-body a:hover { text-decoration: underline; }
+
+    .policy-body .highlight-box {
+      background: rgba(0,201,167,0.06);
+      border-left: 3px solid var(--teal);
+      border-radius: 0 8px 8px 0;
+      padding: 16px 20px;
+      margin: 24px 0;
+    }
+    .policy-body .highlight-box p {
+      margin: 0;
+      font-size: 0.92rem;
+      color: #374151;
+    }
+
+    /* ── Mobile: collapse sidebar ── */
+    @media (max-width: 700px) {
+      .policy-wrap {
+        grid-template-columns: 1fr;
+        gap: 32px;
+        padding: 40px 20px 60px;
+      }
+      .policy-toc { position: static; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" style="display:flex;align-items:center;">
+      <img src="logo.png" alt="Cheapstay" class="site-logo" />
+    </a>
+    <nav class="header-nav">
+      <a href="index.html" class="header-nav-link">Home</a>
+      <a href="about.html" class="header-nav-link">About</a>
+      <a href="privacy.html" class="header-nav-link active">Privacy</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ── Page banner ────────────────────────────────────────────────────────── -->
+<div class="page-banner">
+  <span class="page-banner-label">Legal</span>
+  <h1>Privacy Policy</h1>
+  <p>Effective date: June 2026 &nbsp;·&nbsp; cheapstay.co</p>
+</div>
+
+<!-- ── Policy content ─────────────────────────────────────────────────────── -->
+<div class="policy-wrap">
+
+  <!-- Sidebar table of contents -->
+  <aside class="policy-toc">
+    <div class="policy-toc-title">Contents</div>
+    <a href="#overview">Overview</a>
+    <a href="#data-collect">Data We Collect</a>
+    <a href="#data-use">How We Use It</a>
+    <a href="#cookies">Cookies & Tracking</a>
+    <a href="#third-party">Third-Party Services</a>
+    <a href="#data-sharing">Data Sharing</a>
+    <a href="#your-rights">Your Rights</a>
+    <a href="#data-retention">Data Retention</a>
+    <a href="#children">Children's Privacy</a>
+    <a href="#changes">Policy Changes</a>
+    <a href="#contact">Contact Us</a>
+  </aside>
+
+  <!-- Policy body -->
+  <article class="policy-body">
+
+    <h2 id="overview">Overview</h2>
+    <p>
+      Cheapstay ("we", "us", or "our") operates the website cheapstay.co. This Privacy Policy
+      explains what information we collect when you use our service, how we use it, and the choices
+      you have. By using Cheapstay, you agree to the practices described in this policy.
+    </p>
+    <div class="highlight-box">
+      <p>
+        <strong>The short version:</strong> We collect minimal data to run the service. We don't
+        sell your personal information to anyone. We earn revenue through referral commissions from
+        booking platforms when you click a link and complete a booking.
+      </p>
+    </div>
+
+    <h2 id="data-collect">Data We Collect</h2>
+    <p>We collect two categories of information:</p>
+    <p><strong>Information you provide directly:</strong></p>
+    <ul>
+      <li>Search queries — destination, hotel name, dates, and number of guests you enter when searching</li>
+      <li>Settings you configure on the site (e.g. cashback rates, affiliate preferences), stored locally in your browser</li>
+    </ul>
+    <p><strong>Information collected automatically:</strong></p>
+    <ul>
+      <li>Log data: your IP address, browser type, operating system, referring page, pages visited, and the time and date of your visit</li>
+      <li>Usage data: how you interact with search results and which links you click</li>
+      <li>Cookie data: small text files placed on your device by our site or third-party services (see Cookies section)</li>
+    </ul>
+    <p>
+      We do not collect your name, email address, payment information, or account credentials.
+      No registration is required to use Cheapstay.
+    </p>
+
+    <h2 id="data-use">How We Use Your Information</h2>
+    <p>We use the information we collect to:</p>
+    <ul>
+      <li>Deliver and improve the hotel price comparison service</li>
+      <li>Understand which searches and destinations are most popular so we can improve results</li>
+      <li>Track affiliate link clicks for commission reporting purposes</li>
+      <li>Detect and prevent abuse, fraud, or excessive automated requests</li>
+      <li>Monitor site performance and fix technical issues</li>
+      <li>Comply with legal obligations where required</li>
+    </ul>
+    <p>
+      We do not use your data for targeted advertising, and we do not build individual user profiles.
+    </p>
+
+    <h2 id="cookies">Cookies &amp; Tracking</h2>
+    <p>
+      Cheapstay uses cookies and similar technologies. A cookie is a small file stored on your
+      device that helps us recognise your browser on future visits and remember your preferences.
+    </p>
+    <p>We use the following types of cookies:</p>
+    <ul>
+      <li><strong>Essential cookies:</strong> Required for the site to function correctly. These cannot be disabled.</li>
+      <li><strong>Analytics cookies:</strong> Help us understand how visitors use the site (e.g. which pages are visited, how long sessions last). Data is aggregated and anonymised.</li>
+      <li><strong>Affiliate tracking cookies:</strong> Set when you click a booking link. These allow the booking platform to attribute your reservation to Cheapstay for commission purposes. They do not contain personal information beyond the click event.</li>
+    </ul>
+    <p>
+      You can control cookies through your browser settings. Disabling cookies may affect some
+      site functionality. Your browser's help documentation explains how to manage cookie
+      preferences.
+    </p>
+
+    <h2 id="third-party">Third-Party Services</h2>
+    <p>
+      Cheapstay links to third-party booking platforms including Agoda, Booking.com, and others.
+      When you click a booking link and visit one of these platforms, you are subject to that
+      platform's own privacy policy and terms of service. We encourage you to review their
+      policies before completing a booking.
+    </p>
+    <p>
+      We participate in affiliate programmes operated by these booking platforms. These programmes
+      use cookies and tracking pixels to record that a visit originated from Cheapstay. The
+      information shared with affiliate programmes is limited to click-level data (a unique
+      session identifier and timestamp) and does not include personally identifiable information.
+    </p>
+    <p>
+      We may use third-party analytics services (such as privacy-focused analytics tools) to
+      help us understand site usage. These services are configured to anonymise IP addresses and
+      not share data with advertising networks.
+    </p>
+
+    <h2 id="data-sharing">Data Sharing</h2>
+    <p>We do not sell, rent, or trade your personal information. We may share information in the following limited circumstances:</p>
+    <ul>
+      <li><strong>Service providers:</strong> Trusted vendors who help us operate the site (e.g. hosting, analytics) under confidentiality agreements</li>
+      <li><strong>Legal requirements:</strong> When required by law, court order, or to protect the rights, property, or safety of Cheapstay or its users</li>
+      <li><strong>Business transfers:</strong> In the event of a merger, acquisition, or sale of assets, user data may be transferred as part of that transaction</li>
+    </ul>
+
+    <h2 id="your-rights">Your Rights</h2>
+    <p>
+      Depending on where you are located, you may have certain rights regarding your personal
+      information under applicable privacy laws (including GDPR, CCPA, and others):
+    </p>
+    <ul>
+      <li><strong>Access:</strong> Request a copy of the personal data we hold about you</li>
+      <li><strong>Correction:</strong> Ask us to correct inaccurate information</li>
+      <li><strong>Deletion:</strong> Request that we delete your personal data</li>
+      <li><strong>Objection:</strong> Object to certain uses of your data, such as analytics processing</li>
+      <li><strong>Portability:</strong> Receive your data in a structured, machine-readable format</li>
+    </ul>
+    <p>
+      To exercise any of these rights, please contact us at
+      <a href="mailto:support@cheapstay.co">support@cheapstay.co</a>. We will respond within
+      30 days.
+    </p>
+
+    <h2 id="data-retention">Data Retention</h2>
+    <p>
+      We retain log and usage data for a maximum of 12 months, after which it is anonymised or
+      deleted. Search query data is not linked to individual users and is retained in aggregate
+      form for service improvement purposes. Settings stored in your browser (localStorage) remain
+      until you clear your browser data.
+    </p>
+
+    <h2 id="children">Children's Privacy</h2>
+    <p>
+      Cheapstay is not directed at children under the age of 13 (or 16 in the European Union).
+      We do not knowingly collect personal information from children. If you believe a child has
+      provided us with personal information, please contact us and we will delete it promptly.
+    </p>
+
+    <h2 id="changes">Policy Changes</h2>
+    <p>
+      We may update this Privacy Policy from time to time to reflect changes in our practices or
+      applicable laws. When we make significant changes, we will update the effective date at the
+      top of this page. Continued use of Cheapstay after any changes constitutes your acceptance
+      of the revised policy.
+    </p>
+
+    <h2 id="contact">Contact Us</h2>
+    <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your personal data, please reach out:</p>
+    <ul>
+      <li><strong>Email:</strong> <a href="mailto:support@cheapstay.co">support@cheapstay.co</a></li>
+      <li><strong>Website:</strong> cheapstay.co</li>
+    </ul>
+    <p>We aim to respond to all inquiries within 5 business days.</p>
+
+  </article>
+</div>
+
+<!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <img src="logo.png" alt="Cheapstay" class="footer-logo-img" />
+      <span class="footer-tagline">Powered by Cheapstay</span>
+    </div>
+    <nav class="footer-links">
+      <a href="privacy.html" class="footer-link">Privacy Policy</a>
+      <span class="footer-dot">·</span>
+      <a href="about.html" class="footer-link">About</a>
+      <span class="footer-dot">·</span>
+      <a href="mailto:support@cheapstay.co" class="footer-link">Contact</a>
+    </nav>
+    <div class="footer-copy">© 2026 Cheapstay. All rights reserved.</div>
+  </div>
+</footer>
+
+</body>
+</html>

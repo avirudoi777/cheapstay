@@ -69,11 +69,163 @@ function finishProgress() {
   }, 500);
 }
 
-// ── City search infinite-scroll state ────────────────────────────────────────
-let _cityHotels = [];
-let _cityRenderedCount = 0;
-let _cityObserver = null;
+// ── City search state ─────────────────────────────────────────────────────────
+let _cityHotels = [];        // accumulated loaded hotels
+let _cityRenderedCount = 0;  // rendered count within current filtered view
+let _cityObserver = null;    // IntersectionObserver on sentinel
+let _cityOffset = 0;         // next offset to request from server
+let _cityHasMore = false;    // server has more results to give
+let _cityLoading = false;    // a fetch is currently in progress
+let _cityTotalAgoda = 0;     // total property count from Agoda (display only)
 const CITY_PAGE = 20;
+
+let _filterState = {
+  sort: 'best',
+  stars: new Set(),
+  minRating: 0,
+  minPrice: 0,
+  maxPrice: Infinity,
+};
+
+function _hasActiveFilters() {
+  return _filterState.stars.size > 0 || _filterState.minRating > 0
+    || _filterState.minPrice > 0 || _filterState.maxPrice < Infinity
+    || _filterState.sort !== 'best';
+}
+
+function applyFilters(hotels) {
+  let list = hotels.filter(h => {
+    if (_filterState.stars.size > 0 && !_filterState.stars.has(h.stars)) return false;
+    const p = h.price;
+    if (_filterState.minPrice > 0 && p != null && p < _filterState.minPrice) return false;
+    if (_filterState.maxPrice < Infinity && p != null && p > _filterState.maxPrice) return false;
+    if (_filterState.minRating > 0) {
+      if (!parseFloat(h.rating) || parseFloat(h.rating) < _filterState.minRating) return false;
+    }
+    return true;
+  });
+  if (_filterState.sort === 'price_asc') {
+    list = list.slice().sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
+  } else if (_filterState.sort === 'price_desc') {
+    list = list.slice().sort((a, b) => (b.price ?? -Infinity) - (a.price ?? -Infinity));
+  } else if (_filterState.sort === 'rating') {
+    list = list.slice().sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
+  }
+  return list;
+}
+
+function buildFilterBar() {
+  return `
+    <div class="filter-bar" id="filter-bar">
+      <div class="filter-group">
+        <span class="filter-label">Sort</span>
+        <select class="filter-select" id="filter-sort">
+          <option value="best">Best match</option>
+          <option value="price_asc">Price: Low → High</option>
+          <option value="price_desc">Price: High → Low</option>
+          <option value="rating">Top rated</option>
+        </select>
+      </div>
+      <div class="filter-sep"></div>
+      <div class="filter-group">
+        <span class="filter-label">Stars</span>
+        <div class="filter-pills" id="filter-stars">
+          <button type="button" class="fpill" data-star="5">5★</button>
+          <button type="button" class="fpill" data-star="4">4★</button>
+          <button type="button" class="fpill" data-star="3">3★</button>
+          <button type="button" class="fpill" data-star="2">2★</button>
+        </div>
+      </div>
+      <div class="filter-sep"></div>
+      <div class="filter-group">
+        <span class="filter-label">$/night</span>
+        <div class="filter-price-row">
+          <input type="number" id="filter-min-price" class="filter-input" placeholder="0" min="0" />
+          <span class="filter-dash">—</span>
+          <input type="number" id="filter-max-price" class="filter-input" placeholder="any" min="0" />
+        </div>
+      </div>
+      <div class="filter-sep"></div>
+      <div class="filter-group">
+        <span class="filter-label">Rating</span>
+        <select class="filter-select filter-select-sm" id="filter-rating">
+          <option value="0">Any</option>
+          <option value="7">7+</option>
+          <option value="8">8+</option>
+          <option value="8.5">8.5+</option>
+          <option value="9">9+</option>
+        </select>
+      </div>
+      <button type="button" class="filter-clear" id="filter-clear">Clear</button>
+    </div>
+    <div class="filter-count-row"><span id="filter-count-label" class="filter-count"></span></div>`;
+}
+
+function initFilterBar() {
+  document.getElementById('filter-sort').addEventListener('change', e => {
+    _filterState.sort = e.target.value;
+    refilter();
+  });
+
+  document.querySelectorAll('#filter-stars .fpill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = parseInt(btn.dataset.star);
+      if (_filterState.stars.has(s)) {
+        _filterState.stars.delete(s);
+        btn.classList.remove('fpill--active');
+      } else {
+        _filterState.stars.add(s);
+        btn.classList.add('fpill--active');
+      }
+      refilter();
+    });
+  });
+
+  const priceHandler = debounce(() => {
+    _filterState.minPrice = parseFloat(document.getElementById('filter-min-price').value) || 0;
+    _filterState.maxPrice = parseFloat(document.getElementById('filter-max-price').value) || Infinity;
+    refilter();
+  }, 400);
+  document.getElementById('filter-min-price').addEventListener('input', priceHandler);
+  document.getElementById('filter-max-price').addEventListener('input', priceHandler);
+
+  document.getElementById('filter-rating').addEventListener('change', e => {
+    _filterState.minRating = parseFloat(e.target.value) || 0;
+    refilter();
+  });
+
+  document.getElementById('filter-clear').addEventListener('click', () => {
+    _filterState = { sort: 'best', stars: new Set(), minRating: 0, minPrice: 0, maxPrice: Infinity };
+    document.getElementById('filter-sort').value = 'best';
+    document.querySelectorAll('#filter-stars .fpill').forEach(b => b.classList.remove('fpill--active'));
+    document.getElementById('filter-min-price').value = '';
+    document.getElementById('filter-max-price').value = '';
+    document.getElementById('filter-rating').value = '0';
+    refilter();
+  });
+}
+
+function refilter() {
+  const grid = document.getElementById('city-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  _cityRenderedCount = 0;
+  appendCityCards();
+  setupSentinelObserver();
+  updateFilterCount();
+}
+
+function updateFilterCount() {
+  const countEl = document.getElementById('filter-count-label');
+  if (!countEl) return;
+  const filtered = applyFilters(_cityHotels);
+  const loaded   = _cityHotels.length;
+  if (_hasActiveFilters()) {
+    countEl.textContent = `${filtered.length} of ${loaded} loaded hotels match your filters`;
+  } else {
+    countEl.textContent = `${loaded} hotel${loaded !== 1 ? 's' : ''} loaded`;
+  }
+}
 
 // ── Search ────────────────────────────────────────────────────────────────────
 form.addEventListener("submit", async (e) => {
@@ -94,7 +246,6 @@ async function runHotelSearch() {
     checkout:      val("checkout"),
     adults:        parseInt(val("adults"), 10),
     rooms:         1,
-    direct_url:    val("direct_url") || null,
     force_refresh: document.getElementById("force-refresh")?.checked ?? false,
   };
 
@@ -122,18 +273,30 @@ async function runHotelSearch() {
 }
 
 async function runCitySearch() {
+  const location = locationInput.value || hotelInput.value.trim();
   const payload = {
-    location: locationInput.value || hotelInput.value.trim(),
-    checkin:  val("checkin"),
-    checkout: val("checkout"),
-    adults:   parseInt(val("adults"), 10),
+    location,
+    checkin:       val("checkin"),
+    checkout:      val("checkout"),
+    adults:        parseInt(val("adults"), 10),
+    offset:        0,
+    limit:         CITY_PAGE,
+    force_refresh: document.getElementById("force-refresh")?.checked ?? false,
   };
+
+  // Reset all city state
+  _cityHotels = [];
+  _cityOffset = 0;
+  _cityHasMore = false;
+  _cityLoading = false;
+  _cityTotalAgoda = 0;
+  _filterState = { sort: 'best', stars: new Set(), minRating: 0, minPrice: 0, maxPrice: Infinity };
+  if (_cityObserver) { _cityObserver.disconnect(); _cityObserver = null; }
 
   setLoading(true);
   startProgress(25000);
-  showStatus(`Searching hotels in ${payload.location}… this may take ~25 seconds.`);
+  showStatus(`Searching hotels in ${location}… this may take ~25 seconds.`);
   resultsDiv.innerHTML = "";
-  if (_cityObserver) { _cityObserver.disconnect(); _cityObserver = null; }
 
   try {
     const res = await fetch(`${API}/search-city`, {
@@ -143,10 +306,13 @@ async function runCitySearch() {
     });
 
     if (!res.ok) { showStatus(`Error: ${(await res.json()).detail}`, true); return; }
-    const hotels = await res.json();
+    const resp = await res.json();
     showStatus("");
-    if (!hotels.length) { showStatus("No hotels found. Try different dates.", true); return; }
-    renderCityResults(hotels);
+    if (!resp.hotels || !resp.hotels.length) {
+      showStatus("No hotels found. Try different dates.", true);
+      return;
+    }
+    renderCityResults(resp);
   } catch (err) {
     showStatus(`Could not reach backend: ${err}`, true);
   } finally {
@@ -155,127 +321,254 @@ async function runCitySearch() {
   }
 }
 
-// ── Render: city hotel grid (with infinite scroll) ───────────────────────────
-function renderCityResults(hotels) {
-  _cityHotels = hotels;
+// ── Render: city hotel grid ───────────────────────────────────────────────────
+function renderCityResults(resp) {
+  const { hotels, total_agoda, has_more, offset, limit } = resp;
+
+  _cityHotels       = hotels;
+  _cityOffset       = (offset || 0) + hotels.length;
+  _cityHasMore      = has_more || false;
+  _cityTotalAgoda   = total_agoda || hotels.length;
   _cityRenderedCount = 0;
-  if (_cityObserver) { _cityObserver.disconnect(); _cityObserver = null; }
 
   const checkin  = val("checkin");
   const checkout = val("checkout");
-  const nights   = Math.round((new Date(checkout) - new Date(checkin)) / 86400000);
+  const nights   = Math.max(1, Math.round((new Date(checkout) - new Date(checkin)) / 86400000));
+  const dest     = escHtml(locationInput.value || hotelInput.value.trim());
+  const totalStr = _cityTotalAgoda > 0 ? _cityTotalAgoda.toLocaleString() : hotels.length.toString();
 
   resultsDiv.innerHTML = `
     <div class="results-card">
-      <h2>Hotels in ${locationInput.value || hotelInput.value.trim()}</h2>
-      <p class="results-subtitle">${hotels.length} hotels found · ${nights} night${nights !== 1 ? "s" : ""} · sorted by best match</p>
-      <div id="city-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:16px"></div>
-      <div id="city-sentinel" style="height:1px;margin-top:4px"></div>
+      <h2 id="city-results-title">${totalStr} properties in ${dest}</h2>
+      <p class="results-subtitle">${nights} night${nights !== 1 ? "s" : ""} · sorted by best match</p>
+      ${buildFilterBar()}
+      <div id="city-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:8px"></div>
+      <div id="city-load-more" class="city-load-more" style="display:none">
+        <div class="city-spinner"></div>
+        <span>Loading more hotels…</span>
+      </div>
+      <div id="city-sentinel" style="height:1px;margin-top:8px"></div>
     </div>`;
 
+  initFilterBar();
   appendCityCards();
-
-  const sentinel = document.getElementById("city-sentinel");
-  _cityObserver = new IntersectionObserver(([entry]) => {
-    if (entry.isIntersecting) appendCityCards();
-  }, { rootMargin: "400px" });
-  _cityObserver.observe(sentinel);
+  setupSentinelObserver();
 }
 
 function appendCityCards() {
   const grid = document.getElementById("city-grid");
   if (!grid) return;
-  const slice = _cityHotels.slice(_cityRenderedCount, _cityRenderedCount + CITY_PAGE);
+  const filtered = applyFilters(_cityHotels);
+  const slice = filtered.slice(_cityRenderedCount, _cityRenderedCount + CITY_PAGE);
   if (!slice.length) {
-    if (_cityObserver) { _cityObserver.disconnect(); _cityObserver = null; }
+    if (_cityRenderedCount === 0) {
+      grid.innerHTML = '<div class="filter-empty">No hotels match these filters.</div>';
+    }
     return;
   }
   slice.forEach(h => grid.insertAdjacentHTML("beforeend", buildHotelCard(h)));
   _cityRenderedCount += slice.length;
-  if (_cityRenderedCount >= _cityHotels.length && _cityObserver) {
-    _cityObserver.disconnect();
-    _cityObserver = null;
+}
+
+async function loadMoreCityHotels() {
+  if (_cityLoading || !_cityHasMore) return;
+  _cityLoading = true;
+  const spinnerEl = document.getElementById("city-load-more");
+  if (spinnerEl) spinnerEl.style.display = "flex";
+
+  try {
+    const res = await fetch(`${API}/search-city`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: locationInput.value || hotelInput.value.trim(),
+        checkin:  val("checkin"),
+        checkout: val("checkout"),
+        adults:   parseInt(val("adults"), 10),
+        offset:   _cityOffset,
+        limit:    CITY_PAGE,
+      }),
+    });
+    if (!res.ok) { _cityHasMore = false; return; }
+    const resp = await res.json();
+    if (resp.hotels && resp.hotels.length > 0) {
+      _cityHotels  = [..._cityHotels, ...resp.hotels];
+      _cityOffset  += resp.hotels.length;
+      _cityHasMore = resp.has_more || false;
+      appendCityCards();
+      updateFilterCount();
+    } else {
+      _cityHasMore = false;
+    }
+  } catch (_) {
+    _cityHasMore = false;
+  } finally {
+    _cityLoading = false;
+    const spinnerEl = document.getElementById("city-load-more");
+    if (spinnerEl) spinnerEl.style.display = "none";
   }
 }
 
-function buildHotelCard(h) {
-  const IMG_H = "190px";
+function setupSentinelObserver() {
+  if (_cityObserver) { _cityObserver.disconnect(); _cityObserver = null; }
+  const sentinel = document.getElementById("city-sentinel");
+  if (!sentinel) return;
+  _cityObserver = new IntersectionObserver(async ([entry]) => {
+    if (!entry.isIntersecting) return;
+    const filtered = applyFilters(_cityHotels);
+    if (_cityRenderedCount < filtered.length) {
+      appendCityCards();
+    } else if (_cityHasMore && !_cityLoading) {
+      await loadMoreCityHotels();
+    }
+  }, { rootMargin: "300px" });
+  _cityObserver.observe(sentinel);
+}
 
-  const imgContent = h.image_url
-    ? `<img src="${h.image_url}" alt="${h.name}" loading="lazy"
-            style="width:100%;height:${IMG_H};object-fit:cover;display:block;"
-            onerror="this.parentElement.innerHTML='<div style=\\'height:${IMG_H};display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:#e8eaf0\\'>🏨</div>'">`
-    : `<div style="height:${IMG_H};display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:#e8eaf0">🏨</div>`;
+// ── Hotel card helpers ────────────────────────────────────────────────────────
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function ratingLabel(score) {
+  const n = parseFloat(score);
+  if (n >= 9.5) return 'Exceptional';
+  if (n >= 9.0) return 'Wonderful';
+  if (n >= 8.5) return 'Excellent';
+  if (n >= 8.0) return 'Very Good';
+  if (n >= 7.5) return 'Good';
+  if (n >= 7.0) return 'Pleasant';
+  return 'Okay';
+}
+
+function buildHotelCard(h) {
+  const url = escHtml(h.booking_url || '#');
+
+  // Photo + overlay elements
+  const imgHtml = h.image_url
+    ? `<img src="${escHtml(h.image_url)}" alt="${escHtml(h.name)}" loading="lazy"
+           onerror="this.closest('.hcard-photo').innerHTML='<div class=\\'hcard-photo-fallback\\'>🏨</div>'">`
+    : '<div class="hcard-photo-fallback">🏨</div>';
+
+  const badgeHtml = h.deal_badge === 'hot'
+    ? '<div class="hcard-badge hcard-badge--hot">🔥 Hot deal</div>'
+    : h.deal_badge === 'deal'
+    ? '<div class="hcard-badge hcard-badge--deal">✦ Great deal</div>'
+    : '';
 
   // Stars row
   const starsHtml = (h.stars >= 1 && h.stars <= 5)
-    ? `<div style="color:#f59e0b;font-size:0.7rem;letter-spacing:1px;margin-bottom:5px">${"★".repeat(h.stars)}${"☆".repeat(5 - h.stars)}</div>`
-    : "";
+    ? `<div class="hcard-stars">${'★'.repeat(h.stars)}${'☆'.repeat(5 - h.stars)}</div>`
+    : '';
 
-  // Location — prominent, with pin icon, 2-line max
-  const locHtml = h.location ? `
-    <div style="display:flex;align-items:flex-start;gap:4px;margin-bottom:8px">
-      <span style="color:#6366f1;font-size:0.75rem;margin-top:1px;flex-shrink:0">📍</span>
-      <span style="font-size:0.73rem;color:#4b5563;line-height:1.4;
-                   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
-        ${h.location}
-      </span>
-    </div>` : "";
+  // Location
+  const locHtml = h.location
+    ? `<div class="hcard-loc"><span class="hcard-loc-pin">📍</span>${escHtml(h.location)}</div>`
+    : '';
 
-  // Rating row: score badge + label + review count
-  let ratingHtml = "";
+  // Review snippet
+  const quoteHtml = h.review_snippet
+    ? `<div class="hcard-quote">"${escHtml(h.review_snippet)}"</div>`
+    : '';
+
+  // Amenity tags
+  const tagsHtml = h.amenities && h.amenities.length
+    ? `<div class="hcard-tags">${h.amenities.map(a => `<span class="hcard-tag">${escHtml(a)}</span>`).join('')}</div>`
+    : '';
+
+  // Rating row
+  let ratingHtml = '';
   if (h.rating) {
-    const label  = h.review_label  ? `<span style="color:#374151;font-size:0.76rem;font-weight:600">${h.review_label}</span>` : "";
-    const count  = h.review_count  ? `<span style="color:#9ca3af;font-size:0.69rem">${h.review_count} reviews</span>` : "";
+    const label = h.review_label || ratingLabel(h.rating);
+    const count = h.review_count ? `<span class="hcard-rcount">${escHtml(h.review_count)} reviews</span>` : '';
     ratingHtml = `
-      <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:8px">
-        <span style="background:#4f46e5;color:#fff;font-size:0.8rem;font-weight:700;
-                     padding:3px 8px;border-radius:7px;flex-shrink:0">${h.rating}</span>
-        ${label}
+      <div class="hcard-rating">
+        <span class="hcard-score">${escHtml(h.rating)}</span>
+        <span class="hcard-rlabel">${escHtml(label)}</span>
         ${count}
       </div>`;
   }
 
-  // Price row: crossed-out original + final price
-  let priceHtml = "";
-  if (h.price) {
-    const orig = h.original_price
-      ? `<span style="color:#d1d5db;font-size:0.72rem;text-decoration:line-through">${h.original_price}</span>`
-      : "";
-    priceHtml = `
-      <div style="margin-top:auto;padding-top:10px;border-top:1px solid #f3f4f6">
-        <div style="display:flex;align-items:baseline;gap:5px;flex-wrap:wrap">
-          ${orig}
-          <span style="font-size:1.2rem;font-weight:800;color:#4f46e5">$${h.price.toFixed(0)}</span>
-          <span style="font-size:0.7rem;color:#9ca3af">/night</span>
+  // ── Price / comparison section ─────────────────────────────────────────────
+  const hasAgoda = h.agoda_price != null;
+  const hasHL    = h.hl_price    != null;
+  const nights   = h.nights || 1;
+  const best     = h.best_platform || 'agoda';
+
+  // Helper: one compare row
+  function cmpRow(platform, price, isBest) {
+    if (price == null) return '';
+    const badge = isBest ? `<span class="hcard-cmp-badge">🏷 Best</span>` : '';
+    return `
+      <div class="hcard-cmp-row${isBest ? ' hcard-cmp-best' : ''}">
+        <span class="hcard-cmp-name">${platform}</span>
+        <div class="hcard-cmp-right">
+          <span class="hcard-cmp-price">$${Math.round(price)}/night</span>
+          ${badge}
         </div>
-        <div style="font-size:0.68rem;color:#6366f1;font-weight:600;margin-top:3px">Book on Agoda →</div>
       </div>`;
-  } else {
-    priceHtml = `<div style="margin-top:auto;padding-top:10px;border-top:1px solid #f3f4f6;font-size:0.78rem;color:#d1d5db">Price unavailable</div>`;
   }
 
-  return `
-    <a href="${h.booking_url || '#'}" target="_blank"
-       style="display:flex;flex-direction:column;background:#fff;border-radius:14px;overflow:hidden;
-              box-shadow:0 2px 12px rgba(0,0,0,0.07);text-decoration:none;color:inherit;
-              transition:transform 0.2s,box-shadow 0.2s;"
-       onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,0.13)'"
-       onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)'">
-      <div style="width:100%;height:${IMG_H};overflow:hidden;flex-shrink:0;position:relative">
-        ${imgContent}
+  let priceHtml = '';
+
+  if (!hasAgoda && !hasHL) {
+    priceHtml = '<div class="hcard-no-price">Price unavailable</div>';
+
+  } else if (hasHL && hasAgoda) {
+    // Two-platform comparison
+    const agodaBest = best === 'agoda';
+    const hlBest    = best === 'hotellook';
+    const totalStr  = h.total_price != null
+      ? `<div class="hcard-net">$${Math.round(h.total_price)} total for ${nights} night${nights !== 1 ? 's' : ''}</div>`
+      : '';
+    priceHtml = `
+      <div class="hcard-compare">
+        ${cmpRow('Agoda',     h.agoda_price, agodaBest)}
+        ${cmpRow('Hotellook', h.hl_price,    hlBest)}
       </div>
-      <div style="padding:13px 14px 14px;display:flex;flex-direction:column;flex:1">
-        ${starsHtml}
-        <div style="font-weight:700;font-size:0.88rem;color:#111827;line-height:1.35;margin-bottom:6px;
-                    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
-          ${h.name}
+      ${totalStr}`;
+
+  } else {
+    // Single platform
+    const price = hasAgoda ? h.agoda_price : h.hl_price;
+    const orig  = h.original_price
+      ? `<span class="hcard-orig">${escHtml(h.original_price)}</span>` : '';
+    const totalStr = h.total_price != null
+      ? `<div class="hcard-total">$${Math.round(h.total_price)} total for ${nights} night${nights !== 1 ? 's' : ''}</div>` : '';
+    priceHtml = `
+      <div class="hcard-price">
+        <div class="hcard-price-top">
+          ${orig}
+          <span class="hcard-main">$${Math.round(price)}</span>
+          <span class="hcard-per">/night</span>
         </div>
-        ${locHtml}
-        ${ratingHtml}
-        ${priceHtml}
+        ${totalStr}
+      </div>`;
+  }
+
+  // Book button label and URL
+  const bookLabel = best === 'hotellook' ? 'Book on Hotellook →' : 'Book on Agoda →';
+
+  return `
+    <div class="hcard">
+      <div class="hcard-photo">
+        ${imgHtml}
+        ${badgeHtml}
+        <button class="hcard-save" onclick="event.stopPropagation()" title="Save">♡</button>
       </div>
-    </a>`;
+      <div class="hcard-body">
+        ${starsHtml}
+        <a href="${url}" target="_blank" rel="noopener" class="hcard-name">${escHtml(h.name)}</a>
+        ${locHtml}
+        ${quoteHtml}
+        ${tagsHtml}
+        ${ratingHtml}
+        <hr class="hcard-divider">
+        ${priceHtml}
+        <a href="${url}" target="_blank" rel="noopener" class="hcard-book">${bookLabel}</a>
+      </div>
+    </div>`;
 }
 
 // ── Render: single hotel price table ─────────────────────────────────────────
@@ -386,8 +679,13 @@ async function loadRates() {
     const cfg = await res.json();
     const affEl = document.getElementById("agoda-affiliate-id");
     if (affEl) affEl.value = cfg.agoda_affiliate_id || "";
+    const tpEl = document.getElementById("tp-token");
+    if (tpEl) tpEl.value = cfg.travelpayouts_token || "";
+    const tpMark = document.getElementById("tp-marker");
+    if (tpMark) tpMark.value = cfg.travelpayouts_marker || "";
     setRateInput("rate-cc",        pct(cfg.credit_card_rate));
     setRateInput("rate-agoda",     pct(cfg.sites?.agoda?.rate));
+    setRateInput("rate-hotellook", pct(cfg.sites?.hotellook?.rate));
     setRateInput("rate-booking",   pct(cfg.sites?.booking?.rate));
     setRateInput("rate-priceline", pct(cfg.sites?.priceline?.rate));
   } catch (_) {}
@@ -395,10 +693,13 @@ async function loadRates() {
 
 btnSave.addEventListener("click", async () => {
   const payload = {
-    agoda_affiliate_id: val("agoda-affiliate-id"),
+    agoda_affiliate_id:    val("agoda-affiliate-id"),
+    travelpayouts_token:   val("tp-token"),
+    travelpayouts_marker:  val("tp-marker"),
     credit_card_rate: dec(val("rate-cc")),
     sites: {
       agoda:     { rate: dec(val("rate-agoda")) },
+      hotellook: { rate: dec(val("rate-hotellook")) },
       booking:   { rate: dec(val("rate-booking")) },
       priceline: { rate: dec(val("rate-priceline")) },
     },
@@ -431,13 +732,6 @@ function showStatus(msg, isErr = false) {
   statusDiv.style.display = msg ? "block" : "none";
 }
 
-(function setDefaultDates() {
-  const today    = new Date();
-  const checkin  = new Date(today); checkin.setDate(today.getDate() + 7);
-  const checkout = new Date(today); checkout.setDate(today.getDate() + 9);
-  const fmt = d => d.toISOString().split("T")[0];
-  document.getElementById("checkin").value  = fmt(checkin);
-  document.getElementById("checkout").value = fmt(checkout);
-})();
+// Default dates are set by datepicker.js on DOMContentLoaded
 
 loadRates();

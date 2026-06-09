@@ -58,7 +58,129 @@ def _aria_date(date_str: str) -> str:
     return datetime.strptime(date_str, "%Y-%m-%d").strftime("%a %b %d %Y")
 
 
-async def fetch_city_hotels(location: str, checkin: str, checkout: str, adults: int) -> list[dict]:
+# Extracts whatever hotel cards are currently visible in the DOM.
+# Called multiple times during incremental scroll to defeat Agoda's virtual-list rendering.
+_CARD_EXTRACT_JS = """() => {
+    const results = [];
+    const nameEls = document.querySelectorAll('[data-selenium="hotel-name"]');
+    function first(root, sels) {
+        for (const s of sels) { const e = root.querySelector(s); if (e) return e; }
+        return null;
+    }
+    for (const el of nameEls) {
+        const name = el.textContent.trim();
+        if (!name) continue;
+        let card = el.closest('[data-selenium="listItem"]')
+                || el.closest('[data-element-name="hotel-card"]')
+                || el.closest('li');
+        if (!card || !card.querySelector("[data-element-name='final-price']")) {
+            card = el;
+            for (let i = 0; i < 25; i++) {
+                card = card.parentElement;
+                if (!card) break;
+                if (card.querySelector("[data-element-name='final-price']")) break;
+            }
+        }
+        if (!card) continue;
+        const priceEl = card.querySelector("[data-element-name='final-price']");
+        if (!priceEl) continue;
+        const d = {name, priceText: priceEl.textContent.trim(),
+            href: null, imgUrl: null, rating: null, reviewLabel: null,
+            reviewCount: null, stars: null, location: null, originalPrice: null,
+            amenities: [], reviewSnippet: null};
+        const a = card.querySelector('a[href*="/hotel/"]') || el.closest('a');
+        d.href = a ? a.href : null;
+        const img = card.querySelector('img[src*="agoda"], img[src*="akamai"]')
+                 || card.querySelector('img[data-src]') || card.querySelector('img[src]');
+        d.imgUrl = img ? (img.src || img.getAttribute('data-src')) : null;
+        const ratingEl = first(card, [
+            '[data-element-name="review-score"]', '[data-selenium="review-score"]',
+            '[class*="ReviewScore__Score"]', '[class*="scoreValue"]', '[class*="score-text"]']);
+        if (ratingEl) { d.rating = ratingEl.textContent.trim(); }
+        else {
+            for (const leaf of card.querySelectorAll('span, div')) {
+                if (leaf.children.length === 0) {
+                    const t = leaf.textContent.trim();
+                    if (/^([6-9]\.[0-9]|10\.?0?)$/.test(t)) { d.rating = t; break; }
+                }
+            }
+        }
+        const labelEl = first(card, ['[data-element-name="review-score-word"]',
+            '[data-selenium="review-score-word"]', '[class*="ReviewWord"]', '[class*="review-score-word"]']);
+        if (labelEl) d.reviewLabel = labelEl.textContent.trim();
+        const cntEl = first(card, ['[data-element-name="review-count"]',
+            '[data-selenium="review-count"]', '[class*="ReviewCount"]', '[class*="review-count"]']);
+        if (cntEl) d.reviewCount = cntEl.textContent.replace(/[^0-9,]/g, '').trim();
+        const starWrap = card.querySelector('[aria-label*=" star"]');
+        if (starWrap) {
+            const m = starWrap.getAttribute('aria-label').match(/(\d+)/);
+            if (m) d.stars = Math.min(parseInt(m[1]), 5);
+        }
+        if (!d.stars) {
+            const filled = card.querySelectorAll(
+                '[class*="star"][class*="fill"]:not([class*="review"]),' +
+                '[class*="StarFull"]:not([class*="review"])');
+            if (filled.length >= 1 && filled.length <= 5) d.stars = filled.length;
+        }
+        const locEl = first(card, [
+            '[data-selenium="area-city-name"]', '[data-element-name="area-city-name"]',
+            '[class*="AreaCity"]', '[class*="area-city"]', '[class*="PropertyLocation"]',
+            '[class*="LocationText"]', '[class*="location-text"]', '[class*="locationInfo"]']);
+        if (locEl) { d.location = locEl.textContent.trim(); }
+        else {
+            const parent = el.parentElement;
+            if (parent) {
+                for (const sib of parent.querySelectorAll('span, a, div')) {
+                    if (sib === el || sib.contains(el)) continue;
+                    const t = sib.textContent.trim();
+                    if (t.length > 3 && t.length < 70 && !t.includes('$') && !t.includes('฿')
+                        && !/^\d+(\.\d+)?$/.test(t)
+                        && (t.includes(',') || /district|sukhumvit|silom|siam|sathorn|ploenchit|nana|asok|thonglor|ekkamai/i.test(t))) {
+                        d.location = t; break;
+                    }
+                }
+            }
+        }
+        const origEl = first(card, ['[data-element-name="strike-through-price"]',
+            '[class*="strike"]', '[class*="strikethrough"]', '[class*="crossedOut"]'])
+            || card.querySelector('[style*="line-through"]');
+        if (origEl) d.originalPrice = origEl.textContent.trim();
+        const amenityEls = card.querySelectorAll(
+            '[data-element-name="facility-highlight"],[class*="FacilityTag"],[class*="facility-tag"],' +
+            '[class*="HighlightedFacility"],[class*="FacilityItem"],[class*="amenityTag"]');
+        if (amenityEls.length > 0) {
+            d.amenities = Array.from(amenityEls)
+                .map(e => e.textContent.trim().replace(/\s+/g, ' '))
+                .filter(t => t && t.length > 1 && t.length < 35).slice(0, 3);
+        }
+        const snipEl = first(card, ['[data-element-name="review-snippet"]',
+            '[class*="ReviewSnippet"]', '[class*="GuestReviewText"]', '[class*="ReviewSummary"]']);
+        if (snipEl) {
+            const t = snipEl.textContent.trim().replace(/^["\\u201c\\u201d\\u2018\\u2019']+|["\\u201c\\u201d\\u2018\\u2019']+$/g, '');
+            if (t && t.length > 10 && t.length < 120) d.reviewSnippet = t;
+        }
+        results.push(d);
+    }
+    return results;
+}"""
+
+_TOTAL_COUNT_JS = """() => {
+    const candidates = [
+        document.querySelector('[data-element-name="total-hotel-found-label"]'),
+        document.querySelector('[data-selenium="searchResultHeroText"]'),
+        document.querySelector('[data-element-name="search-result-count"]'),
+        document.querySelector('[data-element-name="page-count-string"]'),
+    ];
+    for (const el of candidates) {
+        if (el) { const m = el.textContent.match(/[\d,]+/);
+            if (m) return parseInt(m[0].replace(/,/g, ''), 10); }
+    }
+    const m = document.body.innerText.match(/([\d,]+)\s+propert/i);
+    return m ? parseInt(m[1].replace(/,/g, ''), 10) : 0;
+}"""
+
+
+async def fetch_city_hotels(location: str, checkin: str, checkout: str, adults: int) -> dict:
     """Scrape Agoda city results page → return hotel list with prices and images."""
     city_url = build_search_url(None, location, checkin, checkout, adults)
     ci_label = _aria_date(checkin)
@@ -106,156 +228,53 @@ async def fetch_city_hotels(location: str, checkin: str, checkout: str, adults: 
             except Exception:
                 pass
 
-            # Scroll in multiple passes to trigger lazy-loaded cards
-            for frac in [0.3, 0.55, 0.75, 1.0]:
-                await page.evaluate(f"window.scrollTo(0, document.body.scrollHeight * {frac})")
+            # Incremental scroll-and-extract: Agoda uses React virtual/windowed rendering
+            # so cards outside the viewport are removed from the DOM. We must extract at
+            # each scroll position and deduplicate — never scroll back to top.
+            seen: dict[str, dict] = {}
+
+            def _accumulate(batch: list) -> None:
+                for h in batch:
+                    key = h.get("href") or h.get("name", "")
+                    if key and key not in seen:
+                        seen[key] = h
+
+            _accumulate(await page.evaluate(_CARD_EXTRACT_JS))
+
+            for step in range(30):
+                if len(seen) >= 60:
+                    break
+                at_bottom = await page.evaluate(
+                    "() => Math.ceil(window.scrollY + window.innerHeight)"
+                    " >= document.documentElement.scrollHeight - 300"
+                )
+                if at_bottom:
+                    break
+                prev = len(seen)
+                await page.evaluate("window.scrollBy(0, Math.floor(window.innerHeight * 0.8))")
                 await page.wait_for_timeout(1_300)
+                _accumulate(await page.evaluate(_CARD_EXTRACT_JS))
+                # If count stalled for 2+ steps, wait a bit longer for lazy content
+                if len(seen) == prev and step >= 2:
+                    await page.wait_for_timeout(900)
+                    _accumulate(await page.evaluate(_CARD_EXTRACT_JS))
+                    if len(seen) == prev:
+                        break  # truly no more content loading
 
-            hotels = await page.evaluate("""() => {
-                const results = [];
-                const nameEls = document.querySelectorAll('[data-selenium="hotel-name"]');
-
-                function first(root, selectors) {
-                    for (const sel of selectors) {
-                        const e = root.querySelector(sel);
-                        if (e) return e;
-                    }
-                    return null;
-                }
-
-                for (const el of nameEls) {
-                    const name = el.textContent.trim();
-                    if (!name) continue;
-
-                    // Use closest() to grab the full list-item card (all siblings included)
-                    let card = el.closest('[data-selenium="listItem"]')
-                            || el.closest('[data-element-name="hotel-card"]')
-                            || el.closest('li');
-
-                    // Fallback: walk up until an ancestor contains final-price
-                    if (!card || !card.querySelector("[data-element-name='final-price']")) {
-                        card = el;
-                        for (let i = 0; i < 25; i++) {
-                            card = card.parentElement;
-                            if (!card) break;
-                            if (card.querySelector("[data-element-name='final-price']")) break;
-                        }
-                    }
-                    if (!card) continue;
-
-                    const priceEl = card.querySelector("[data-element-name='final-price']");
-                    if (!priceEl) continue;
-
-                    const data = {name,
-                        priceText:     priceEl.textContent.trim(),
-                        href:          null, imgUrl:       null,
-                        rating:        null, reviewLabel:  null,
-                        reviewCount:   null, stars:        null,
-                        location:      null, originalPrice:null};
-
-                    // Hotel page link
-                    const a = card.querySelector('a[href*="/hotel/"]') || el.closest('a');
-                    data.href = a ? a.href : null;
-
-                    // Image
-                    const img = card.querySelector('img[src*="agoda"], img[src*="akamai"]')
-                             || card.querySelector('img[data-src]')
-                             || card.querySelector('img[src]');
-                    data.imgUrl = img ? (img.src || img.getAttribute('data-src')) : null;
-
-                    // Rating score
-                    const ratingEl = first(card, [
-                        '[data-element-name="review-score"]', '[data-selenium="review-score"]',
-                        '[class*="ReviewScore__Score"]', '[class*="review-score__score"]',
-                        '[class*="scoreValue"]', '[class*="score-text"]',
-                    ]);
-                    if (ratingEl) {
-                        data.rating = ratingEl.textContent.trim();
-                    } else {
-                        for (const leaf of card.querySelectorAll('span, div')) {
-                            if (leaf.children.length === 0) {
-                                const t = leaf.textContent.trim();
-                                if (/^([6-9]\.[0-9]|10\.?0?)$/.test(t)) { data.rating = t; break; }
-                            }
-                        }
-                    }
-
-                    // Review label
-                    const labelEl = first(card, [
-                        '[data-element-name="review-score-word"]', '[data-selenium="review-score-word"]',
-                        '[class*="ReviewWord"]', '[class*="review-score-word"]',
-                    ]);
-                    if (labelEl) data.reviewLabel = labelEl.textContent.trim();
-
-                    // Review count
-                    const countEl = first(card, [
-                        '[data-element-name="review-count"]', '[data-selenium="review-count"]',
-                        '[class*="ReviewCount"]', '[class*="review-count"]',
-                    ]);
-                    if (countEl) data.reviewCount = countEl.textContent.replace(/[^0-9,]/g, '').trim();
-
-                    // Stars — aria-label first ("5 stars"), then filled SVG count
-                    const starWrap = card.querySelector('[aria-label*=" star"]');
-                    if (starWrap) {
-                        const m = starWrap.getAttribute('aria-label').match(/(\d+)/);
-                        if (m) data.stars = Math.min(parseInt(m[1]), 5);
-                    }
-                    if (!data.stars) {
-                        const filled = card.querySelectorAll(
-                            '[class*="star"][class*="fill"]:not([class*="review"]),' +
-                            '[class*="StarFull"]:not([class*="review"])');
-                        if (filled.length >= 1 && filled.length <= 5) data.stars = filled.length;
-                    }
-
-                    // Location — data-selenium first (most stable), then class-based
-                    const locEl = first(card, [
-                        '[data-selenium="area-city-name"]',
-                        '[data-element-name="area-city-name"]',
-                        '[class*="AreaCity"]', '[class*="area-city"]',
-                        '[class*="PropertyLocation"]', '[class*="property-location"]',
-                        '[class*="LocationText"]', '[class*="location-text"]',
-                        '[class*="locationInfo"]',
-                    ]);
-                    if (locEl) {
-                        data.location = locEl.textContent.trim();
-                    } else {
-                        // Sibling text scan near hotel name: short text with comma or area keyword
-                        const parent = el.parentElement;
-                        if (parent) {
-                            for (const sib of parent.querySelectorAll('span, a, div')) {
-                                if (sib === el || sib.contains(el)) continue;
-                                const t = sib.textContent.trim();
-                                if (t.length > 3 && t.length < 70
-                                    && !t.includes('$') && !t.includes('฿')
-                                    && !/^\d+(\.\d+)?$/.test(t)
-                                    && (t.includes(',') || /district|sukhumvit|silom|siam|sathorn|ploenchit|nana|asok|thonglor|ekkamai|ratchada/i.test(t))) {
-                                    data.location = t;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    // Strikethrough original price
-                    const origEl = first(card, [
-                        '[data-element-name="strike-through-price"]',
-                        '[class*="strike"]', '[class*="strikethrough"]', '[class*="crossedOut"]',
-                    ]) || card.querySelector('[style*="line-through"]');
-                    if (origEl) data.originalPrice = origEl.textContent.trim();
-
-                    results.push(data);
-                    if (results.length >= 40) break;
-                }
-                return results;
-            }""")
+            total_count: int = (await page.evaluate(_TOTAL_COUNT_JS)) or 0
 
             # Parse prices from priceText strings
             parsed = []
-            for h in hotels:
+            for h in seen.values():
                 pt = h.get("priceText", "").replace("\xa0", "").replace(" ", "")
                 prices = _extract_usd(pt) or _extract_thb_as_usd(pt)
-                parsed.append({**h, "price": min(prices) if prices else None})
-            return parsed
+                parsed.append({
+                    **h,
+                    "price":         min(prices) if prices else None,
+                    "amenities":     h.get("amenities") or [],
+                    "reviewSnippet": h.get("reviewSnippet"),
+                })
+            return {"hotels": parsed, "total_count": total_count}
 
         finally:
             await browser.close()
