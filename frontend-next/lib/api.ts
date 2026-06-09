@@ -19,6 +19,7 @@ export interface CitySearchParams {
   offset?: number;
   limit?: number;
   force_refresh?: boolean;
+  hotel_name?: string;
 }
 
 export async function searchCity(params: CitySearchParams): Promise<CitySearchResponse> {

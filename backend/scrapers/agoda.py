@@ -34,7 +34,7 @@ def _city_slug(location: str, hotel_name: str = "") -> str:
         if keyword in combined:
             cc = code
             break
-    city_str = location.split(",")[0].strip()
+    city_str = location.split(",")[0].strip().lower()
     if not city_str:
         for keyword in _COUNTRY_CODES:
             if keyword in (hotel_name or "").lower():
@@ -44,7 +44,18 @@ def _city_slug(location: str, hotel_name: str = "") -> str:
     return f"{city_str.replace(' ', '-')}-{cc}"
 
 
-def build_search_url(hotel_name: str | None, location: str, checkin: str, checkout: str, adults: int) -> str:
+def build_search_url(hotel_name: str | None, location: str, checkin: str, checkout: str, adults: int,
+                     text_search: str = "") -> str:
+    from urllib.parse import quote_plus
+    if text_search:
+        # Hotel-name search: use Agoda's search page with searchText — returns hotel-specific results
+        # regardless of rank, unlike the city page which only shows the top ~60 by popularity.
+        return (
+            f"https://www.agoda.com/search"
+            f"?checkIn={checkin}&checkOut={checkout}"
+            f"&adults={adults}&rooms=1&currencyCode=USD"
+            f"&priceCur=USD&searchText={quote_plus(text_search)}"
+        )
     slug = _city_slug(location, hotel_name or "")
     return (
         f"https://www.agoda.com/city/{slug}.html"
@@ -180,8 +191,36 @@ _TOTAL_COUNT_JS = """() => {
 }"""
 
 
-async def fetch_city_hotels(location: str, checkin: str, checkout: str, adults: int) -> dict:
-    """Scrape Agoda city results page → return hotel list with prices and images."""
+def _name_match_score(query: str, hotel_name: str) -> float:
+    """Word overlap score 0-1 between query tokens and hotel name tokens."""
+    stop = {"hotel", "hotels", "the", "a", "an", "by", "at", "in", "and", "&",
+            "resort", "spa", "inn", "suite", "suites", "grand", "royal"}
+    def tokens(s: str):
+        words = _re.sub(r"[^a-z0-9 ]", "", s.lower()).split()
+        return {w for w in words if w not in stop and len(w) > 1}
+    qa, qb = tokens(query), tokens(hotel_name)
+    if not qa or not qb:
+        return 0.0
+    return len(qa & qb) / max(len(qa), len(qb))
+
+
+def _distinctive_name(hotel_name: str, city: str) -> str:
+    """Extract the distinctive part of a hotel name for Agoda searchText.
+    Removes city words and generic terms so 'Amara Bangkok Hotel' → 'Amara'
+    and 'Citin Sukhumvit 11 Nana Bangkok' → 'Citin Sukhumvit 11 Nana'.
+    """
+    generic = {"hotel", "hotels", "resort", "resorts", "inn", "suites", "suite",
+               "lodge", "hostel", "motel", "boutique", "palace", "the", "a", "an"}
+    city_words = {w.lower() for w in city.split()}
+    # Strip "by Brand" suffix first
+    name = _re.sub(r'\s+by\s+.*$', '', hotel_name, flags=_re.IGNORECASE).strip()
+    kept = [w for w in name.split() if w.lower() not in (generic | city_words)]
+    return ' '.join(kept[:5]) if kept else hotel_name
+
+
+async def fetch_city_hotels(location: str, checkin: str, checkout: str, adults: int,
+                            hotel_name: str = "") -> dict:
+    """Scrape Agoda city results page → return hotel list sorted by name match if hotel_name given."""
     city_url = build_search_url(None, location, checkin, checkout, adults)
     ci_label = _aria_date(checkin)
     co_label = _aria_date(checkout)
@@ -274,6 +313,10 @@ async def fetch_city_hotels(location: str, checkin: str, checkout: str, adults: 
                     "amenities":     h.get("amenities") or [],
                     "reviewSnippet": h.get("reviewSnippet"),
                 })
+            # When searching by hotel name, sort best name-matches first
+            if hotel_name and parsed:
+                parsed.sort(key=lambda h: _name_match_score(hotel_name, h.get("name", "")), reverse=True)
+
             return {"hotels": parsed, "total_count": total_count}
 
         finally:

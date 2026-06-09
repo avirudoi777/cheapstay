@@ -245,7 +245,7 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
     debounceRef.current = setTimeout(async () => {
       const items = await getSuggestions(q);
       setSuggestions(items);
-      setShowSug(items.length > 0);
+      setShowSug(true); // always show — even with 0 suggestions, shows "Search anyway" row
     }, 350);
   }, []);
 
@@ -306,14 +306,14 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
               className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-gray-200 text-sm font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-all" />
           </div>
 
-          {/* Suggestions */}
-          {showSug && suggestions.length > 0 && (
+          {/* Suggestions dropdown */}
+          {showSug && (
             <ul className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
               {suggestions.slice(0, 8).map((s, i) => (
                 <li key={i}>
                   <button type="button" onClick={() => pickSuggestion(s)}
                     className="w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left">
-                    <span className="text-lg mt-0.5">{s.is_city ? '🏙️' : '🏨'}</span>
+                    <span className="text-lg mt-0.5 flex-shrink-0">{s.is_city ? '🏙️' : '🏨'}</span>
                     <div>
                       <div className="text-sm font-semibold text-navy">{s.name}</div>
                       {(s.city || s.country) && (
@@ -323,6 +323,19 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
                   </button>
                 </li>
               ))}
+              {/* "Search anyway" row — submit the form immediately */}
+              {query.trim().length >= 3 && (
+                <li>
+                  <button type="submit"
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-teal/5 border-t border-gray-100 transition-colors text-left">
+                    <span className="text-lg flex-shrink-0">🔍</span>
+                    <div>
+                      <div className="text-sm font-semibold text-navy">Search &ldquo;{query.trim()}&rdquo;</div>
+                      <div className="text-xs text-gray-400">Find the best price for this hotel</div>
+                    </div>
+                  </button>
+                </li>
+              )}
             </ul>
           )}
         </div>

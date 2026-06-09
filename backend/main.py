@@ -189,29 +189,59 @@ async def suggest(q: str, location: str = ""):
     import httpx
     _HOTEL_TYPES = {"hotel", "house", "tourism", "hostel", "motel", "guest_house"}
     _CITY_TYPES  = {"city", "town", "village", "district", "county", "state"}
+    config = load_config()
+    hl_token = config.get("travelpayouts_token", "").strip()
 
-    async def _photon(query: str, limit: int = 8):
+    async def _photon(query: str, limit: int = 8, osm_tag: str = ""):
         try:
+            params: dict = {"q": query, "limit": limit, "lang": "en"}
+            if osm_tag:
+                params["osm_tag"] = osm_tag
             async with httpx.AsyncClient(
                 headers={"User-Agent": "Mozilla/5.0 hotel-price-checker/1.0"},
                 timeout=8,
             ) as c:
-                r = await c.get(
-                    "https://photon.komoot.io/api/",
-                    params={"q": query, "limit": limit, "lang": "en"},
-                )
+                r = await c.get("https://photon.komoot.io/api/", params=params)
                 return r.json().get("features", [])
         except Exception:
             return []
 
-    # Run both queries in parallel — one biased toward hotels, one bare for cities
-    hotel_features, city_features = await asyncio.gather(
-        _photon(f"{q} {location} hotel"),
+    async def _hotellook_hotels(query: str, limit: int = 6) -> list[dict]:
+        """Hotel name autocomplete via Hotellook lookup — returns hotel suggestions."""
+        if not hl_token:
+            return []
+        try:
+            async with httpx.AsyncClient(timeout=5) as c:
+                r = await c.get(
+                    "https://engine.hotellook.com/api/v2/lookup.json",
+                    params={"query": query, "lang": "en", "lookFor": "hotel",
+                            "limit": limit, "token": hl_token},
+                )
+                if r.status_code != 200:
+                    return []
+                items = r.json().get("results", {}).get("hotels", [])
+                return [
+                    {
+                        "name": h.get("label") or h.get("name", ""),
+                        "city": h.get("cityName") or h.get("location", {}).get("name", ""),
+                        "country": h.get("countryName", ""),
+                        "is_city": False,
+                    }
+                    for h in items if h.get("label") or h.get("name")
+                ]
+        except Exception:
+            return []
+
+    # Run all queries in parallel: city bare, hotel-tagged OSM, Hotellook hotels
+    city_features, hotel_features, hl_suggestions = await asyncio.gather(
         _photon(f"{q} {location}"),
+        _photon(q, limit=10, osm_tag="tourism:hotel"),
+        _hotellook_hotels(q),
     )
 
     seen, results = set(), []
 
+    # Cities first
     for feature in city_features:
         p = feature.get("properties", {})
         osm_val = p.get("osm_value") or p.get("type") or ""
@@ -221,6 +251,14 @@ async def suggest(q: str, location: str = ""):
             seen.add(name)
             results.append({"name": name, "city": name, "country": country, "is_city": True})
 
+    # Hotellook hotel suggestions (most comprehensive hotel database)
+    for h in hl_suggestions:
+        name = h["name"]
+        if name and name not in seen:
+            seen.add(name)
+            results.append(h)
+
+    # OSM hotel features
     for feature in hotel_features:
         p = feature.get("properties", {})
         osm_val = p.get("osm_value") or p.get("type") or ""
@@ -242,11 +280,15 @@ class CitySearchRequest(BaseModel):
     offset: int = 0
     limit: int = 20
     force_refresh: bool = False
+    hotel_name: str | None = None  # set when user searched for a specific hotel
 
 
 async def _fetch_agoda_city(req: CitySearchRequest) -> dict:
     async with _scrape_sem:
-        return await agoda.fetch_city_hotels(req.location, req.checkin, req.checkout, req.adults)
+        return await agoda.fetch_city_hotels(
+            req.location, req.checkin, req.checkout, req.adults,
+            hotel_name=req.hotel_name or "",
+        )
 
 
 _CITY_CACHE_KEY = "__city__"
@@ -259,8 +301,10 @@ async def search_city(req: CitySearchRequest):
     hl_token = config.get("travelpayouts_token", "").strip()
     hl_mark  = config.get("travelpayouts_marker", "").strip()
 
-    # Return cached slice if available (offset > 0 always uses cache)
-    if not req.force_refresh or req.offset > 0:
+    # Return cached slice if available.
+    # Skip cache for hotel-name searches — cached city results aren't sorted by hotel match.
+    use_cache = (not req.force_refresh) and (not req.hotel_name) or req.offset > 0
+    if use_cache:
         cached = await search_cache.get(_CITY_CACHE_KEY, req.location, req.checkin, req.checkout, req.adults)
         if cached is not None:
             all_hotels  = cached["hotels"]
@@ -290,6 +334,13 @@ async def search_city(req: CitySearchRequest):
             req.location, req.checkin, req.checkout, req.adults, hl_token, hl_mark
         )
         if hl_hotels:
+            # Sort by hotel name match if user searched for a specific hotel
+            if req.hotel_name:
+                hl_hotels = sorted(
+                    hl_hotels,
+                    key=lambda h: agoda._name_match_score(req.hotel_name, h.get("name", "")),
+                    reverse=True,
+                )
             results = []
             for idx, h in enumerate(hl_hotels):
                 stars = h.get("stars")

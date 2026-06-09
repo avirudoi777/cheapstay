@@ -59,8 +59,11 @@ export default function HomePage() {
       // Hotel mode with no stored city — user typed a hotel name without picking from autocomplete.
       // Extract the city by querying progressively shorter terms (city is usually at the end).
       if (v.mode === 'hotel' && !v.location) {
+        const SKIP = new Set(['hotel', 'hotels', 'resort', 'resorts', 'inn', 'suites',
+                              'suite', 'lodge', 'hostel', 'motel', 'boutique', 'palace']);
         const stripped = v.query.replace(/\s+by\s+.*/i, '').trim();
-        const words = stripped.split(/\s+/).filter(w => w.length > 1 && !/^\d+$/.test(w));
+        const words = stripped.split(/\s+/)
+          .filter(w => w.length > 1 && !/^\d+$/.test(w) && !SKIP.has(w.toLowerCase()));
         // Candidates: last word, last 2 words, 2nd-to-last word, full stripped name
         const candidates = [
           words[words.length - 1],
@@ -83,6 +86,11 @@ export default function HomePage() {
         }
       }
 
+      // When searching by hotel name, pass it so the backend can sort by name match
+      const hotelNameParam = v.mode === 'hotel'
+        ? v.query.replace(/\s+by\s+.*/i, '').trim()  // strip "by Brand" suffix
+        : undefined;
+
       const resp = await searchCity({
         location: searchLocation,
         checkin: v.checkin,
@@ -91,6 +99,7 @@ export default function HomePage() {
         offset: 0,
         limit: 20,
         force_refresh: v.forceRefresh,
+        hotel_name: hotelNameParam,
       });
       if (!resp.hotels?.length) {
         setError('No hotels found. Try different dates or destination.');
