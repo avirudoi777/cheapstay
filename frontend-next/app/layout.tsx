@@ -24,6 +24,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="icon" type="image/png" href="/s_logo.png" />
         <link rel="apple-touch-icon" href="/s_logo.png" />
+        {/* Travelpayouts Drive — affiliate tracking & verification */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var s=document.createElement("script");s.async=1;s.src='https://tpembars.com/NTM3ODAy.js?t=537802';document.head.appendChild(s);})();` }} />
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <header className="bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
