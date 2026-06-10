@@ -1,41 +1,22 @@
-import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+// Lightweight middleware — auth checks happen client-side via Supabase browser client.
+// Only redirect /account if no session cookie present (rough check, not cryptographic).
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll(); },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options));
-        },
-      },
-    },
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // Redirect unauthenticated users away from protected routes
-  if (!user && request.nextUrl.pathname.startsWith('/account')) {
-    return NextResponse.redirect(new URL('/auth/login', request.url));
+  if (pathname.startsWith('/account')) {
+    const hasSession = request.cookies.getAll().some(c =>
+      c.name.includes('auth-token') || c.name.includes('sb-')
+    );
+    if (!hasSession) {
+      return NextResponse.redirect(new URL('/auth/login', request.url));
+    }
   }
 
-  // Redirect logged-in users away from auth pages
-  if (user && (request.nextUrl.pathname.startsWith('/auth/login') ||
-               request.nextUrl.pathname.startsWith('/auth/signup'))) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
-
-  return supabaseResponse;
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: ['/account/:path*'],
 };
