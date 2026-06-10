@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { FilterState } from '@/lib/types';
 import { EMPTY_FILTERS } from '@/lib/types';
 
@@ -8,6 +8,87 @@ const tog = (set: Set<number>, v: number): Set<number> => {
   s.has(v) ? s.delete(v) : s.add(v);
   return s;
 };
+
+const BUDGET_MAX = 1000;
+
+function BudgetSlider({ min, max, onMin, onMax }: {
+  min: number; max: number;
+  onMin: (v: number) => void; onMax: (v: number) => void;
+}) {
+  const minPct = (min / BUDGET_MAX) * 100;
+  const maxVal = max >= Infinity ? BUDGET_MAX : Math.min(max, BUDGET_MAX);
+  const maxPct = (maxVal / BUDGET_MAX) * 100;
+
+  return (
+    <div className="pt-2 pb-1">
+      {/* Labels */}
+      <div className="flex justify-between mb-3">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-center min-w-[72px]">
+          <div className="text-[10px] text-gray-400 font-medium">Min</div>
+          <div className="text-sm font-bold text-navy">${min}</div>
+        </div>
+        <div className="flex items-center text-gray-300 text-lg font-light">—</div>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-center min-w-[72px]">
+          <div className="text-[10px] text-gray-400 font-medium">Max</div>
+          <div className="text-sm font-bold text-navy">{max >= Infinity ? 'Any' : `$${max}`}</div>
+        </div>
+      </div>
+
+      {/* Slider track */}
+      <div className="relative h-10 flex items-center select-none">
+        {/* Background track */}
+        <div className="absolute w-full h-1.5 bg-gray-200 rounded-full" />
+        {/* Active range */}
+        <div className="absolute h-1.5 rounded-full"
+          style={{
+            left: `${minPct}%`,
+            right: `${100 - maxPct}%`,
+            background: 'linear-gradient(90deg, #00C9B1, #1A73E8)',
+          }} />
+        {/* Min thumb input */}
+        <input
+          type="range" min={0} max={BUDGET_MAX} step={10} value={min}
+          onChange={e => {
+            const v = Math.min(Number(e.target.value), maxVal - 10);
+            onMin(Math.max(0, v));
+          }}
+          className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer
+            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
+            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white
+            [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-teal
+            [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer
+            [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110
+            [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full
+            [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-teal
+            [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer"
+          style={{ zIndex: min >= BUDGET_MAX - 100 ? 5 : 3 }}
+        />
+        {/* Max thumb input */}
+        <input
+          type="range" min={0} max={BUDGET_MAX} step={10} value={maxVal}
+          onChange={e => {
+            const v = Math.max(Number(e.target.value), min + 10);
+            onMax(v >= BUDGET_MAX ? Infinity : v);
+          }}
+          className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer
+            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
+            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white
+            [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-teal
+            [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer
+            [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110
+            [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full
+            [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-teal
+            [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer"
+          style={{ zIndex: 4 }}
+        />
+      </div>
+      <div className="flex justify-between text-[10px] text-gray-400 mt-1 font-medium">
+        <span>$0</span>
+        <span>${BUDGET_MAX}+</span>
+      </div>
+    </div>
+  );
+}
 
 function Section({ title, badge = 0, children }: { title: string; badge?: number; children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
@@ -52,11 +133,14 @@ interface FilterSidebarProps {
 }
 
 export default function FilterSidebar({ filters, onChange, totalResults }: FilterSidebarProps) {
+  const searchRef = useRef<HTMLInputElement>(null);
+
   const active =
     (filters.sort !== 'best' ? 1 : 0) +
     filters.stars.size +
     (filters.minRating > 0 ? 1 : 0) +
-    (filters.minPrice > 0 || filters.maxPrice < Infinity ? 1 : 0);
+    (filters.minPrice > 0 || filters.maxPrice < Infinity ? 1 : 0) +
+    (filters.hotelSearch ? 1 : 0);
 
   const upd = (patch: Partial<FilterState>) => onChange({ ...filters, ...patch });
 
@@ -79,6 +163,34 @@ export default function FilterSidebar({ filters, onChange, totalResults }: Filte
       {/* Body */}
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent' }}>
 
+        {/* Hotel name search */}
+        <Section title="Search by name" badge={filters.hotelSearch ? 1 : 0}>
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+            </svg>
+            <input
+              ref={searchRef}
+              type="text"
+              placeholder="e.g. Marriott, Hilton…"
+              value={filters.hotelSearch}
+              onChange={e => upd({ hotelSearch: e.target.value })}
+              className="w-full pl-9 pr-8 py-2.5 border border-gray-200 rounded-xl text-sm
+                focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal
+                placeholder:text-gray-300 transition-all"
+            />
+            {filters.hotelSearch && (
+              <button onClick={() => { upd({ hotelSearch: '' }); searchRef.current?.focus(); }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-navy transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </Section>
+
         {/* Sort */}
         <Section title="Sort by" badge={filters.sort !== 'best' ? 1 : 0}>
           {([
@@ -93,21 +205,12 @@ export default function FilterSidebar({ filters, onChange, totalResults }: Filte
 
         {/* Budget */}
         <Section title="Budget per night" badge={filters.minPrice > 0 || filters.maxPrice < Infinity ? 1 : 0}>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
-              <input type="number" placeholder="0" min={0} value={filters.minPrice || ''}
-                onChange={e => upd({ minPrice: Number(e.target.value) || 0 })}
-                className="w-full pl-6 pr-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal" />
-            </div>
-            <span className="text-gray-300 text-sm">–</span>
-            <div className="flex-1 relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
-              <input type="number" placeholder="any" min={0} value={filters.maxPrice === Infinity ? '' : filters.maxPrice}
-                onChange={e => upd({ maxPrice: e.target.value ? Number(e.target.value) : Infinity })}
-                className="w-full pl-6 pr-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal" />
-            </div>
-          </div>
+          <BudgetSlider
+            min={filters.minPrice}
+            max={filters.maxPrice}
+            onMin={v => upd({ minPrice: v })}
+            onMax={v => upd({ maxPrice: v })}
+          />
         </Section>
 
         {/* Star rating */}

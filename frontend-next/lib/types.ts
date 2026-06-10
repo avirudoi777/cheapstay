@@ -43,6 +43,7 @@ export interface FilterState {
   minRating: number;
   minPrice: number;
   maxPrice: number;
+  hotelSearch: string;
 }
 
 export const EMPTY_FILTERS: FilterState = {
@@ -51,4 +52,5 @@ export const EMPTY_FILTERS: FilterState = {
   minRating: 0,
   minPrice: 0,
   maxPrice: Infinity,
+  hotelSearch: '',
 };

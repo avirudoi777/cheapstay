@@ -9,12 +9,14 @@ import { EMPTY_FILTERS } from '@/lib/types';
 const CITY_PAGE = 20;
 
 function applyFilters(hotels: Hotel[], f: FilterState): Hotel[] {
+  const nameQ = f.hotelSearch.trim().toLowerCase();
   let list = hotels.filter(h => {
     if (f.stars.size > 0 && !f.stars.has(h.stars ?? 0)) return false;
     const p = h.price;
     if (f.minPrice > 0 && p != null && p < f.minPrice) return false;
     if (f.maxPrice < Infinity && p != null && p > f.maxPrice) return false;
     if (f.minRating > 0 && (!parseFloat(h.rating ?? '') || parseFloat(h.rating ?? '') < f.minRating)) return false;
+    if (nameQ && !h.name.toLowerCase().includes(nameQ)) return false;
     return true;
   });
   if (f.sort === 'price_asc') list = [...list].sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
