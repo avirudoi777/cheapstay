@@ -1,6 +1,9 @@
 'use client';
+import { useState } from 'react';
 import Image from 'next/image';
 import type { Hotel } from '@/lib/types';
+import AuthModal from './AuthModal';
+import { createClient } from '@/lib/supabase/client';
 
 function ratingLabel(score: string | null): string {
   const n = parseFloat(score ?? '');
@@ -41,11 +44,31 @@ function PriceRow({ platform, price, isBest }: PriceRowProps) {
 }
 
 export default function HotelCard({ h }: { h: Hotel }) {
+  const [showAuth, setShowAuth] = useState(false);
   const url = h.booking_url ?? '#';
   const hasAgoda = h.agoda_price != null;
   const hasHL = h.hl_price != null;
   const nights = h.nights || 1;
   const best = h.best_platform || 'agoda';
+
+  async function handleBook(e: React.MouseEvent) {
+    e.preventDefault();
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setShowAuth(true);
+      return;
+    }
+    // Log booking click then open URL
+    await supabase.from('booking_clicks').insert({
+      user_id: user.id,
+      hotel_name: h.name,
+      platform: best,
+      price: h.price,
+      destination: h.location,
+    });
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col">
@@ -136,12 +159,19 @@ export default function HotelCard({ h }: { h: Hotel }) {
             <p className="text-xs text-gray-400">${Math.round(h.total_price)} total for {nights} night{nights !== 1 ? 's' : ''}</p>
           )}
 
-          <a href={url} target="_blank" rel="noopener noreferrer"
-            className="block text-center text-sm font-semibold text-white bg-navy hover:bg-navy-light rounded-xl py-2.5 transition-colors mt-2">
+          <button onClick={handleBook}
+            className="w-full text-center text-sm font-semibold text-white bg-navy hover:bg-navy-light rounded-xl py-2.5 transition-colors mt-2">
             {best === 'hotellook' ? 'Book on Hotellook →' : 'Book on Agoda →'}
-          </a>
+          </button>
         </div>
       </div>
+
+      <AuthModal
+        open={showAuth}
+        onClose={() => setShowAuth(false)}
+        onContinue={() => { setShowAuth(false); window.open(url, '_blank', 'noopener,noreferrer'); }}
+        hotelName={h.name}
+      />
     </div>
   );
 }
