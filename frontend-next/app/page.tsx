@@ -7,13 +7,22 @@ import { searchCity, getSuggestions } from '@/lib/api';
 import type { CitySearchResponse } from '@/lib/types';
 
 const DESTINATIONS = [
-  { city: 'Bangkok',   country: 'Thailand',  flag: '🇹🇭' },
-  { city: 'Bali',      country: 'Indonesia', flag: '🇮🇩' },
-  { city: 'Tokyo',     country: 'Japan',     flag: '🇯🇵' },
-  { city: 'Dubai',     country: 'UAE',       flag: '🇦🇪' },
-  { city: 'Singapore', country: 'Singapore', flag: '🇸🇬' },
-  { city: 'Paris',     country: 'France',    flag: '🇫🇷' },
+  { city: 'Bangkok',   country: 'Thailand',  flag: '🇹🇭', img: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=400&h=200&fit=crop&auto=format' },
+  { city: 'Bali',      country: 'Indonesia', flag: '🇮🇩', img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400&h=200&fit=crop&auto=format' },
+  { city: 'Tokyo',     country: 'Japan',     flag: '🇯🇵', img: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=200&fit=crop&auto=format' },
+  { city: 'Dubai',     country: 'UAE',       flag: '🇦🇪', img: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=200&fit=crop&auto=format' },
+  { city: 'Singapore', country: 'Singapore', flag: '🇸🇬', img: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=400&h=200&fit=crop&auto=format' },
+  { city: 'Paris',     country: 'France',    flag: '🇫🇷', img: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=200&fit=crop&auto=format' },
 ];
+
+function defaultDates() {
+  const checkin = new Date();
+  checkin.setDate(checkin.getDate() + 7);
+  const checkout = new Date(checkin);
+  checkout.setDate(checkout.getDate() + 1);
+  const fmt = (d: Date) => d.toISOString().split('T')[0];
+  return { checkin: fmt(checkin), checkout: fmt(checkout) };
+}
 
 const STATS = [
   { icon: '🏨', value: '500,000+',       label: 'Hotels worldwide' },
@@ -186,14 +195,27 @@ export default function HomePage() {
           <>
             <section className="py-8">
               <h2 className="text-xl font-bold text-navy mb-4">Popular Destinations</h2>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {DESTINATIONS.map(d => (
-                  <a key={d.city} href={`/hotels/${d.city.toLowerCase()}`}
-                    className="bg-white rounded-2xl p-4 text-center border border-gray-100 hover:border-teal hover:shadow-md transition-all group cursor-pointer">
-                    <div className="text-3xl mb-1.5">{d.flag}</div>
-                    <div className="text-sm font-semibold text-navy group-hover:text-teal transition-colors">{d.city}</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">{d.country}</div>
-                  </a>
+                  <button
+                    key={d.city}
+                    onClick={() => {
+                      const { checkin, checkout } = defaultDates();
+                      handleSearch({ query: d.city, location: d.city, mode: 'city', checkin, checkout, adults: 2, rooms: 1, forceRefresh: false });
+                    }}
+                    className="relative overflow-hidden rounded-2xl h-28 sm:h-32 group cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-105 text-left"
+                  >
+                    {/* Photo */}
+                    <img src={d.img} alt={d.city} className="absolute inset-0 w-full h-full object-cover" />
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                    {/* Text */}
+                    <div className="absolute bottom-0 left-0 right-0 p-2.5 text-white">
+                      <div className="text-base leading-none mb-0.5">{d.flag}</div>
+                      <div className="text-sm font-bold leading-tight">{d.city}</div>
+                      <div className="text-[10px] text-white/70">{d.country}</div>
+                    </div>
+                  </button>
                 ))}
               </div>
             </section>
