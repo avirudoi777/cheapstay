@@ -235,7 +235,10 @@ async def fetch_city_hotels(location: str, checkin: str, checkout: str, adults: 
     }
 
     async with async_playwright() as pw:
-        launch_opts: dict = {"headless": True}
+        launch_opts: dict = {
+            "headless": True,
+            "args": ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+        }
         if _PROXY:
             launch_opts["proxy"] = {"server": _PROXY}
         browser = await pw.chromium.launch(**launch_opts)

@@ -37,7 +37,10 @@ async def fetch_cheapest(
     Runs locally so it inherits your system VPN — Thai IP for Agoda automatically.
     """
     async with async_playwright() as pw:
-        launch_opts: dict = {"headless": True}
+        launch_opts: dict = {
+            "headless": True,
+            "args": ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+        }
         if _PROXY:
             launch_opts["proxy"] = {"server": _PROXY}
         browser = await pw.chromium.launch(**launch_opts)
