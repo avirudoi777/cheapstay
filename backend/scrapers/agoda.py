@@ -1,7 +1,7 @@
 import re as _re
 from datetime import datetime
 from playwright.async_api import async_playwright
-from .browser import _extract_usd, _extract_thb_as_usd
+from .browser import _extract_usd, _extract_thb_as_usd, _PROXY
 
 _COUNTRY_CODES = {
     "bangkok": "th", "phuket": "th", "chiangmai": "th", "chiang mai": "th",
@@ -235,7 +235,10 @@ async def fetch_city_hotels(location: str, checkin: str, checkout: str, adults: 
     }
 
     async with async_playwright() as pw:
-        browser = await pw.chromium.launch(headless=True)
+        launch_opts: dict = {"headless": True}
+        if _PROXY:
+            launch_opts["proxy"] = {"server": _PROXY}
+        browser = await pw.chromium.launch(**launch_opts)
         ctx = await browser.new_context(**ctx_kwargs)
         await ctx.add_init_script("Object.defineProperty(navigator,'webdriver',{get:()=>undefined})")
         page = await ctx.new_page()
