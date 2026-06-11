@@ -1,9 +1,13 @@
 """
 Shared Playwright browser fetcher.
-Runs a real local Chromium instance — uses your system VPN automatically.
+Uses THAI_PROXY env var (socks5://user:pass@host:port) when set,
+otherwise falls back to the system network (your local VPN).
 """
+import os
 import re
 from playwright.async_api import async_playwright
+
+_PROXY = os.environ.get("THAI_PROXY", "").strip() or None
 try:
     from playwright_stealth import stealth_async
     _STEALTH = True
@@ -33,7 +37,10 @@ async def fetch_cheapest(
     Runs locally so it inherits your system VPN — Thai IP for Agoda automatically.
     """
     async with async_playwright() as pw:
-        browser = await pw.chromium.launch(headless=True)
+        launch_opts: dict = {"headless": True}
+        if _PROXY:
+            launch_opts["proxy"] = {"server": _PROXY}
+        browser = await pw.chromium.launch(**launch_opts)
         ctx = await browser.new_context(
             user_agent=(
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "

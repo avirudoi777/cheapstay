@@ -2,29 +2,36 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import SettingsModal from './SettingsModal';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
-const SettingsIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-    <circle cx="12" cy="12" r="3"/>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-  </svg>
-);
 
 export default function HeaderClient() {
   const router = useRouter();
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [user, setUser]                 = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [avatarUrl, setAvatarUrl]       = useState('');
   const [menuOpen, setMenuOpen]         = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    async function loadUser(u: import('@supabase/supabase-js').User) {
+      const meta = u.user_metadata ?? {};
+      const fallback = meta.avatar_url || meta.picture || '';
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('avatar_url')
+        .eq('id', u.id)
+        .single();
+      setAvatarUrl(profile?.avatar_url || fallback);
+    }
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) { setUser(data.user); loadUser(data.user); }
+    });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) loadUser(session.user);
+      else setAvatarUrl('');
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -52,17 +59,20 @@ export default function HeaderClient() {
   return (
     <>
       <div className="flex items-center gap-2">
-        <button onClick={() => setSettingsOpen(true)}
-          className="flex items-center gap-2 text-xs font-medium text-gray-500 hover:text-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100">
-          <SettingsIcon /> Settings
-        </button>
-
         {user ? (
           <div className="relative" ref={menuRef}>
             <button onClick={() => setMenuOpen(o => !o)}
-              className="w-8 h-8 rounded-full text-white text-xs font-bold shadow-sm hover:opacity-90 transition-opacity flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
-              {initials}
+              className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full hover:bg-gray-100 transition-colors">
+              <div className="w-8 h-8 rounded-full text-white text-xs font-bold shadow-sm flex items-center justify-center overflow-hidden flex-shrink-0"
+                style={!avatarUrl ? { background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' } : undefined}>
+                {avatarUrl
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  : initials}
+              </div>
+              <span className="text-sm font-semibold text-navy hidden sm:block">
+                {user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0]}
+              </span>
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-10 w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50">
@@ -101,7 +111,6 @@ export default function HeaderClient() {
           </>
         )}
       </div>
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
   );
 }

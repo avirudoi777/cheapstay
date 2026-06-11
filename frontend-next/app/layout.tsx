@@ -50,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <span>·</span>
               <Link href="/about" className="hover:text-navy transition-colors">About</Link>
               <span>·</span>
-              <a href="mailto:support@cheapstay.co" className="hover:text-navy transition-colors">Contact</a>
+              <Link href="/contact" className="hover:text-navy transition-colors">Contact</Link>
             </nav>
             <p className="text-xs text-gray-400">© 2026 Cheapstay. All rights reserved.</p>
           </div>
