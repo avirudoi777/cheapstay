@@ -3,10 +3,24 @@ import os
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 
+_ENV_DEFAULTS = {
+    "scraperapi_key":       os.environ.get("SCRAPERAPI_KEY", ""),
+    "agoda_affiliate_id":   os.environ.get("AGODA_AFFILIATE_ID", ""),
+    "travelpayouts_token":  os.environ.get("TRAVELPAYOUTS_TOKEN", ""),
+    "travelpayouts_marker": os.environ.get("TRAVELPAYOUTS_MARKER", ""),
+    "credit_card_rate":     float(os.environ.get("CC_CASHBACK_RATE", "0.03")),
+    "sites": {
+        "agoda":     {"portal": "TopCashBack", "rate": float(os.environ.get("AGODA_CASHBACK_RATE", "0.06"))},
+        "hotellook": {"portal": "Travelpayouts", "rate": float(os.environ.get("HL_CASHBACK_RATE", "0.0"))},
+    },
+}
+
 
 def load_config() -> dict:
-    with open(CONFIG_PATH) as f:
-        return json.load(f)
+    if os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH) as f:
+            return json.load(f)
+    return _ENV_DEFAULTS
 
 
 def save_config(data: dict):
