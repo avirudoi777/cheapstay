@@ -160,7 +160,7 @@ def _parse_hotels(html: str, nights: int = 1) -> list[dict]:
 async def fetch_city_hotels(location: str, checkin: str, checkout: str, adults: int,
                             hotel_name: str = "") -> dict:
     nights = _nights(checkin, checkout)
-    url = build_search_url(location, checkin, checkout, adults, hotel_name, sort_by_price=True)
+    url = build_search_url(location, checkin, checkout, adults, hotel_name)
     html = await _scraperapi_render(url)
     if not html:
         return {"hotels": [], "total_count": 0, "source_url": url}
