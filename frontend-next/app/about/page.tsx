@@ -32,7 +32,7 @@ export default function AboutPage() {
           <h2 className="text-base font-bold text-navy mb-2">What Cheapstay does</h2>
           <ul className="space-y-2 list-disc list-inside marker:text-teal">
             <li>Searches hotel prices from a Thai IP to capture geo-based discounts</li>
-            <li>Compares Agoda, Hotellook and more in a single search</li>
+            <li>Compares Agoda, Booking.com and more in a single search</li>
             <li>Shows the net effective price after cashback and card rewards</li>
             <li>Saves your favourite hotels and booking history</li>
             <li>Learns your travel style to surface deals you&apos;ll actually care about</li>

@@ -56,7 +56,7 @@ export default function PrivacyPage() {
         <ul className="list-disc list-inside space-y-1 marker:text-teal">
           <li><strong>Supabase</strong> — authentication and database hosting (EU region)</li>
           <li><strong>Vercel</strong> — website hosting and CDN</li>
-          <li><strong>Agoda / Hotellook</strong> — hotel pricing data via affiliate links</li>
+          <li><strong>Agoda / Booking.com</strong> — hotel pricing data via affiliate links</li>
           <li><strong>Travelpayouts</strong> — affiliate tracking</li>
           <li><strong>Google OAuth</strong> — optional sign-in via your Google account</li>
         </ul>

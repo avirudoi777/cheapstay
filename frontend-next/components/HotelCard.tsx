@@ -48,6 +48,7 @@ export default function HotelCard({ h }: { h: Hotel }) {
   const url = h.booking_url ?? '#';
   const hasAgoda = h.agoda_price != null;
   const hasHL = h.hl_price != null;
+  const hasBooking = h.best_platform === 'booking' && h.price != null;
   const nights = h.nights || 1;
   const best = h.best_platform || 'agoda';
 
@@ -143,12 +144,14 @@ export default function HotelCard({ h }: { h: Hotel }) {
               <PriceRow platform="Agoda" price={h.agoda_price!} isBest={best === 'agoda'} />
               <PriceRow platform="Hotellook" price={h.hl_price!} isBest={best === 'hotellook'} />
             </>
-          ) : hasAgoda || hasHL ? (
+          ) : hasAgoda || hasHL || hasBooking ? (
             <div className="flex items-baseline gap-1">
               {h.original_price && (
                 <span className="text-xs text-gray-400 line-through">{h.original_price}</span>
               )}
-              <span className="text-2xl font-bold text-navy">${Math.round((hasAgoda ? h.agoda_price : h.hl_price)!)}</span>
+              <span className="text-2xl font-bold text-navy">
+                ${Math.round(hasAgoda ? h.agoda_price! : hasHL ? h.hl_price! : h.price!)}
+              </span>
               <span className="text-xs text-gray-500">/night</span>
             </div>
           ) : (
@@ -161,8 +164,15 @@ export default function HotelCard({ h }: { h: Hotel }) {
 
           <button onClick={handleBook}
             className="w-full text-center text-sm font-semibold text-white bg-navy hover:bg-navy-light rounded-xl py-2.5 transition-colors mt-2">
-            {best === 'hotellook' ? 'Book on Hotellook →' : 'Book on Agoda →'}
+            {best === 'hotellook' ? 'Book on Hotellook →' : best === 'booking' ? 'Book on Booking.com →' : 'Book on Agoda →'}
           </button>
+
+          {best === 'booking' && h.agoda_url && (
+            <a href={h.agoda_url} target="_blank" rel="noopener noreferrer"
+              className="block text-center text-xs text-gray-400 hover:text-navy transition-colors mt-1">
+              Also search on Agoda →
+            </a>
+          )}
         </div>
       </div>
 

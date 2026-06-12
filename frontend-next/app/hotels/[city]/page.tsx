@@ -46,7 +46,7 @@ export default async function CityPage({ params }: Props) {
         {totalCount > 0 ? `${totalCount.toLocaleString()} ` : ''}Cheap Hotels in {name}
       </h1>
       <p className="text-gray-500 mb-8">
-        Compare prices across Agoda, Hotellook and more. Always find the best deal in {name}.
+        Compare prices across Agoda, Booking.com and more. Always find the best deal in {name}.
       </p>
 
       {/* Tell user to search for live prices */}

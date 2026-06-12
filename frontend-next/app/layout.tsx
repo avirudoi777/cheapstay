@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
   title: 'Cheapstay — Always the cheapest hotel price',
-  description: 'Compare hotel prices across Agoda, Hotellook and more. Always find the cheapest rate with Cheapstay.',
+  description: 'Compare hotel prices across Agoda, Booking.com and more. Always find the cheapest rate with Cheapstay.',
   keywords: 'cheap hotels, hotel price comparison, Agoda prices, hotel deals',
   openGraph: {
     title: 'Cheapstay — Always the cheapest hotel price',
