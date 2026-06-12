@@ -2,13 +2,16 @@ import type { CitySearchResponse, Suggestion } from './types';
 
 function getBase(): string {
   if (typeof window === 'undefined') {
-    // Server-side: use env var or localhost
+    // Server-side (SSR/RSC): use private env var
     return process.env.BACKEND_URL ?? 'http://localhost:8000';
   }
+  // Client-side: call Railway directly to avoid Vercel's proxy timeout (25s > Vercel limit)
   const { hostname } = window.location;
-  return hostname === 'localhost' || hostname === '127.0.0.1'
-    ? 'http://localhost:8000'
-    : '/api';
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:8000';
+  }
+  // NEXT_PUBLIC_BACKEND_URL is injected at build time by Vercel
+  return process.env.NEXT_PUBLIC_BACKEND_URL ?? '/api';
 }
 
 export interface CitySearchParams {
