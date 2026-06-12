@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from cashback import load_config, save_config, apply_cashback
 from scrapers import agoda
-from scrapers import hotellook
+from scrapers import booking
 from cache import search_cache
 
 
@@ -78,8 +78,7 @@ def _deal_badge(price: float | None, original_price: str | None) -> str | None:
         return "deal"
     return None
 
-# Limit simultaneous Playwright sessions to avoid OOM on the server.
-# Each Chromium process uses ~300-500MB RAM; a 2GB VPS can safely run 3-4 at once.
+# Limit simultaneous ScraperAPI requests to avoid hammering the rate limit.
 _scrape_sem = asyncio.Semaphore(3)
 
 app = FastAPI(title="Cheapstay")
@@ -114,7 +113,6 @@ class ConfigUpdate(BaseModel):
 @app.post("/search")
 async def search(req: SearchRequest):
     config = load_config()
-    api_key = config.get("scraperapi_key", "")
 
     # Return cached result if available (3-hour TTL), unless force_refresh requested
     if not req.force_refresh:
@@ -128,7 +126,7 @@ async def search(req: SearchRequest):
             if cached is not None:
                 return cached
 
-        raw = [await agoda.fetch_price(req.hotel_name, req.location, req.checkin, req.checkout, req.adults, api_key)]
+        raw = [await booking.fetch_price(req.hotel_name, req.location, req.checkin, req.checkout, req.adults)]
 
     enriched = [apply_cashback(r, config) for r in raw]
 
@@ -189,8 +187,6 @@ async def suggest(q: str, location: str = ""):
     import httpx
     _HOTEL_TYPES = {"hotel", "house", "tourism", "hostel", "motel", "guest_house"}
     _CITY_TYPES  = {"city", "town", "village", "district", "county", "state"}
-    config = load_config()
-    hl_token = config.get("travelpayouts_token", "").strip()
 
     async def _photon(query: str, limit: int = 8, osm_tag: str = ""):
         try:
@@ -206,42 +202,13 @@ async def suggest(q: str, location: str = ""):
         except Exception:
             return []
 
-    async def _hotellook_hotels(query: str, limit: int = 6) -> list[dict]:
-        """Hotel name autocomplete via Hotellook lookup — returns hotel suggestions."""
-        if not hl_token:
-            return []
-        try:
-            async with httpx.AsyncClient(timeout=5) as c:
-                r = await c.get(
-                    "https://engine.hotellook.com/api/v2/lookup.json",
-                    params={"query": query, "lang": "en", "lookFor": "hotel",
-                            "limit": limit, "token": hl_token},
-                )
-                if r.status_code != 200:
-                    return []
-                items = r.json().get("results", {}).get("hotels", [])
-                return [
-                    {
-                        "name": h.get("label") or h.get("name", ""),
-                        "city": h.get("cityName") or h.get("location", {}).get("name", ""),
-                        "country": h.get("countryName", ""),
-                        "is_city": False,
-                    }
-                    for h in items if h.get("label") or h.get("name")
-                ]
-        except Exception:
-            return []
-
-    # Run all queries in parallel: city bare, hotel-tagged OSM, Hotellook hotels
-    city_features, hotel_features, hl_suggestions = await asyncio.gather(
+    city_features, hotel_features = await asyncio.gather(
         _photon(f"{q} {location}"),
         _photon(q, limit=10, osm_tag="tourism:hotel"),
-        _hotellook_hotels(q),
     )
 
     seen, results = set(), []
 
-    # Cities first
     for feature in city_features:
         p = feature.get("properties", {})
         osm_val = p.get("osm_value") or p.get("type") or ""
@@ -251,14 +218,6 @@ async def suggest(q: str, location: str = ""):
             seen.add(name)
             results.append({"name": name, "city": name, "country": country, "is_city": True})
 
-    # Hotellook hotel suggestions (most comprehensive hotel database)
-    for h in hl_suggestions:
-        name = h["name"]
-        if name and name not in seen:
-            seen.add(name)
-            results.append(h)
-
-    # OSM hotel features
     for feature in hotel_features:
         p = feature.get("properties", {})
         osm_val = p.get("osm_value") or p.get("type") or ""
@@ -283,26 +242,14 @@ class CitySearchRequest(BaseModel):
     hotel_name: str | None = None  # set when user searched for a specific hotel
 
 
-async def _fetch_agoda_city(req: CitySearchRequest) -> dict:
-    async with _scrape_sem:
-        return await agoda.fetch_city_hotels(
-            req.location, req.checkin, req.checkout, req.adults,
-            hotel_name=req.hotel_name or "",
-        )
-
-
 _CITY_CACHE_KEY = "__city__"
 
 
 @app.post("/search-city")
 async def search_city(req: CitySearchRequest):
-    config   = load_config()
-    aff_id   = config.get("agoda_affiliate_id", "").strip()
-    hl_token = config.get("travelpayouts_token", "").strip()
-    hl_mark  = config.get("travelpayouts_marker", "").strip()
+    config = load_config()
+    aff_id = config.get("agoda_affiliate_id", "").strip()
 
-    # Return cached slice if available.
-    # Skip cache for hotel-name searches — cached city results aren't sorted by hotel match.
     use_cache = (not req.force_refresh) and (not req.hotel_name) or req.offset > 0
     if use_cache:
         cached = await search_cache.get(_CITY_CACHE_KEY, req.location, req.checkin, req.checkout, req.adults)
@@ -311,126 +258,73 @@ async def search_city(req: CitySearchRequest):
             total_count = cached.get("total_count", len(all_hotels))
             page_hotels = all_hotels[req.offset : req.offset + req.limit]
             return {
-                "hotels":        page_hotels,
-                "total_agoda":   total_count,
-                "cached_count":  len(all_hotels),
-                "offset":        req.offset,
-                "limit":         req.limit,
-                "has_more":      req.offset + req.limit < len(all_hotels),
+                "hotels":       page_hotels,
+                "total_agoda":  total_count,
+                "cached_count": len(all_hotels),
+                "offset":       req.offset,
+                "limit":        req.limit,
+                "has_more":     req.offset + req.limit < len(all_hotels),
             }
 
-    # Cache miss on first page — scrape everything and cache it
     if req.offset > 0:
-        # Shouldn't happen unless cache expired mid-session
         return {"hotels": [], "total_agoda": 0, "cached_count": 0,
                 "offset": req.offset, "limit": req.limit, "has_more": False}
 
     nights = _nights(req.checkin, req.checkout)
 
-    # When Hotellook token is configured, use it as the sole source — ~2s vs ~45s for Agoda scraping.
-    # Falls back to Agoda-only if Hotellook returns nothing.
-    if hl_token:
-        hl_hotels = await hotellook.fetch_city_prices(
-            req.location, req.checkin, req.checkout, req.adults, hl_token, hl_mark
+    async with _scrape_sem:
+        bk_result = await booking.fetch_city_hotels(
+            req.location, req.checkin, req.checkout, req.adults,
+            hotel_name=req.hotel_name or "",
         )
-        if hl_hotels:
-            # Sort by hotel name match if user searched for a specific hotel
-            if req.hotel_name:
-                hl_hotels = sorted(
-                    hl_hotels,
-                    key=lambda h: agoda._name_match_score(req.hotel_name, h.get("name", "")),
-                    reverse=True,
-                )
-            results = []
-            for idx, h in enumerate(hl_hotels):
-                stars = h.get("stars")
-                price = h["price"]
-                results.append({
-                    "name":           h["name"],
-                    "image_url":      h.get("photo_url"),
-                    "rating":         None,
-                    "review_label":   None,
-                    "review_count":   None,
-                    "stars":          stars,
-                    "location":       None,
-                    "original_price": None,
-                    "nights":         nights,
-                    "amenities":      _amenities([], stars, idx),
-                    "review_snippet": None,
-                    "deal_badge":     None,
-                    "agoda_price":    None,
-                    "agoda_url":      None,
-                    "hl_price":       price,
-                    "hl_url":         h["url"],
-                    "best_platform":  "hotellook",
-                    "price":          price,
-                    "booking_url":    h["url"],
-                    "total_price":    round(price * nights, 2),
-                })
-            total_count = len(results)
-            await search_cache.set(_CITY_CACHE_KEY, req.location, req.checkin, req.checkout, req.adults, {
-                "hotels": results, "total_count": total_count,
-            })
-            page_hotels = results[:req.limit]
-            return {
-                "hotels":       page_hotels,
-                "total_agoda":  total_count,
-                "cached_count": len(results),
-                "offset":       0,
-                "limit":        req.limit,
-                "has_more":     req.limit < len(results),
-            }
 
-    # Fallback: Agoda Playwright scraping (slow, used only when no Hotellook token)
-    agoda_result = await _fetch_agoda_city(req)
-    agoda_hotels = agoda_result.get("hotels") or []
-    total_count  = agoda_result.get("total_count") or len(agoda_hotels)
+    bk_hotels   = bk_result.get("hotels") or []
+    total_count = bk_result.get("total_count") or len(bk_hotels)
+
+    # Agoda search link (affiliate) for "Book on Agoda" button — no price scraping
+    agoda_city_url = agoda.build_search_url(None, req.location, req.checkin, req.checkout, req.adults)
+    if aff_id:
+        agoda_city_url += f"&cid={aff_id}"
 
     results = []
-    for idx, h in enumerate(agoda_hotels):
-        agoda_url = h.get("href") or ""
-        if aff_id and agoda_url:
-            sep = "&" if "?" in agoda_url else "?"
-            agoda_url = f"{agoda_url}{sep}cid={aff_id}"
-        agoda_price = h.get("price")
+    for idx, h in enumerate(bk_hotels):
+        price = h.get("price")
         stars = h.get("stars")
         results.append({
             "name":           h["name"],
             "image_url":      h.get("imgUrl"),
             "rating":         h.get("rating"),
-            "review_label":   h.get("reviewLabel"),
-            "review_count":   h.get("reviewCount"),
+            "review_label":   None,
+            "review_count":   None,
             "stars":          stars,
             "location":       h.get("location"),
             "original_price": h.get("originalPrice"),
             "nights":         nights,
             "amenities":      _amenities(h.get("amenities") or [], stars, idx),
             "review_snippet": _snippet(h.get("rating")),
-            "deal_badge":     _deal_badge(agoda_price, h.get("originalPrice")),
-            "agoda_price":    agoda_price,
-            "agoda_url":      agoda_url,
+            "deal_badge":     _deal_badge(price, h.get("originalPrice")),
+            "agoda_price":    None,
+            "agoda_url":      agoda_city_url,
             "hl_price":       None,
             "hl_url":         None,
-            "best_platform":  "agoda",
-            "price":          agoda_price,
-            "booking_url":    agoda_url,
-            "total_price":    round(agoda_price * nights, 2) if agoda_price else None,
+            "best_platform":  "booking",
+            "price":          price,
+            "booking_url":    h.get("href") or agoda_city_url,
+            "total_price":    round(price * nights, 2) if price else None,
         })
 
-    # Cache full result set for subsequent offset requests
     await search_cache.set(_CITY_CACHE_KEY, req.location, req.checkin, req.checkout, req.adults, {
-        "hotels":      results,
-        "total_count": total_count,
+        "hotels": results, "total_count": total_count,
     })
 
     page_hotels = results[:req.limit]
     return {
-        "hotels":        page_hotels,
-        "total_agoda":   total_count,
-        "cached_count":  len(results),
-        "offset":        0,
-        "limit":         req.limit,
-        "has_more":      req.limit < len(results),
+        "hotels":       page_hotels,
+        "total_agoda":  total_count,
+        "cached_count": len(results),
+        "offset":       0,
+        "limit":        req.limit,
+        "has_more":     req.limit < len(results),
     }
 
 
@@ -455,39 +349,5 @@ async def ip_info():
     except Exception:
         return {"ip": None, "country": "Unknown", "country_code": None}
 
-
-@app.get("/debug/screenshot")
-async def debug_screenshot(site: str = "agoda", location: str = "bangkok", checkin: str = "2026-07-04", checkout: str = "2026-07-18", adults: int = 2):
-    from scrapers.browser import fetch_cheapest
-    from playwright.async_api import async_playwright
-    import os
-
-    url = agoda.build_search_url(None, location, checkin, checkout, adults)
-
-    screenshot_path = os.path.join(os.path.dirname(__file__), f"debug_{site}.png")
-    text_path = os.path.join(os.path.dirname(__file__), f"debug_{site}.txt")
-
-    async with async_playwright() as pw:
-        browser = await pw.chromium.launch(headless=True)
-        ctx = await browser.new_context(
-            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            locale="en-US",
-            viewport={"width": 1440, "height": 900},
-        )
-        await ctx.add_init_script("Object.defineProperty(navigator,'webdriver',{get:()=>undefined})")
-        page = await ctx.new_page()
-        await page.goto(url, wait_until="domcontentloaded", timeout=90_000)
-        await page.wait_for_timeout(12_000)
-        await page.screenshot(path=screenshot_path, full_page=True)
-        text = await page.inner_text("body")
-        with open(text_path, "w") as f:
-            f.write(text[:5000])
-        await browser.close()
-
-    return {
-        "url": url,
-        "screenshot": screenshot_path,
-        "text_preview": text[:2000],
-    }
 
 

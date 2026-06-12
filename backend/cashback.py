@@ -10,8 +10,8 @@ _ENV_DEFAULTS = {
     "travelpayouts_marker": os.environ.get("TRAVELPAYOUTS_MARKER", ""),
     "credit_card_rate":     float(os.environ.get("CC_CASHBACK_RATE", "0.03")),
     "sites": {
-        "agoda":     {"portal": "TopCashBack", "rate": float(os.environ.get("AGODA_CASHBACK_RATE", "0.06"))},
-        "hotellook": {"portal": "Travelpayouts", "rate": float(os.environ.get("HL_CASHBACK_RATE", "0.0"))},
+        "agoda":   {"portal": "TopCashBack", "rate": float(os.environ.get("AGODA_CASHBACK_RATE", "0.06"))},
+        "booking": {"portal": "TopCashBack", "rate": float(os.environ.get("BOOKING_CASHBACK_RATE", "0.05"))},
     },
 }
 
