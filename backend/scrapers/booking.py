@@ -119,10 +119,21 @@ def _parse_hotels(html: str, nights: int = 1) -> list[dict]:
         if href and "?" in href:
             href = href.split("?")[0]
 
-        # Review score — extract just the number
+        # Review score — Booking.com text is "Scored 8.48.4Good…" (value doubled).
+        # Match "Scored X.Y" to grab just the first occurrence before the repeat.
         score_text = score_el.get_text(strip=True) if score_el else None
-        score_m = re.search(r"(\d+\.\d+|\d+)", score_text or "")
-        rating = score_m.group(1) if score_m else None
+        rating = None
+        if score_text:
+            m = re.search(r"Scored\s+(\d+\.\d)", score_text)
+            if m:
+                rating = m.group(1)
+            else:
+                # Integer score (e.g. perfect 10 → "Scored 1010")
+                m2 = re.search(r"Scored\s+(\d{1,2})\b", score_text)
+                if m2:
+                    val = int(m2.group(1))
+                    if 0 < val <= 10:
+                        rating = str(float(val))
 
         # Stars
         stars_el = card.select_one('[data-testid="rating-squares"]')
