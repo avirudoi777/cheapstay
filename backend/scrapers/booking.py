@@ -62,18 +62,33 @@ async def _fetch(url: str) -> str | None:
     for attempt in range(2):
         try:
             async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True, proxy=proxy_config)
-                page = await browser.new_page()
-                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                browser = await p.chromium.launch(
+                    headless=True,
+                    proxy=proxy_config,
+                    args=["--disable-blink-features=AutomationControlled"],
+                )
+                ctx = await browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                    locale="en-US",
+                )
+                page = await ctx.new_page()
+                # Hide webdriver flag
+                await page.add_init_script("Object.defineProperty(navigator,'webdriver',{get:()=>undefined})")
+                await page.goto(url, timeout=45000)
+                # Wait for actual hotel cards or timeout after 15s
+                try:
+                    await page.wait_for_selector('[data-testid="property-card"]', timeout=15000)
+                except Exception:
+                    pass
                 html = await page.content()
                 await browser.close()
             if html and len(html) > 5000:
                 return html
             if attempt == 0:
-                await asyncio.sleep(2)
+                await asyncio.sleep(3)
         except Exception:
             if attempt == 0:
-                await asyncio.sleep(2)
+                await asyncio.sleep(3)
     return None
 
 

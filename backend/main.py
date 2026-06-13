@@ -357,9 +357,12 @@ async def debug_scrape():
     from scrapers.booking import build_search_url
 
     proxy_url = os.environ.get("NORDVPN_SOCKS5_URL", "")
+    # Show all env var keys that might be proxy-related, to debug why var isn't read
+    proxy_related_keys = [k for k in os.environ if any(x in k.upper() for x in ["NORD", "PROXY", "SOCKS", "VPN"])]
     result = {
         "NORDVPN_SOCKS5_URL_set": bool(proxy_url),
-        "proxy_prefix": proxy_url[:20] + "..." if proxy_url else None,
+        "proxy_prefix": proxy_url[:25] + "..." if proxy_url else None,
+        "proxy_related_env_keys": proxy_related_keys,
     }
 
     url = build_search_url("Bangkok", "2026-08-01", "2026-08-03", 2)
