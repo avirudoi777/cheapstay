@@ -356,13 +356,12 @@ async def debug_scrape():
     from playwright.async_api import async_playwright
     from scrapers.booking import build_search_url
 
-    proxy_url = os.environ.get("NORDVPN_SOCKS5_URL", "")
-    # Show all env var keys that might be proxy-related, to debug why var isn't read
-    proxy_related_keys = [k for k in os.environ if any(x in k.upper() for x in ["NORD", "PROXY", "SOCKS", "VPN"])]
+    proxy_url = os.environ.get("NORDVPN_SOCKS5_URL") or os.environ.get("THAI_PROXY") or ""
+    thai_proxy_val = os.environ.get("THAI_PROXY", "")
     result = {
-        "NORDVPN_SOCKS5_URL_set": bool(proxy_url),
-        "proxy_prefix": proxy_url[:25] + "..." if proxy_url else None,
-        "proxy_related_env_keys": proxy_related_keys,
+        "proxy_configured": bool(proxy_url),
+        "proxy_prefix": proxy_url[:30] + "..." if proxy_url else None,
+        "THAI_PROXY_prefix": thai_proxy_val[:30] + "..." if thai_proxy_val else None,
     }
 
     url = build_search_url("Bangkok", "2026-08-01", "2026-08-03", 2)
