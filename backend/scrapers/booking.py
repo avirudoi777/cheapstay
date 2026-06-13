@@ -1,7 +1,7 @@
 """
-Booking.com scraper — curl_cffi (Chrome impersonation) + BeautifulSoup.
-Booking.com is server-side rendered so no JS execution needed.
-Thai IP geo-pricing via NordVPN SOCKS5 proxy (set NORDVPN_SOCKS5_URL env var).
+Booking.com scraper — Playwright (headless Chromium) + BeautifulSoup.
+Playwright executes JS so it passes Cloudflare challenges. Booking.com is SSR
+so domcontentloaded is fast (~5-10s). Thai IP via NordVPN SOCKS5 proxy.
 Price shown on results page is total for stay; we divide by nights for per-night.
 """
 import asyncio
@@ -11,11 +11,11 @@ from datetime import datetime
 from urllib.parse import quote_plus
 
 from bs4 import BeautifulSoup
-from curl_cffi.requests import AsyncSession
+from playwright.async_api import async_playwright
 
 # NordVPN SOCKS5 proxy for Thai IP geo-pricing.
 # Format: socks5://username:password@th1.nordvpn.com:1080
-# Get service credentials at nordvpn.com → Nord Account → Services → NordVPN
+# Get credentials: nordvpn.com → Nord Account → Services → NordVPN → Manual Setup
 _PROXY = os.environ.get("NORDVPN_SOCKS5_URL") or None
 
 _STOP = frozenset({"hotel", "hotels", "the", "a", "an", "by", "at", "in", "and",
@@ -58,13 +58,17 @@ def build_search_url(location: str, checkin: str, checkout: str, adults: int,
 
 
 async def _fetch(url: str) -> str | None:
-    proxy = {"https": _PROXY, "http": _PROXY} if _PROXY else None
+    proxy_config = {"server": _PROXY} if _PROXY else None
     for attempt in range(2):
         try:
-            async with AsyncSession(impersonate="chrome124") as s:
-                r = await s.get(url, proxies=proxy, timeout=20)
-            if r.status_code == 200:
-                return r.text
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True, proxy=proxy_config)
+                page = await browser.new_page()
+                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                html = await page.content()
+                await browser.close()
+            if html and len(html) > 5000:
+                return html
             if attempt == 0:
                 await asyncio.sleep(2)
         except Exception:
