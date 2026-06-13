@@ -65,7 +65,12 @@ async def _fetch(url: str) -> str | None:
                 browser = await p.chromium.launch(
                     headless=True,
                     proxy=proxy_config,
-                    args=["--disable-blink-features=AutomationControlled"],
+                    args=[
+                        "--disable-blink-features=AutomationControlled",
+                        "--no-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--disable-gpu",
+                    ],
                 )
                 ctx = await browser.new_context(
                     user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
