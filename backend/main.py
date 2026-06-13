@@ -351,41 +351,37 @@ async def ip_info():
 
 @app.get("/debug-scrape")
 async def debug_scrape():
-    """Diagnose scraping — shows status, proxy, and whether property cards are found."""
     import os, traceback
     from bs4 import BeautifulSoup
-
-    result = {}
-
-    # Check env var directly
-    proxy_url = os.environ.get("NORDVPN_SOCKS5_URL", "")
-    result["NORDVPN_SOCKS5_URL_set"] = bool(proxy_url)
-
-    # Check curl_cffi import
-    try:
-        from curl_cffi.requests import AsyncSession
-        result["curl_cffi"] = "imported ok"
-    except Exception as e:
-        result["curl_cffi"] = f"IMPORT FAILED: {e}"
-        return result
-
+    from playwright.async_api import async_playwright
     from scrapers.booking import build_search_url
+
+    proxy_url = os.environ.get("NORDVPN_SOCKS5_URL", "")
+    result = {
+        "NORDVPN_SOCKS5_URL_set": bool(proxy_url),
+        "proxy_prefix": proxy_url[:20] + "..." if proxy_url else None,
+    }
+
     url = build_search_url("Bangkok", "2026-08-01", "2026-08-03", 2)
     result["url"] = url
-    proxy = {"https": proxy_url, "http": proxy_url} if proxy_url else None
-    result["proxy"] = proxy_url[:30] + "..." if proxy_url else None
+    proxy_config = {"server": proxy_url} if proxy_url else None
 
     try:
-        async with AsyncSession(impersonate="chrome124") as s:
-            r = await s.get(url, proxies=proxy, timeout=20)
-        result["http_status"] = r.status_code
-        result["html_length"] = len(r.text)
-        soup = BeautifulSoup(r.text, "html.parser")
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True, proxy=proxy_config)
+            page = await browser.new_page()
+            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            html = await page.content()
+            await browser.close()
+        result["html_length"] = len(html)
+        soup = BeautifulSoup(html, "html.parser")
         cards = soup.select('[data-testid="property-card"]')
         result["property_cards_found"] = len(cards)
-        result["html_snippet"] = r.text[:400]
+        result["html_snippet"] = html[:300]
+        result["status"] = "ok" if cards else "no_cards"
     except Exception as e:
-        result["fetch_error"] = str(e)
+        result["status"] = "exception"
+        result["error"] = str(e)
         result["traceback"] = traceback.format_exc()
 
     return result
