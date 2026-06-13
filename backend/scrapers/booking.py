@@ -1,9 +1,10 @@
 """
-Booking.com scraper — ScraperAPI (premium, Thai IP) + BeautifulSoup.
-Booking.com is server-side rendered which makes parsing reliable.
+Booking.com scraper — direct httpx + BeautifulSoup.
+Booking.com is server-side rendered so no JS execution needed.
+Deploy backend in an Asian region (e.g. Railway Singapore) for geo-pricing.
 Price shown on results page is total for stay; we divide by nights for per-night.
 """
-import os
+import asyncio
 import re
 from datetime import datetime
 from urllib.parse import quote_plus
@@ -11,7 +12,14 @@ from urllib.parse import quote_plus
 import httpx
 from bs4 import BeautifulSoup
 
-_SCRAPERAPI_KEY = os.environ.get("SCRAPERAPI_KEY", "")
+_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+}
 
 _STOP = frozenset({"hotel", "hotels", "the", "a", "an", "by", "at", "in", "and",
                    "resort", "resorts", "inn", "suites", "suite", "grand", "royal",
@@ -52,26 +60,18 @@ def build_search_url(location: str, checkin: str, checkout: str, adults: int,
     return url
 
 
-async def _scraperapi_render(url: str) -> str | None:
-    if not _SCRAPERAPI_KEY:
-        return None
-    params = {
-        "api_key": _SCRAPERAPI_KEY,
-        "url": url,
-        "country_code": "th",
-    }
-    import asyncio as _asyncio
+async def _fetch(url: str) -> str | None:
     for attempt in range(2):
         try:
-            async with httpx.AsyncClient(timeout=25) as client:
-                r = await client.get("https://api.scraperapi.com/", params=params)
+            async with httpx.AsyncClient(headers=_HEADERS, timeout=20, follow_redirects=True) as client:
+                r = await client.get(url)
             if r.status_code == 200:
                 return r.text
             if attempt == 0:
-                await _asyncio.sleep(2)
+                await asyncio.sleep(2)
         except Exception:
             if attempt == 0:
-                await _asyncio.sleep(2)
+                await asyncio.sleep(2)
     return None
 
 
@@ -169,7 +169,7 @@ async def fetch_city_hotels(location: str, checkin: str, checkout: str, adults: 
                             hotel_name: str = "") -> dict:
     nights = _nights(checkin, checkout)
     url = build_search_url(location, checkin, checkout, adults, hotel_name)
-    html = await _scraperapi_render(url)
+    html = await _fetch(url)
     if not html:
         return {"hotels": [], "total_count": 0, "source_url": url}
 
@@ -196,7 +196,7 @@ async def fetch_price(hotel_name: str | None, location: str,
     url = build_search_url(location, checkin, checkout, adults, hotel_name=query)
     fallback_url = build_search_url(location, checkin, checkout, adults)
 
-    html = await _scraperapi_render(url)
+    html = await _fetch(url)
     if not html:
         return {"platform": "Booking.com", "raw_price": None, "currency": None,
                 "booking_url": fallback_url, "error": "Fetch failed"}
