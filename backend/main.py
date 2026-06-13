@@ -364,15 +364,39 @@ async def debug_scrape():
         "THAI_PROXY_prefix": thai_proxy_val[:30] + "..." if thai_proxy_val else None,
     }
 
-    url = build_search_url("Bangkok", "2026-08-01", "2026-08-03", 2)
-    result["url"] = url
     proxy_config = {"server": proxy_url} if proxy_url else None
 
+    # Step 1: test proxy reachability with a simple URL
     try:
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True, proxy=proxy_config)
             page = await browser.new_page()
-            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            await page.goto("https://ipapi.co/json/", wait_until="domcontentloaded", timeout=20000)
+            ip_text = await page.inner_text("body")
+            await browser.close()
+        result["proxy_ip_test"] = ip_text[:200]
+    except Exception as e:
+        result["proxy_ip_test_error"] = str(e)[:200]
+        return result
+
+    # Step 2: try Booking.com
+    from scrapers.booking import build_search_url
+    url = build_search_url("Bangkok", "2026-08-01", "2026-08-03", 2)
+    result["url"] = url
+    try:
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(
+                headless=True, proxy=proxy_config,
+                args=["--disable-blink-features=AutomationControlled"],
+            )
+            ctx = await browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+            page = await ctx.new_page()
+            await page.add_init_script("Object.defineProperty(navigator,'webdriver',{get:()=>undefined})")
+            await page.goto(url, timeout=60000)
+            try:
+                await page.wait_for_selector('[data-testid="property-card"]', timeout=20000)
+            except Exception:
+                pass
             html = await page.content()
             await browser.close()
         result["html_length"] = len(html)
@@ -383,8 +407,7 @@ async def debug_scrape():
         result["status"] = "ok" if cards else "no_cards"
     except Exception as e:
         result["status"] = "exception"
-        result["error"] = str(e)
-        result["traceback"] = traceback.format_exc()
+        result["error"] = str(e)[:300]
 
     return result
 
