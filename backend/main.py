@@ -364,38 +364,17 @@ async def debug_scrape():
         "THAI_PROXY_prefix": thai_proxy_val[:30] + "..." if thai_proxy_val else None,
     }
 
-    # Step 0: raw TCP test — does Railway even reach the proxy host:port?
-    if proxy_url:
-        from urllib.parse import urlparse
-        parsed = urlparse(proxy_url)
-        proxy_host = parsed.hostname
-        proxy_port = parsed.port or 1080
-        result["proxy_host"] = proxy_host
-        result["proxy_port"] = proxy_port
-        try:
-            reader, writer = await asyncio.wait_for(
-                asyncio.open_connection(proxy_host, proxy_port), timeout=10
-            )
-            writer.close()
-            result["tcp_connect"] = "SUCCESS"
-        except Exception as e:
-            result["tcp_connect"] = f"FAILED: {e}"
-            return result
-
-    proxy_config = {"server": proxy_url} if proxy_url else None
-
-    # Step 1: test proxy reachability with a simple URL
+    # Step 1: get current IP (no proxy — proxy is dead, NordVPN deprecated SOCKS5)
     try:
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True, proxy=proxy_config)
+            browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
-            await page.goto("https://ipapi.co/json/", wait_until="domcontentloaded", timeout=20000)
+            await page.goto("https://ipapi.co/json/", wait_until="domcontentloaded", timeout=15000)
             ip_text = await page.inner_text("body")
             await browser.close()
-        result["proxy_ip_test"] = ip_text[:200]
+        result["server_ip_info"] = ip_text[:200]
     except Exception as e:
-        result["proxy_ip_test_error"] = str(e)[:200]
-        return result
+        result["ip_test_error"] = str(e)[:150]
 
     # Step 2: try Booking.com
     from scrapers.booking import build_search_url
