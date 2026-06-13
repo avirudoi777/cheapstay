@@ -16,7 +16,7 @@ from playwright.async_api import async_playwright
 # NordVPN SOCKS5 proxy for Thai IP geo-pricing.
 # Format: socks5://username:password@th1.nordvpn.com:1080
 # Get credentials: nordvpn.com → Nord Account → Services → NordVPN → Manual Setup
-_PROXY = os.environ.get("NORDVPN_SOCKS5_URL") or os.environ.get("THAI_PROXY") or None
+_PROXY = os.environ.get("NORDVPN_SOCKS5_URL") or None
 
 _STOP = frozenset({"hotel", "hotels", "the", "a", "an", "by", "at", "in", "and",
                    "resort", "resorts", "inn", "suites", "suite", "grand", "royal",

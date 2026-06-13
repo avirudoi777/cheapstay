@@ -364,6 +364,24 @@ async def debug_scrape():
         "THAI_PROXY_prefix": thai_proxy_val[:30] + "..." if thai_proxy_val else None,
     }
 
+    # Step 0: raw TCP test — does Railway even reach the proxy host:port?
+    if proxy_url:
+        from urllib.parse import urlparse
+        parsed = urlparse(proxy_url)
+        proxy_host = parsed.hostname
+        proxy_port = parsed.port or 1080
+        result["proxy_host"] = proxy_host
+        result["proxy_port"] = proxy_port
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(proxy_host, proxy_port), timeout=10
+            )
+            writer.close()
+            result["tcp_connect"] = "SUCCESS"
+        except Exception as e:
+            result["tcp_connect"] = f"FAILED: {e}"
+            return result
+
     proxy_config = {"server": proxy_url} if proxy_url else None
 
     # Step 1: test proxy reachability with a simple URL
