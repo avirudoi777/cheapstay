@@ -376,14 +376,14 @@ async def debug_scrape():
     except Exception as e:
         result["ip_test_error"] = str(e)[:150]
 
-    # Step 2: try Booking.com
+    # Step 2: try Booking.com (no proxy)
     from scrapers.booking import build_search_url
     url = build_search_url("Bangkok", "2026-08-01", "2026-08-03", 2)
     result["url"] = url
     try:
         async with async_playwright() as p:
             browser = await p.chromium.launch(
-                headless=True, proxy=proxy_config,
+                headless=True,
                 args=["--disable-blink-features=AutomationControlled"],
             )
             ctx = await browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
