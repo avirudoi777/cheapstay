@@ -335,7 +335,6 @@ async def health():
 
 @app.get("/ip")
 async def ip_info():
-    """Detect current public IP and country — used to show Thai IP vs US IP indicator."""
     import httpx
     try:
         async with httpx.AsyncClient(timeout=5) as c:
@@ -348,6 +347,35 @@ async def ip_info():
             }
     except Exception:
         return {"ip": None, "country": "Unknown", "country_code": None}
+
+
+@app.get("/debug-scrape")
+async def debug_scrape():
+    """Diagnose scraping — shows status, proxy, and whether property cards are found."""
+    import traceback
+    from scrapers.booking import _fetch, _PROXY, build_search_url
+    from bs4 import BeautifulSoup
+
+    url = build_search_url("Bangkok", "2026-08-01", "2026-08-03", 2)
+    result = {"proxy_configured": bool(_PROXY), "url": url}
+
+    try:
+        html = await _fetch(url)
+        if html is None:
+            result["status"] = "fetch_returned_none"
+        else:
+            result["status"] = "ok"
+            result["html_length"] = len(html)
+            soup = BeautifulSoup(html, "html.parser")
+            cards = soup.select('[data-testid="property-card"]')
+            result["property_cards_found"] = len(cards)
+            result["html_snippet"] = html[:300]
+    except Exception as e:
+        result["status"] = "exception"
+        result["error"] = str(e)
+        result["traceback"] = traceback.format_exc()
+
+    return result
 
 
 
