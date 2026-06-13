@@ -58,15 +58,12 @@ async def _scraperapi_render(url: str) -> str | None:
     params = {
         "api_key": _SCRAPERAPI_KEY,
         "url": url,
-        "render": "true",
         "country_code": "th",
-        "premium": "true",
-        "wait": "4000",
     }
     import asyncio as _asyncio
     for attempt in range(2):
         try:
-            async with httpx.AsyncClient(timeout=50) as client:
+            async with httpx.AsyncClient(timeout=25) as client:
                 r = await client.get("https://api.scraperapi.com/", params=params)
             if r.status_code == 200:
                 return r.text
