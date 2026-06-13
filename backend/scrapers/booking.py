@@ -1,5 +1,5 @@
 """
-Booking.com scraper — direct httpx + BeautifulSoup.
+Booking.com scraper — curl_cffi (Chrome impersonation) + BeautifulSoup.
 Booking.com is server-side rendered so no JS execution needed.
 Thai IP geo-pricing via NordVPN SOCKS5 proxy (set NORDVPN_SOCKS5_URL env var).
 Price shown on results page is total for stay; we divide by nights for per-night.
@@ -10,22 +10,13 @@ import re
 from datetime import datetime
 from urllib.parse import quote_plus
 
-import httpx
 from bs4 import BeautifulSoup
+from curl_cffi.requests import AsyncSession
 
 # NordVPN SOCKS5 proxy for Thai IP geo-pricing.
 # Format: socks5://username:password@th1.nordvpn.com:1080
 # Get service credentials at nordvpn.com → Nord Account → Services → NordVPN
 _PROXY = os.environ.get("NORDVPN_SOCKS5_URL") or None
-
-_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Connection": "keep-alive",
-    "Upgrade-Insecure-Requests": "1",
-}
 
 _STOP = frozenset({"hotel", "hotels", "the", "a", "an", "by", "at", "in", "and",
                    "resort", "resorts", "inn", "suites", "suite", "grand", "royal",
@@ -67,15 +58,11 @@ def build_search_url(location: str, checkin: str, checkout: str, adults: int,
 
 
 async def _fetch(url: str) -> str | None:
+    proxy = {"https": _PROXY, "http": _PROXY} if _PROXY else None
     for attempt in range(2):
         try:
-            async with httpx.AsyncClient(
-                headers=_HEADERS,
-                proxies=_PROXY,
-                timeout=20,
-                follow_redirects=True,
-            ) as client:
-                r = await client.get(url)
+            async with AsyncSession(impersonate="chrome124") as s:
+                r = await s.get(url, proxies=proxy, timeout=20)
             if r.status_code == 200:
                 return r.text
             if attempt == 0:
