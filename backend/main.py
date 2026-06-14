@@ -273,44 +273,74 @@ async def search_city(req: CitySearchRequest):
     nights = _nights(req.checkin, req.checkout)
 
     async with _scrape_sem:
-        bk_result = await booking.fetch_city_hotels(
-            req.location, req.checkin, req.checkout, req.adults,
-            hotel_name=req.hotel_name or "",
+        bk_result, ag_result = await asyncio.gather(
+            booking.fetch_city_hotels(
+                req.location, req.checkin, req.checkout, req.adults,
+                hotel_name=req.hotel_name or "",
+            ),
+            agoda.fetch_city_hotels(
+                req.location, req.checkin, req.checkout, req.adults,
+                hotel_name=req.hotel_name or "",
+            ),
         )
 
     bk_hotels   = bk_result.get("hotels") or []
+    ag_hotels   = ag_result.get("hotels") or []
     total_count = bk_result.get("total_count") or len(bk_hotels)
 
-    # Agoda search link (affiliate) for "Book on Agoda" button — no price scraping
+    # Build Agoda price lookup by normalised hotel name
+    def _norm(s: str) -> str:
+        return _re.sub(r"[^a-z0-9]", "", s.lower())
+
+    ag_by_name: dict[str, dict] = {}
+    for h in ag_hotels:
+        ag_by_name[_norm(h["name"])] = h
+
     agoda_city_url = agoda.build_search_url(None, req.location, req.checkin, req.checkout, req.adults)
     if aff_id:
         agoda_city_url += f"&cid={aff_id}"
 
     results = []
     for idx, h in enumerate(bk_hotels):
-        price = h.get("price")
-        stars = h.get("stars")
+        bk_price = h.get("price")
+        stars    = h.get("stars")
+
+        # Try to match Agoda hotel by name
+        ag_match = ag_by_name.get(_norm(h["name"]))
+        ag_price = ag_match.get("price") if ag_match else None
+        ag_url   = ag_match.get("href") or agoda_city_url if ag_match else agoda_city_url
+
+        # Best price: whichever platform is cheaper
+        prices = {k: v for k, v in {"booking": bk_price, "agoda": ag_price}.items() if v}
+        if prices:
+            best_platform = min(prices, key=lambda k: prices[k])
+            best_price    = prices[best_platform]
+        else:
+            best_platform = "booking"
+            best_price    = bk_price
+
         results.append({
             "name":           h["name"],
-            "image_url":      h.get("imgUrl"),
-            "rating":         h.get("rating"),
+            "image_url":      h.get("imgUrl") or (ag_match.get("imgUrl") if ag_match else None),
+            "rating":         h.get("rating") or (ag_match.get("rating") if ag_match else None),
             "review_label":   None,
             "review_count":   None,
-            "stars":          stars,
+            "stars":          stars or (ag_match.get("stars") if ag_match else None),
             "location":       h.get("location"),
-            "original_price": h.get("originalPrice"),
+            "original_price": h.get("originalPrice") or (ag_match.get("originalPrice") if ag_match else None),
             "nights":         nights,
-            "amenities":      [],
-            "review_snippet": None,
-            "deal_badge":     _deal_badge(price, h.get("originalPrice")),
-            "agoda_price":    None,
-            "agoda_url":      agoda_city_url,
+            "amenities":      (ag_match.get("amenities") or []) if ag_match else [],
+            "review_snippet": (ag_match.get("reviewSnippet")) if ag_match else None,
+            "deal_badge":     _deal_badge(best_price, h.get("originalPrice")),
+            "agoda_price":    ag_price,
+            "agoda_url":      ag_url,
             "hl_price":       None,
             "hl_url":         None,
-            "best_platform":  "booking",
-            "price":          price,
+            "best_platform":  best_platform,
+            "price":          best_price,
+            "booking_price":  bk_price,
             "booking_url":    h.get("href") or agoda_city_url,
-            "total_price":    round(price * nights, 2) if price else None,
+            "total_price":    round(best_price * nights, 2) if best_price else None,
         })
 
     await search_cache.set(_CITY_CACHE_KEY, req.location, req.checkin, req.checkout, req.adults, {

@@ -1,17 +1,16 @@
 """
-Agoda scraper — uses ScraperAPI render endpoint (country_code=th) instead of
-local Playwright. No Chromium required; works on any server.
+Agoda scraper — Playwright (headless Chromium) + BeautifulSoup.
+Prices on Agoda are JS-rendered so we wait for the price selector after load.
+From a Thai IP (LightNode Bangkok) this returns geo-discounted Thai pricing.
 """
-import os
+import asyncio
 import re as _re
 from urllib.parse import quote_plus
 
-import httpx
 from bs4 import BeautifulSoup
+from playwright.async_api import async_playwright
 
 from .browser import _extract_usd, _extract_thb_as_usd
-
-_SCRAPERAPI_KEY = os.environ.get("SCRAPERAPI_KEY", "")
 
 _COUNTRY_CODES = {
     "bangkok": "th", "phuket": "th", "chiangmai": "th", "chiang mai": "th",
@@ -76,25 +75,42 @@ def _name_match_score(query: str, hotel_name: str) -> float:
     return len(qa & qb) / max(len(qa), len(qb))
 
 
-async def _scraperapi_render(url: str, wait_selector: str = "") -> str | None:
-    """Fetch a JS-rendered page via ScraperAPI (Thai IP). Returns HTML or None."""
-    if not _SCRAPERAPI_KEY:
-        return None
-    params: dict = {
-        "api_key": _SCRAPERAPI_KEY,
-        "url": url,
-        "render": "true",
-        "country_code": "th",
-        "wait": "6000",
-    }
-    if wait_selector:
-        params["wait_for_selector"] = wait_selector
-    try:
-        async with httpx.AsyncClient(timeout=90) as client:
-            r = await client.get("https://api.scraperapi.com/", params=params)
-        return r.text if r.status_code == 200 else None
-    except Exception:
-        return None
+async def _playwright_fetch(url: str) -> str | None:
+    """Fetch Agoda page with Playwright, waiting for JS-rendered prices."""
+    for attempt in range(2):
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(
+                    headless=True,
+                    args=[
+                        "--disable-blink-features=AutomationControlled",
+                        "--no-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--disable-gpu",
+                    ],
+                )
+                ctx = await browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                    locale="en-US",
+                )
+                page = await ctx.new_page()
+                await page.add_init_script("Object.defineProperty(navigator,'webdriver',{get:()=>undefined})")
+                await page.goto(url, timeout=60000, wait_until="domcontentloaded")
+                # Agoda loads prices via XHR — wait for the price element
+                try:
+                    await page.wait_for_selector('[data-element-name="final-price"]', timeout=25000)
+                except Exception:
+                    pass
+                html = await page.content()
+                await browser.close()
+            if html and len(html) > 5000:
+                return html
+            if attempt == 0:
+                await asyncio.sleep(3)
+        except Exception:
+            if attempt == 0:
+                await asyncio.sleep(3)
+    return None
 
 
 def _parse_hotels(html: str) -> list[dict]:
@@ -190,10 +206,10 @@ def _parse_hotels(html: str) -> list[dict]:
 
 async def fetch_city_hotels(location: str, checkin: str, checkout: str, adults: int,
                             hotel_name: str = "") -> dict:
-    """Fetch Agoda city results via ScraperAPI (Thai IP). No local Chromium needed."""
+    """Fetch Agoda city results via Playwright. Thai IP gives geo-discounted prices."""
     city_url = build_search_url(None, location, checkin, checkout, adults)
 
-    html = await _scraperapi_render(city_url, wait_selector="[data-element-name='final-price']")
+    html = await _playwright_fetch(city_url)
     if not html:
         return {"hotels": [], "total_count": 0}
 
@@ -227,9 +243,8 @@ async def fetch_price(
     checkin: str,
     checkout: str,
     adults: int,
-    api_key: str,
 ) -> dict:
-    """Fetch price for a specific hotel via ScraperAPI."""
+    """Fetch price for a specific hotel via Playwright."""
     search_text = hotel_name or location
     city = location.split(",")[0].strip()
     if hotel_name and city.lower() not in hotel_name.lower():
@@ -239,7 +254,7 @@ async def fetch_price(
                                   text_search=search_text)
     fallback_url = build_search_url(None, location, checkin, checkout, adults)
 
-    html = await _scraperapi_render(search_url, wait_selector="[data-element-name='final-price']")
+    html = await _playwright_fetch(search_url)
     if not html:
         return {"platform": "Agoda", "raw_price": None, "currency": None,
                 "booking_url": fallback_url, "error": "ScraperAPI fetch failed"}
