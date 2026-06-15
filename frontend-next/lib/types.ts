@@ -15,8 +15,9 @@ export interface Hotel {
   agoda_url: string | null;
   hl_price: number | null;
   hl_url: string | null;
-  best_platform: 'agoda' | 'hotellook' | 'booking';
+  best_platform: string;
   price: number | null;
+  booking_price: number | null;
   booking_url: string | null;
   total_price: number | null;
 }

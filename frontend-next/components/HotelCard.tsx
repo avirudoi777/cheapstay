@@ -45,12 +45,16 @@ function PriceRow({ platform, price, isBest }: PriceRowProps) {
 
 export default function HotelCard({ h }: { h: Hotel }) {
   const [showAuth, setShowAuth] = useState(false);
-  const url = h.booking_url ?? '#';
-  const hasAgoda = h.agoda_price != null;
-  const hasHL = h.hl_price != null;
-  const hasBooking = h.best_platform === 'booking' && h.price != null;
+  const best = h.best_platform || 'booking';
+  const bestUrl = best === 'agoda' ? (h.agoda_url ?? h.booking_url ?? '#') : (h.booking_url ?? h.agoda_url ?? '#');
+  const url = bestUrl;
   const nights = h.nights || 1;
-  const best = h.best_platform || 'agoda';
+
+  const agodaPrice = h.agoda_price;
+  const bookingPrice = h.booking_price ?? (best === 'booking' ? h.price : null);
+  const hasBoth = agodaPrice != null && bookingPrice != null;
+  const saving = hasBoth ? Math.round(Math.abs(bookingPrice! - agodaPrice!)) : 0;
+  const cheaperPlatform = hasBoth ? (agodaPrice! < bookingPrice! ? 'Agoda' : 'Booking.com') : null;
 
   async function handleBook(e: React.MouseEvent) {
     e.preventDefault();
@@ -139,21 +143,21 @@ export default function HotelCard({ h }: { h: Hotel }) {
         )}
 
         <div className="mt-auto space-y-1.5 pt-3 border-t border-gray-100">
-          {hasAgoda && hasHL ? (
+          {/* Price comparison rows */}
+          {hasBoth ? (
             <>
-              <PriceRow platform="Agoda" price={h.agoda_price!} isBest={best === 'agoda'} />
-              <PriceRow platform="Hotellook" price={h.hl_price!} isBest={best === 'hotellook'} />
-            </>
-          ) : hasAgoda || hasHL || hasBooking ? (
-            <div className="flex items-baseline gap-1">
-              {h.original_price && (
-                <span className="text-xs text-gray-400 line-through">{h.original_price}</span>
+              <PriceRow platform="Agoda" price={agodaPrice!} isBest={best === 'agoda'} />
+              <PriceRow platform="Booking.com" price={bookingPrice!} isBest={best === 'booking'} />
+              {saving >= 1 && (
+                <p className="text-xs font-semibold text-teal">
+                  Save ${saving}/night on {cheaperPlatform} vs Thai pricing
+                </p>
               )}
-              <span className="text-2xl font-bold text-navy">
-                ${Math.round(hasAgoda ? h.agoda_price! : hasHL ? h.hl_price! : h.price!)}
-              </span>
-              <span className="text-xs text-gray-500">/night</span>
-            </div>
+            </>
+          ) : agodaPrice != null ? (
+            <PriceRow platform="Agoda" price={agodaPrice} isBest={true} />
+          ) : bookingPrice != null ? (
+            <PriceRow platform="Booking.com" price={bookingPrice} isBest={true} />
           ) : (
             <p className="text-sm text-gray-400">Price unavailable</p>
           )}
@@ -162,15 +166,23 @@ export default function HotelCard({ h }: { h: Hotel }) {
             <p className="text-xs text-gray-400">${Math.round(h.total_price)} total for {nights} night{nights !== 1 ? 's' : ''}</p>
           )}
 
+          {/* Book best deal button */}
           <button onClick={handleBook}
             className="w-full text-center text-sm font-semibold text-white bg-navy hover:bg-navy-light rounded-xl py-2.5 transition-colors mt-2">
-            {best === 'hotellook' ? 'Book on Hotellook →' : best === 'booking' ? 'Book on Booking.com →' : 'Book on Agoda →'}
+            Book on {best === 'agoda' ? 'Agoda' : 'Booking.com'} →
           </button>
 
-          {best === 'booking' && h.agoda_url && (
+          {/* Secondary platform link */}
+          {hasBoth && best === 'agoda' && h.booking_url && (
+            <a href={h.booking_url} target="_blank" rel="noopener noreferrer"
+              className="block text-center text-xs text-gray-400 hover:text-navy transition-colors mt-1">
+              Also on Booking.com →
+            </a>
+          )}
+          {hasBoth && best === 'booking' && h.agoda_url && (
             <a href={h.agoda_url} target="_blank" rel="noopener noreferrer"
               className="block text-center text-xs text-gray-400 hover:text-navy transition-colors mt-1">
-              Also search on Agoda →
+              Also on Agoda →
             </a>
           )}
         </div>
