@@ -107,7 +107,7 @@ export default function HotelCard({ h }: { h: Hotel }) {
       </div>
 
       {/* Body */}
-      <div className="p-4 flex flex-col flex-1">
+      <div className="p-4 flex flex-col">
         <Stars count={h.stars} />
 
         <a href={url} target="_blank" rel="noopener noreferrer"
@@ -142,7 +142,7 @@ export default function HotelCard({ h }: { h: Hotel }) {
           </div>
         )}
 
-        <div className="mt-auto space-y-1.5 pt-3 border-t border-gray-100">
+        <div className="mt-3 space-y-1.5 pt-3 border-t border-gray-100">
           {/* Price comparison rows */}
           {hasBoth ? (
             <>
@@ -150,7 +150,7 @@ export default function HotelCard({ h }: { h: Hotel }) {
               <PriceRow platform="Booking.com" price={bookingPrice!} isBest={best === 'booking'} />
               {saving >= 1 && (
                 <p className="text-xs font-semibold text-teal">
-                  Save ${saving}/night on {cheaperPlatform} vs Thai pricing
+                  Save ${saving}/night booking on {cheaperPlatform}
                 </p>
               )}
             </>

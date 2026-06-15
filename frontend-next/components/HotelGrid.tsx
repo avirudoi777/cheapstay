@@ -143,8 +143,12 @@ export default function HotelGrid({ initialData, location, checkin, checkout, ad
                 className="mt-3 text-sm text-teal hover:text-teal-dark font-semibold">Clear filters</button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {visible.map((h, i) => <HotelCard key={`${h.name}-${i}`} h={h} />)}
+            <div className="columns-1 sm:columns-2 xl:columns-3 gap-4">
+              {visible.map((h, i) => (
+                <div key={`${h.name}-${i}`} className="break-inside-avoid mb-4">
+                  <HotelCard h={h} />
+                </div>
+              ))}
             </div>
           )}
 
