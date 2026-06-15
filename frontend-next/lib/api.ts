@@ -39,11 +39,50 @@ export async function searchCity(params: CitySearchParams): Promise<CitySearchRe
   return res.json();
 }
 
+const _CITY_TYPES  = new Set(['city','town','village','district','county','state']);
+const _HOTEL_TYPES = new Set(['hotel','house','tourism','hostel','motel','guest_house']);
+
+async function _photon(q: string, osmTag?: string, limit = 8): Promise<Suggestion[]> {
+  const params = new URLSearchParams({ q, limit: String(limit), lang: 'en' });
+  if (osmTag) params.set('osm_tag', osmTag);
+  const res = await fetch(`https://photon.komoot.io/api/?${params}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.features ?? []) as Suggestion[];
+}
+
 export async function getSuggestions(q: string): Promise<Suggestion[]> {
   try {
-    const res = await fetch(`${getBase()}/suggest?q=${encodeURIComponent(q)}`);
-    if (!res.ok) return [];
-    return res.json();
+    const [cityRaw, hotelRaw] = await Promise.all([
+      _photon(q, undefined, 8),
+      _photon(q, 'tourism:hotel', 10),
+    ]);
+
+    const seen = new Set<string>();
+    const results: Suggestion[] = [];
+
+    for (const f of cityRaw as any[]) {
+      const p = f.properties ?? {};
+      const osmVal = p.osm_value ?? p.type ?? '';
+      const name = (p.name ?? '').trim();
+      if (name && !seen.has(name) && _CITY_TYPES.has(osmVal)) {
+        seen.add(name);
+        results.push({ name, city: name, country: p.country ?? '', is_city: true });
+      }
+    }
+
+    for (const f of hotelRaw as any[]) {
+      const p = f.properties ?? {};
+      const osmVal = p.osm_value ?? p.type ?? '';
+      const name = (p.name ?? '').trim();
+      const city = p.city ?? p.state ?? '';
+      if (name && !seen.has(name) && _HOTEL_TYPES.has(osmVal)) {
+        seen.add(name);
+        results.push({ name, city, country: p.country ?? '', is_city: false });
+      }
+    }
+
+    return results.slice(0, 10);
   } catch {
     return [];
   }

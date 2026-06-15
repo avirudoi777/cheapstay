@@ -245,8 +245,8 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
     debounceRef.current = setTimeout(async () => {
       const items = await getSuggestions(q);
       setSuggestions(items);
-      setShowSug(true); // always show — even with 0 suggestions, shows "Search anyway" row
-    }, 350);
+      setShowSug(true);
+    }, 180);
   }, []);
 
   function handleQueryChange(v: string) {
