@@ -38,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </header>
 
         <div className="bg-teal/10 border-b border-teal/20 text-center py-1.5 text-xs text-teal font-medium tracking-wide">
-          Beta — Thai IP pricing active. Prices may vary slightly from booking platforms.
+          Beta — We&apos;re still testing. Prices may vary slightly from booking platforms.
         </div>
 
         <main className="flex-1">{children}</main>
