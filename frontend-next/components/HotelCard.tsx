@@ -169,7 +169,7 @@ function HotelCardInner({ h }: { h: Hotel }) {
 
           {/* Book best deal button */}
           <button onClick={handleBook}
-            className="w-full text-center text-sm font-semibold text-white bg-navy hover:bg-navy-light rounded-xl py-2.5 transition-colors mt-2">
+            className="w-full text-center text-sm font-semibold text-white bg-navy hover:bg-navy-light rounded-xl py-2.5 transition-colors mt-2 cursor-pointer">
             Book on {best === 'agoda' ? 'Agoda' : 'Booking.com'} →
           </button>
 
