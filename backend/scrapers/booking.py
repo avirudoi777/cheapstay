@@ -175,20 +175,16 @@ def _parse_hotels(html: str, nights: int = 1, checkin: str = "", checkout: str =
                     if 0 < val <= 10:
                         rating = str(float(val))
 
-        # Stars — count child boxes inside rating-squares (aria-label is now empty on Booking.com)
-        stars_el = card.select_one('[data-testid="rating-squares"]')
+        # Stars — Booking.com uses rating-stars (standard hotels) or rating-squares (boutiques).
+        # aria-label is now empty; count direct child divs instead — each = 1 star.
+        stars_el = (card.select_one('[data-testid="rating-stars"]') or
+                    card.select_one('[data-testid="rating-squares"]'))
         stars = None
         if stars_el:
-            aria = stars_el.get("aria-label", "")
-            m_aria = re.search(r"(\d+)", aria)
-            if m_aria:
-                stars = int(m_aria.group(1))
-            else:
-                # Count direct child divs — each represents one star
-                boxes = stars_el.find_all("div", recursive=False)
-                cnt = len(boxes)
-                if 1 <= cnt <= 5:
-                    stars = cnt
+            boxes = stars_el.find_all("div", recursive=False)
+            cnt = len(boxes)
+            if 1 <= cnt <= 5:
+                stars = cnt
 
         img_url = None
         if img_el:
