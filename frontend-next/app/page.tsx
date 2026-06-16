@@ -26,10 +26,10 @@ function defaultDates() {
 }
 
 const STATS = [
-  { icon: '🏨', value: '500,000+',       label: 'Hotels worldwide' },
-  { icon: '💰', value: 'Save up to 40%', label: 'vs standard rates' },
+  { icon: '🏨', value: '{{HOTEL_COUNT}}', label: 'Hotels worldwide' },
+  { icon: '💰', value: 'Compare top sites', label: 'in one search' },
   { icon: '⚡', value: 'Real-time',      label: 'Updated every search' },
-  { icon: '🌍', value: '190+',           label: 'Countries' },
+  { icon: '🌍', value: '{{COUNTRY_COUNT}}', label: 'Countries' },
 ];
 
 export default function HomePage() {
@@ -165,7 +165,7 @@ export default function HomePage() {
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(15,31,61,0.65), rgba(15,31,61,0.35))' }} />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight drop-shadow-lg">
-            Always the cheapest hotel price
+            Find a cheaper hotel price
           </h1>
           <p className="mt-2 text-sm sm:text-base text-white/80">
             Search smarter. Stay cheaper. Every search, automatically.
