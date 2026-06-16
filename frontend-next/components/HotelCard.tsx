@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import Image from 'next/image';
 import type { Hotel } from '@/lib/types';
 import AuthModal from './AuthModal';
@@ -43,7 +43,7 @@ function PriceRow({ platform, price, isBest }: PriceRowProps) {
   );
 }
 
-export default function HotelCard({ h, agodaLoading }: { h: Hotel; agodaLoading?: boolean }) {
+function HotelCardInner({ h }: { h: Hotel }) {
   const [showAuth, setShowAuth] = useState(false);
   const best = h.best_platform || 'booking';
   const bestUrl = best === 'agoda' ? (h.agoda_url ?? h.booking_url ?? '#') : (h.booking_url ?? h.agoda_url ?? '#');
@@ -144,14 +144,11 @@ export default function HotelCard({ h, agodaLoading }: { h: Hotel; agodaLoading?
 
         <div className="mt-3 space-y-1.5 pt-3 border-t border-gray-100">
           {/* Agoda row — always occupies space (invisible when no price) to prevent masonry reflow */}
-          <div className={agodaPrice == null && !agodaLoading ? 'invisible' : undefined}>
+          <div className={agodaPrice == null ? 'invisible' : undefined}>
             {agodaPrice != null ? (
               <PriceRow platform="Agoda" price={agodaPrice} isBest={best === 'agoda'} />
             ) : (
-              <div className="flex items-center justify-between px-3 py-2 h-[38px] rounded-lg bg-gray-50">
-                <div className="h-2.5 w-10 bg-gray-200 rounded animate-pulse" />
-                <div className="h-2.5 w-20 bg-gray-200 rounded animate-pulse" />
-              </div>
+              <div className="h-[38px] rounded-lg bg-gray-50" />
             )}
           </div>
 
@@ -202,3 +199,6 @@ export default function HotelCard({ h, agodaLoading }: { h: Hotel; agodaLoading?
     </div>
   );
 }
+
+const HotelCard = memo(HotelCardInner);
+export default HotelCard;

@@ -33,10 +33,9 @@ interface HotelGridProps {
   checkout: string;
   adults: number;
   agodaPrices?: Record<string, AgodaPriceEntry> | null;
-  agodaLoading?: boolean;
 }
 
-export default function HotelGrid({ initialData, location, checkin, checkout, adults, agodaPrices, agodaLoading }: HotelGridProps) {
+export default function HotelGrid({ initialData, location, checkin, checkout, adults, agodaPrices }: HotelGridProps) {
   const [hotels, setHotels]           = useState<Hotel[]>(initialData.hotels);
   const [totalAgoda, setTotalAgoda]   = useState(initialData.total_agoda);
   const [offset, setOffset]           = useState(initialData.offset + initialData.hotels.length);
@@ -173,7 +172,7 @@ export default function HotelGrid({ initialData, location, checkin, checkout, ad
             <div className="columns-1 sm:columns-2 xl:columns-3 gap-4">
               {visible.map((h, i) => (
                 <div key={`${h.name}-${i}`} className="break-inside-avoid mb-4">
-                  <HotelCard h={h} agodaLoading={agodaLoading} />
+                  <HotelCard h={h} />
                 </div>
               ))}
             </div>
