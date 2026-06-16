@@ -46,7 +46,7 @@ const CREDIT_CARDS = [
     bonusValue: '≈ $750 in travel',
     bonusSpend: '$4,000 in 3 months',
     fee: '$95 / year',
-    url: 'https://creditcards.chase.com/travel-credit-cards/sapphire/preferred',
+    url: 'https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred',
   },
   {
     name: 'Capital One Venture',
@@ -373,85 +373,108 @@ export default function HomePage() {
 
                     {/* Chase Sapphire Preferred */}
                     {card.cardType === 'chase-sapphire' && (
-                      <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg,#0c2d5e 0%,#1b5189 50%,#0a2340 100%)' }}>
-                        {/* Diagonal swoosh lines — the signature Sapphire look */}
+                      <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg,#08224a 0%,#0e3d72 40%,#0a2d5a 100%)' }}>
+                        {/* Bright diagonal light-beam swooshes */}
                         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 320 200" preserveAspectRatio="none">
-                          <path d="M-30 190 Q60 155 160 100 Q240 55 360 10" stroke="rgba(120,195,255,0.35)" strokeWidth="28" fill="none" strokeLinecap="round"/>
-                          <path d="M-30 220 Q60 185 160 130 Q240 85 360 40" stroke="rgba(120,195,255,0.2)" strokeWidth="22" fill="none" strokeLinecap="round"/>
-                          <path d="M20 240 Q110 200 210 145 Q285 105 370 65" stroke="rgba(120,195,255,0.12)" strokeWidth="16" fill="none" strokeLinecap="round"/>
+                          <defs>
+                            <linearGradient id="sw1" x1="0%" y1="100%" x2="100%" y2="0%">
+                              <stop offset="0%" stopColor="rgba(100,180,255,0)" />
+                              <stop offset="40%" stopColor="rgba(140,210,255,0.55)" />
+                              <stop offset="60%" stopColor="rgba(160,225,255,0.55)" />
+                              <stop offset="100%" stopColor="rgba(100,180,255,0)" />
+                            </linearGradient>
+                            <linearGradient id="sw2" x1="0%" y1="100%" x2="100%" y2="0%">
+                              <stop offset="0%" stopColor="rgba(80,160,240,0)" />
+                              <stop offset="45%" stopColor="rgba(100,180,255,0.35)" />
+                              <stop offset="100%" stopColor="rgba(80,160,240,0)" />
+                            </linearGradient>
+                            <linearGradient id="sw3" x1="0%" y1="100%" x2="100%" y2="0%">
+                              <stop offset="0%" stopColor="rgba(60,140,220,0)" />
+                              <stop offset="50%" stopColor="rgba(80,160,240,0.2)" />
+                              <stop offset="100%" stopColor="rgba(60,140,220,0)" />
+                            </linearGradient>
+                          </defs>
+                          <path d="M-40 210 Q80 150 200 80 Q270 40 370 -5" stroke="url(#sw1)" strokeWidth="36" fill="none" strokeLinecap="round"/>
+                          <path d="M-40 250 Q80 190 200 120 Q270 80 370 35" stroke="url(#sw2)" strokeWidth="28" fill="none" strokeLinecap="round"/>
+                          <path d="M10 270 Q120 210 240 140 Q300 105 370 70" stroke="url(#sw3)" strokeWidth="20" fill="none" strokeLinecap="round"/>
                         </svg>
-                        {/* Chase 4-square logo */}
-                        <div className="absolute top-3.5 left-3.5 grid grid-cols-2 gap-[2px] w-7 h-7">
-                          <div className="bg-white/85 rounded-[2px]" /><div className="bg-white/85 rounded-[2px]" />
-                          <div className="bg-white/85 rounded-[2px]" /><div className="bg-white/85 rounded-[2px]" />
+                        {/* Chase octagon logo */}
+                        <div className="absolute top-3.5 left-3.5 grid grid-cols-2 gap-[2px] w-[26px] h-[26px]">
+                          <div className="bg-white/90 rounded-[2px]" /><div className="bg-white/90 rounded-[2px]" />
+                          <div className="bg-white/90 rounded-[2px]" /><div className="bg-white/90 rounded-[2px]" />
                         </div>
-                        <div className="absolute top-4 left-11 text-white/80 text-[9px] font-bold tracking-widest leading-tight uppercase">SAPPHIRE<br/>PREFERRED</div>
+                        <div className="absolute top-[15px] left-[38px] text-white/85 text-[8px] font-black tracking-[0.18em] leading-[1.3] uppercase">SAPPHIRE<br/>PREFERRED</div>
                         {/* Chip */}
-                        <div className="absolute top-[44%] left-4 w-8 h-[22px] rounded-[3px]" style={{ background: 'linear-gradient(135deg,#c8a830,#f0d060,#a87820)' }}>
-                          <div className="absolute inset-[3px] border border-yellow-700/30 rounded-[2px]" />
+                        <div className="absolute top-[42%] left-4 w-9 h-[24px] rounded-[4px]" style={{ background: 'linear-gradient(135deg,#b8940c,#f0d060,#c8a010,#f0d060,#a07808)' }}>
+                          <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-yellow-700/30" />
+                          <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-yellow-700/30" />
                         </div>
-                        <div className="absolute top-[44%] left-[52px] text-white/35 text-sm leading-[22px]">)))</div>
-                        <div className="absolute bottom-6 left-4 text-white/60 text-[10px] tracking-[0.14em] font-mono">•••• •••• •••• 4242</div>
-                        <div className="absolute bottom-2 left-4 text-white/40 text-[9px]">D. CARDHOLDER</div>
-                        <div className="absolute bottom-2 right-4 text-white/90 text-sm font-bold italic tracking-wider">VISA</div>
+                        <div className="absolute top-[42%] left-[56px] text-white/40 text-[15px] leading-[24px] tracking-[-2px]">)))</div>
+                        <div className="absolute bottom-6 left-4 text-white/65 text-[10px] tracking-[0.15em] font-mono">•••• •••• •••• 4242</div>
+                        <div className="absolute bottom-[7px] left-4 text-white/40 text-[9px] tracking-wide">D. CARDHOLDER</div>
+                        <div className="absolute bottom-[7px] right-4 text-white text-[15px] font-black italic tracking-wider" style={{ fontFamily: 'serif' }}>VISA</div>
                       </div>
                     )}
 
                     {/* Capital One Venture */}
                     {card.cardType === 'venture' && (
-                      <div className="absolute inset-0" style={{ background: 'linear-gradient(145deg,#0e0e14 0%,#1c1c28 55%,#0a0a10 100%)' }}>
-                        {/* Large VENTURE watermark */}
+                      <div className="absolute inset-0" style={{ background: 'linear-gradient(150deg,#12121e 0%,#1e1e30 50%,#0c0c18 100%)' }}>
+                        {/* VENTURE bold watermark */}
                         <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-                          <span className="text-white/[0.06] font-black tracking-[0.25em] uppercase select-none"
-                            style={{ fontSize: '52px', transform: 'rotate(-12deg)' }}>VENTURE</span>
+                          <span className="font-black tracking-[0.2em] uppercase select-none"
+                            style={{ fontSize: '48px', transform: 'rotate(-10deg)', color: 'rgba(255,255,255,0.1)', letterSpacing: '0.15em' }}>VENTURE</span>
                         </div>
-                        {/* Silver diagonal accent lines */}
+                        {/* Subtle silver shimmer diagonals */}
                         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 320 200" preserveAspectRatio="none">
-                          <path d="M0 200 L200 0" stroke="rgba(200,200,220,0.08)" strokeWidth="40" fill="none"/>
-                          <path d="M60 200 L260 0" stroke="rgba(200,200,220,0.05)" strokeWidth="30" fill="none"/>
+                          <path d="M-20 220 L220 -20" stroke="rgba(180,180,220,0.07)" strokeWidth="50" fill="none"/>
+                          <path d="M40 240 L280 0" stroke="rgba(180,180,220,0.04)" strokeWidth="35" fill="none"/>
                         </svg>
-                        {/* Capital One "C" logo */}
-                        <div className="absolute top-3.5 left-3.5 w-7 h-7 rounded-full border-[2.5px] border-red-500/80 flex items-center justify-center">
-                          <span className="text-red-400 font-black text-[13px] leading-none" style={{ marginLeft: '-1px' }}>C</span>
+                        {/* Capital One logo — outlined C */}
+                        <div className="absolute top-3.5 left-3.5 flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full border-[2.5px] border-red-500 flex items-center justify-center flex-shrink-0">
+                            <span className="text-red-400 font-black text-[14px] leading-none" style={{ marginLeft: '-1px' }}>C</span>
+                          </div>
+                          <span className="text-white/75 text-[9px] font-bold tracking-[0.2em] uppercase">CAPITAL ONE</span>
                         </div>
-                        <div className="absolute top-3.5 left-13 text-white/70 text-[9px] font-bold tracking-widest uppercase" style={{ left: '44px' }}>CAPITAL ONE</div>
                         {/* Chip */}
-                        <div className="absolute top-[44%] left-4 w-8 h-[22px] rounded-[3px]" style={{ background: 'linear-gradient(135deg,#c8a830,#f0d060,#a87820)' }}>
-                          <div className="absolute inset-[3px] border border-yellow-700/30 rounded-[2px]" />
+                        <div className="absolute top-[42%] left-4 w-9 h-[24px] rounded-[4px]" style={{ background: 'linear-gradient(135deg,#b8940c,#f0d060,#c8a010,#f0d060,#a07808)' }}>
+                          <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-yellow-700/30" />
+                          <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-yellow-700/30" />
                         </div>
-                        <div className="absolute top-[44%] left-[52px] text-white/30 text-sm leading-[22px]">)))</div>
-                        <div className="absolute bottom-6 left-4 text-white/50 text-[10px] tracking-[0.14em] font-mono">•••• •••• •••• 4242</div>
-                        <div className="absolute bottom-2 left-4 text-white/35 text-[9px]">D. CARDHOLDER</div>
-                        <div className="absolute bottom-2 right-4 text-white/80 text-sm font-bold italic tracking-wider">VISA</div>
+                        <div className="absolute top-[42%] left-[56px] text-white/35 text-[15px] leading-[24px] tracking-[-2px]">)))</div>
+                        <div className="absolute bottom-6 left-4 text-white/55 text-[10px] tracking-[0.15em] font-mono">•••• •••• •••• 4242</div>
+                        <div className="absolute bottom-[7px] left-4 text-white/35 text-[9px] tracking-wide">D. CARDHOLDER</div>
+                        <div className="absolute bottom-[7px] right-4 text-white/85 text-[15px] font-black italic tracking-wider" style={{ fontFamily: 'serif' }}>VISA</div>
                       </div>
                     )}
 
                     {/* Amex Gold */}
                     {card.cardType === 'amex-gold' && (
-                      <div className="absolute inset-0" style={{ background: 'linear-gradient(145deg,#8a6010 0%,#c8920e 25%,#e8b830 45%,#d4a010 60%,#b07818 80%,#8a6010 100%)' }}>
+                      <div className="absolute inset-0" style={{ background: 'linear-gradient(150deg,#7a5208 0%,#b87c10 20%,#d4a018 35%,#f0c830 50%,#c89010 65%,#a06808 80%,#7a5208 100%)' }}>
                         {/* Brushed-metal horizontal lines */}
-                        <svg className="absolute inset-0 w-full h-full opacity-25" viewBox="0 0 320 200" preserveAspectRatio="none">
-                          {Array.from({ length: 40 }).map((_, i) => (
-                            <line key={i} x1="0" y1={i * 5} x2="320" y2={i * 5} stroke="white" strokeWidth="0.6"/>
+                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 320 200" preserveAspectRatio="none" style={{ opacity: 0.3 }}>
+                          {Array.from({ length: 50 }).map((_, i) => (
+                            <line key={i} x1="0" y1={i * 4} x2="320" y2={i * 4} stroke="white" strokeWidth="0.5"/>
                           ))}
                         </svg>
-                        {/* Sheen overlay */}
-                        <div className="absolute inset-0" style={{ background: 'linear-gradient(115deg,rgba(255,255,255,0.18) 0%,transparent 40%,rgba(255,255,255,0.08) 70%,transparent 100%)' }} />
-                        {/* American Express text logo */}
-                        <div className="absolute top-3.5 left-3.5">
-                          <div className="text-[8px] font-black tracking-[0.2em] text-amber-900/80 uppercase leading-tight">AMERICAN</div>
-                          <div className="text-[8px] font-black tracking-[0.2em] text-amber-900/80 uppercase leading-tight">EXPRESS</div>
+                        {/* Diagonal sheen */}
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(110deg,rgba(255,255,255,0.25) 0%,transparent 35%,rgba(255,255,255,0.12) 60%,transparent 100%)' }} />
+                        {/* American Express logo */}
+                        <div className="absolute top-3 left-4">
+                          <div className="text-[7.5px] font-black tracking-[0.22em] text-amber-950/70 uppercase leading-tight">AMERICAN</div>
+                          <div className="text-[7.5px] font-black tracking-[0.22em] text-amber-950/70 uppercase leading-tight">EXPRESS</div>
                         </div>
-                        {/* GOLD text watermark */}
-                        <div className="absolute top-3 right-3 text-amber-900/25 font-black text-3xl tracking-widest uppercase select-none">GOLD</div>
+                        {/* GOLD embossed label */}
+                        <div className="absolute top-3 right-4 text-amber-950/30 font-black text-[28px] tracking-[0.15em] uppercase select-none leading-none">GOLD</div>
                         {/* Chip */}
-                        <div className="absolute top-[44%] left-4 w-8 h-[22px] rounded-[3px]" style={{ background: 'linear-gradient(135deg,#7a5008,#c8900c,#7a5008)' }}>
-                          <div className="absolute inset-[3px] border border-amber-900/40 rounded-[2px]" />
+                        <div className="absolute top-[42%] left-4 w-9 h-[24px] rounded-[4px]" style={{ background: 'linear-gradient(135deg,#5a3a04,#a06808,#5a3a04)' }}>
+                          <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-amber-950/30" />
+                          <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-amber-950/30" />
                         </div>
-                        <div className="absolute top-[44%] left-[52px] text-amber-900/30 text-sm leading-[22px]">)))</div>
-                        <div className="absolute bottom-6 left-4 text-amber-900/60 text-[10px] tracking-[0.14em] font-mono">•••• •••••• 4242</div>
-                        <div className="absolute bottom-2 left-4 text-amber-900/50 text-[9px]">D. CARDHOLDER</div>
-                        <div className="absolute bottom-2 right-4 text-amber-900/80 text-[10px] font-black tracking-widest">AMEX</div>
+                        <div className="absolute top-[42%] left-[56px] text-amber-950/35 text-[15px] leading-[24px] tracking-[-2px]">)))</div>
+                        <div className="absolute bottom-6 left-4 text-amber-950/55 text-[10px] tracking-[0.15em] font-mono">•••• •••••• •• 4242</div>
+                        <div className="absolute bottom-[7px] left-4 text-amber-950/45 text-[9px] tracking-wide">D. CARDHOLDER</div>
+                        <div className="absolute bottom-[7px] right-4 text-amber-950/75 text-[9px] font-black tracking-[0.2em] uppercase">AMEX</div>
                       </div>
                     )}
                   </div>
