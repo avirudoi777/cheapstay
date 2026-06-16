@@ -96,15 +96,14 @@ function HotelCardInner({ h }: { h: Hotel }) {
           ♡
         </button>
 
-        {/* Stars on photo (bottom-left overlay) */}
-        <div className="absolute bottom-3 left-3 flex items-center gap-0.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <StarSVG key={i} filled={i < starCount} />
-          ))}
-          {starCount === 0 && (
-            <span className="text-white/60 text-[10px] font-medium ml-1">Hotel</span>
-          )}
-        </div>
+        {/* Stars on photo (bottom-left overlay) — only shown when star rating is known */}
+        {starCount >= 1 && (
+          <div className="absolute bottom-3 left-3 flex items-center gap-0.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <StarSVG key={i} filled={i < starCount} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Body ──────────────────────────────────────────── */}

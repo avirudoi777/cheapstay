@@ -120,21 +120,37 @@ def _parse_hotels(html: str, nights: int = 1, checkin: str = "", checkout: str =
         if not name or name in seen:
             continue
 
-        # Price is total for stay — divide by nights for per-night
-        price_text = price_el.get_text(strip=True) if price_el else None
-        price_per_night = None
-        if price_text:
-            nums = []
-            for p in re.findall(r"[\d,]+", price_text):
+        # Booking.com now shows per-night price in first price-and-discounted-price element.
+        # Detect by checking if "Per night" text appears in the rate-information wrapper.
+        price_els = card.select('[data-testid="price-and-discounted-price"]')
+        rate_info_el = card.select_one('[data-testid="availability-rate-information"]')
+        rate_info_text = rate_info_el.get_text(strip=True) if rate_info_el else ""
+
+        def _first_num(text: str) -> float | None:
+            for p in re.findall(r"[\d,]+", text):
                 try:
                     v = float(p.replace(",", ""))
                     if v > 10:
-                        nums.append(v)
+                        return v
                 except ValueError:
                     pass
-            if nums:
-                total = min(nums)
-                price_per_night = round(total / max(nights, 1), 2)
+            return None
+
+        price_per_night = None
+        if price_els:
+            raw = _first_num(price_els[0].get_text(strip=True))
+            if raw is not None:
+                if "Per night" in rate_info_text or "per night" in rate_info_text:
+                    # Already per-night — use directly
+                    price_per_night = round(raw, 2)
+                else:
+                    # Total for stay — divide by nights
+                    price_per_night = round(raw / max(nights, 1), 2)
+        elif price_el:
+            raw = _first_num(price_el.get_text(strip=True))
+            if raw is not None:
+                price_per_night = round(raw / max(nights, 1), 2)
+        price_text = price_els[0].get_text(strip=True) if price_els else (price_el.get_text(strip=True) if price_el else None)
 
         # Strip Booking's tracking params, then re-append dates so the link lands with dates pre-filled
         href = link_el.get("href") if link_el else None
@@ -159,14 +175,20 @@ def _parse_hotels(html: str, nights: int = 1, checkin: str = "", checkout: str =
                     if 0 < val <= 10:
                         rating = str(float(val))
 
-        # Stars
+        # Stars — count child boxes inside rating-squares (aria-label is now empty on Booking.com)
         stars_el = card.select_one('[data-testid="rating-squares"]')
         stars = None
         if stars_el:
             aria = stars_el.get("aria-label", "")
-            sm = re.search(r"(\d+)", aria)
-            if sm:
-                stars = int(sm.group(1))
+            m_aria = re.search(r"(\d+)", aria)
+            if m_aria:
+                stars = int(m_aria.group(1))
+            else:
+                # Count direct child divs — each represents one star
+                boxes = stars_el.find_all("div", recursive=False)
+                cnt = len(boxes)
+                if 1 <= cnt <= 5:
+                    stars = cnt
 
         img_url = None
         if img_el:
