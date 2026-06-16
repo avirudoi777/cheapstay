@@ -1,9 +1,9 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import SearchBar, { type SearchValues } from '@/components/SearchBar';
 import HotelGrid from '@/components/HotelGrid';
-import { searchCity, getSuggestions, fetchAgodaPrices } from '@/lib/api';
+import { searchCity, getSuggestions, fetchAgodaPrices, getUserCountry } from '@/lib/api';
 import type { AgodaPriceEntry } from '@/lib/api';
 import type { CitySearchResponse } from '@/lib/types';
 
@@ -36,35 +36,80 @@ const CREDIT_CARDS = [
   {
     name: 'Chase Sapphire Preferred®',
     bank: 'Chase',
-    cardColor: '#0f3460',
-    badge: 'Most Popular',
+    gradient: 'linear-gradient(135deg, #0f3460 0%, #1a5c8a 55%, #0b2545 100%)',
+    network: 'VISA',
+    badge: 'Best for Hotels',
+    hotelMult: 2,
+    pointValue: 1.25,
+    pointName: 'points',
     bonus: '60,000 points',
-    bonusNote: 'after $4,000 spend in 3 months (~$750 in travel)',
-    earn: '3× dining · 2× travel · 1× everything else',
+    bonusValue: '≈ $750 in travel',
+    bonusSpend: '$4,000 in 3 months',
     fee: '$95 / year',
     url: 'https://creditcards.chase.com/travel-credit-cards/sapphire/preferred',
   },
   {
     name: 'Capital One Venture',
     bank: 'Capital One',
-    cardColor: '#c41230',
+    gradient: 'linear-gradient(135deg, #8b1a2e 0%, #c41230 50%, #6b1220 100%)',
+    network: 'VISA',
     badge: 'Simplest Rewards',
+    hotelMult: 2,
+    pointValue: 1.0,
+    pointName: 'miles',
     bonus: '75,000 miles',
-    bonusNote: 'after $4,000 spend in 3 months (~$750 in travel)',
-    earn: '2× miles on every purchase, everywhere',
+    bonusValue: '≈ $750 in travel',
+    bonusSpend: '$4,000 in 3 months',
     fee: '$95 / year',
     url: 'https://www.capitalone.com/credit-cards/venture/',
   },
   {
     name: 'Amex Gold Card',
     bank: 'American Express',
-    cardColor: '#a07830',
-    badge: 'Best for Dining',
+    gradient: 'linear-gradient(135deg, #6b4510 0%, #c8963c 45%, #d4a843 70%, #9a7020 100%)',
+    network: 'AMEX',
+    badge: 'Biggest Bonus',
+    hotelMult: 2,
+    pointValue: 1.0,
+    pointName: 'points',
     bonus: '60,000 points',
-    bonusNote: 'after $6,000 spend in 6 months (~$600 in travel)',
-    earn: '4× dining · 3× flights · 2× hotels',
+    bonusValue: '≈ $600 in travel',
+    bonusSpend: '$6,000 in 6 months',
     fee: '$250 / year',
     url: 'https://www.americanexpress.com/us/credit-cards/card/gold-card/',
+  },
+];
+
+const TRAVEL_TOOLS = [
+  {
+    icon: '🛡️',
+    name: 'SafetyWing Nomad Insurance',
+    tagline: 'Medical & travel coverage in 180+ countries',
+    badge: 'Most Flexible',
+    highlight: 'From $56 / 4 weeks',
+    bullets: ['Emergency medical & hospital', 'Trip interruption', 'Works while you travel'],
+    url: 'https://safetywing.com/',
+    color: '#4f46e5',
+  },
+  {
+    icon: '📱',
+    name: 'Airalo eSIM',
+    tagline: 'Stay connected anywhere — no SIM swapping',
+    badge: 'Best for Asia',
+    highlight: 'From $5 / week',
+    bullets: ['Data in 200+ countries', 'Instant activation', 'No roaming fees'],
+    url: 'https://www.airalo.com/',
+    color: '#0ea5e9',
+  },
+  {
+    icon: '🎟️',
+    name: 'Klook Activities',
+    tagline: 'Tours, transfers & experiences at your destination',
+    badge: 'Top in Asia',
+    highlight: 'Save up to 30%',
+    bullets: ['Airport transfers', 'Day tours & excursions', 'Attraction tickets'],
+    url: 'https://www.klook.com/',
+    color: '#f97316',
   },
 ];
 
@@ -76,8 +121,13 @@ export default function HomePage() {
   const [searchValues, setSearchValues] = useState<SearchValues | null>(null);
   const [agodaUpdating, setAgodaUpdating] = useState(false);
   const [agodaPrices, setAgodaPrices]   = useState<Record<string, AgodaPriceEntry> | null>(null);
+  const [userCountry, setUserCountry]   = useState<string | null>(null);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const resultsRef  = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    getUserCountry().then(code => setUserCountry(code ?? 'unknown'));
+  }, []);
 
   function startProgress() {
     setProgress(0);
@@ -295,52 +345,150 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Credit card recommendations */}
-            <section className="mt-4">
-              <div className="mb-4">
-                <h2 className="text-xl font-bold text-navy">Earn points on every booking</h2>
-                <p className="text-sm text-gray-500 mt-0.5">The right travel card turns hotel stays into free flights</p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {CREDIT_CARDS.map(card => (
-                  <div key={card.name} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col">
-                    {/* Card visual + badge */}
-                    <div className="flex items-start justify-between mb-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-teal bg-teal/10 px-2 py-0.5 rounded-full">
-                        {card.badge}
-                      </span>
-                      <div className="w-14 h-9 rounded-lg shadow-sm flex-shrink-0" style={{ background: card.cardColor }} />
+            {/* US: credit card recommendations — non-US: travel tools */}
+            {userCountry !== null && (
+              <section className="mt-4">
+                {userCountry === 'US' ? (
+                  <>
+                    <div className="mb-5">
+                      <h2 className="text-xl font-bold text-navy">Stack points on top of savings</h2>
+                      <p className="text-sm text-gray-500 mt-0.5">
+                        Use the right travel card when you book — earn points that pay for future trips
+                      </p>
                     </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {CREDIT_CARDS.map(card => {
+                        const exampleNight = 150;
+                        const pts = exampleNight * card.hotelMult;
+                        const val = ((pts * card.pointValue) / 100).toFixed(2);
+                        return (
+                          <div key={card.name} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+                            {/* Card artwork */}
+                            <div className="relative mx-4 mt-4 rounded-xl overflow-hidden shadow-lg"
+                              style={{ background: card.gradient, aspectRatio: '1.586' }}>
+                              <div className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" />
+                              {/* Chip */}
+                              <div className="absolute top-4 left-4 w-9 h-6 rounded-md"
+                                style={{ background: 'linear-gradient(135deg,#d4a843,#f0cd7b,#b8872a)' }} />
+                              {/* Contactless */}
+                              <div className="absolute top-[18px] left-[54px] text-white/40 text-base leading-none">)))</div>
+                              {/* Number */}
+                              <div className="absolute bottom-8 left-4 text-white/70 text-[11px] tracking-[0.12em] font-mono">
+                                •••• •••• •••• 4242
+                              </div>
+                              {/* Network */}
+                              <div className="absolute bottom-3 right-4 text-white/90 text-xs font-bold tracking-wide">
+                                {card.network}
+                              </div>
+                              {/* Bank */}
+                              <div className="absolute bottom-3 left-4 text-white/55 text-[10px]">{card.bank}</div>
+                            </div>
 
-                    <h3 className="font-bold text-navy text-sm leading-tight">{card.name}</h3>
-                    <p className="text-xs text-gray-400 mb-3">{card.bank}</p>
+                            <div className="p-4 flex flex-col flex-1">
+                              {/* Badge + name */}
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-teal bg-teal/10 px-2 py-0.5 rounded-full">
+                                  {card.badge}
+                                </span>
+                              </div>
+                              <h3 className="font-bold text-navy text-sm leading-tight">{card.name}</h3>
 
-                    {/* Welcome bonus */}
-                    <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-3">
-                      <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide mb-0.5">Welcome bonus</p>
-                      <p className="text-base font-bold text-amber-900">{card.bonus}</p>
-                      <p className="text-[11px] text-amber-700 mt-0.5">{card.bonusNote}</p>
+                              {/* Hotel points callout */}
+                              <div className="mt-3 bg-teal/5 border border-teal/15 rounded-xl p-3">
+                                <p className="text-[10px] font-semibold text-teal uppercase tracking-wide mb-1">
+                                  On a ${exampleNight} hotel booking
+                                </p>
+                                <div className="flex items-baseline gap-1.5">
+                                  <span className="text-base font-bold text-navy">{pts} {card.pointName}</span>
+                                  <span className="text-xs text-gray-500">≈ ${val} extra back</span>
+                                </div>
+                                <p className="text-[11px] text-gray-400 mt-0.5">
+                                  {card.hotelMult}× on hotels · stacks with Cheapstay savings
+                                </p>
+                              </div>
+
+                              {/* Welcome bonus */}
+                              <div className="mt-3 bg-amber-50 border border-amber-100 rounded-xl p-3">
+                                <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide mb-0.5">
+                                  Welcome bonus
+                                </p>
+                                <p className="text-sm font-bold text-amber-900">{card.bonus} <span className="font-normal text-amber-700 text-xs">({card.bonusValue})</span></p>
+                                <p className="text-[11px] text-amber-600">after {card.bonusSpend}</p>
+                              </div>
+
+                              {/* Footer */}
+                              <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100 mt-4">
+                                <span className="text-xs text-gray-400">{card.fee}</span>
+                                <a href={card.url} target="_blank" rel="noopener noreferrer"
+                                  className="text-xs font-bold text-teal hover:underline transition-colors">
+                                  Apply now →
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    {/* Earn rate */}
-                    <p className="text-xs text-gray-400 mb-0.5">Earn rate</p>
-                    <p className="text-sm font-medium text-navy mb-4">{card.earn}</p>
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">
-                      <span className="text-xs text-gray-400">{card.fee}</span>
-                      <a href={card.url} target="_blank" rel="noopener noreferrer"
-                        className="text-xs font-bold text-teal hover:underline transition-colors">
-                        Apply now →
-                      </a>
+                    <p className="text-[11px] text-gray-400 mt-3 text-center">
+                      We may earn a commission if you apply through our links, at no cost to you.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="mb-5">
+                      <h2 className="text-xl font-bold text-navy">Smart travel essentials</h2>
+                      <p className="text-sm text-gray-500 mt-0.5">Everything you need before and during your trip</p>
                     </div>
-                  </div>
-                ))}
-              </div>
-              <p className="text-[11px] text-gray-400 mt-3 text-center">
-                We may earn a commission if you apply through our links, at no cost to you.
-              </p>
-            </section>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {TRAVEL_TOOLS.map(tool => (
+                        <div key={tool.name} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col">
+                          {/* Icon header */}
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+                              style={{ background: tool.color + '18' }}>
+                              {tool.icon}
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                style={{ color: tool.color, background: tool.color + '18' }}>
+                                {tool.badge}
+                              </span>
+                            </div>
+                          </div>
+
+                          <h3 className="font-bold text-navy text-sm leading-tight">{tool.name}</h3>
+                          <p className="text-xs text-gray-400 mt-0.5 mb-3">{tool.tagline}</p>
+
+                          {/* Highlight price */}
+                          <div className="rounded-xl p-3 mb-3" style={{ background: tool.color + '0f' }}>
+                            <p className="text-base font-bold" style={{ color: tool.color }}>{tool.highlight}</p>
+                          </div>
+
+                          {/* Bullets */}
+                          <ul className="space-y-1.5 mb-4 flex-1">
+                            {tool.bullets.map(b => (
+                              <li key={b} className="flex items-center gap-2 text-xs text-gray-600">
+                                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: tool.color }} />
+                                {b}
+                              </li>
+                            ))}
+                          </ul>
+
+                          <a href={tool.url} target="_blank" rel="noopener noreferrer"
+                            className="mt-auto block text-center text-xs font-bold py-2.5 rounded-xl text-white transition-opacity hover:opacity-90"
+                            style={{ background: tool.color }}>
+                            Learn more →
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-3 text-center">
+                      We may earn a commission if you book through our links, at no cost to you.
+                    </p>
+                  </>
+                )}
+              </section>
+            )}
           </>
         )}
       </div>

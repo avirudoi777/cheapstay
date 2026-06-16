@@ -138,6 +138,17 @@ export async function getConfig(): Promise<Config | null> {
   }
 }
 
+export async function getUserCountry(): Promise<string | null> {
+  try {
+    const res = await fetch(`${getBase()}/ip`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.country_code ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function saveConfig(payload: Partial<Config>): Promise<boolean> {
   try {
     const res = await fetch(`${getBase()}/config`, {
