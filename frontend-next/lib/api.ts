@@ -23,6 +23,39 @@ export interface CitySearchParams {
   limit?: number;
   force_refresh?: boolean;
   hotel_name?: string;
+  booking_only?: boolean;
+}
+
+export interface AgodaPriceEntry {
+  price: number;
+  url: string;
+  img?: string | null;
+  rating?: string | null;
+}
+
+export interface AgodaPriceMap {
+  prices: Record<string, AgodaPriceEntry>;
+}
+
+export async function fetchAgodaPrices(params: {
+  location: string;
+  checkin: string;
+  checkout: string;
+  adults: number;
+}): Promise<AgodaPriceMap> {
+  try {
+    const qs = new URLSearchParams({
+      location: params.location,
+      checkin: params.checkin,
+      checkout: params.checkout,
+      adults: String(params.adults),
+    });
+    const res = await fetch(`${getBase()}/agoda-prices?${qs}`, { cache: 'no-store' });
+    if (!res.ok) return { prices: {} };
+    return res.json();
+  } catch {
+    return { prices: {} };
+  }
 }
 
 export async function searchCity(params: CitySearchParams): Promise<CitySearchResponse> {

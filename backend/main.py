@@ -240,6 +240,7 @@ class CitySearchRequest(BaseModel):
     limit: int = 20
     force_refresh: bool = False
     hotel_name: str | None = None  # set when user searched for a specific hotel
+    booking_only: bool = False      # phase-1 fast path: return booking results immediately
 
 
 _CITY_CACHE_KEY = "__city__"
@@ -272,17 +273,25 @@ async def search_city(req: CitySearchRequest):
 
     nights = _nights(req.checkin, req.checkout)
 
-    async with _scrape_sem:
-        bk_result, ag_result = await asyncio.gather(
-            booking.fetch_city_hotels(
+    if req.booking_only:
+        async with _scrape_sem:
+            bk_result = await booking.fetch_city_hotels(
                 req.location, req.checkin, req.checkout, req.adults,
                 hotel_name=req.hotel_name or "",
-            ),
-            agoda.fetch_city_hotels(
-                req.location, req.checkin, req.checkout, req.adults,
-                hotel_name=req.hotel_name or "",
-            ),
-        )
+            )
+        ag_result = {"hotels": [], "total_count": 0}
+    else:
+        async with _scrape_sem:
+            bk_result, ag_result = await asyncio.gather(
+                booking.fetch_city_hotels(
+                    req.location, req.checkin, req.checkout, req.adults,
+                    hotel_name=req.hotel_name or "",
+                ),
+                agoda.fetch_city_hotels(
+                    req.location, req.checkin, req.checkout, req.adults,
+                    hotel_name=req.hotel_name or "",
+                ),
+            )
 
     bk_hotels   = bk_result.get("hotels") or []
     ag_hotels   = ag_result.get("hotels") or []
@@ -356,6 +365,43 @@ async def search_city(req: CitySearchRequest):
         "limit":        req.limit,
         "has_more":     req.limit < len(results),
     }
+
+
+_AGODA_CACHE_KEY = "__agoda__"
+
+
+@app.get("/agoda-prices")
+async def agoda_price_map(location: str, checkin: str, checkout: str, adults: int = 2):
+    """Return a name→price map for Agoda hotels. Used by the frontend to merge prices after showing Booking results."""
+    cached = await search_cache.get(_AGODA_CACHE_KEY, location, checkin, checkout, adults)
+    if cached is not None:
+        return cached
+
+    async with _scrape_sem:
+        ag_result = await agoda.fetch_city_hotels(location, checkin, checkout, adults, hotel_name="")
+
+    def _norm(s: str) -> str:
+        return _re.sub(r"[^a-z0-9]", "", s.lower())
+
+    config = load_config()
+    aff_id = config.get("agoda_affiliate_id", "").strip()
+    prices: dict = {}
+    for h in ag_result.get("hotels", []):
+        if not h.get("price"):
+            continue
+        url = h.get("href", "")
+        if aff_id and url and "cid=" not in url:
+            url += f"&cid={aff_id}" if "?" in url else f"?cid={aff_id}"
+        prices[_norm(h["name"])] = {
+            "price": h["price"],
+            "url": url,
+            "img": h.get("imgUrl"),
+            "rating": h.get("rating"),
+        }
+
+    result = {"prices": prices}
+    await search_cache.set(_AGODA_CACHE_KEY, location, checkin, checkout, adults, result)
+    return result
 
 
 @app.get("/health")

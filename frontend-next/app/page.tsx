@@ -3,7 +3,8 @@ import { useState, useRef } from 'react';
 import Image from 'next/image';
 import SearchBar, { type SearchValues } from '@/components/SearchBar';
 import HotelGrid from '@/components/HotelGrid';
-import { searchCity, getSuggestions } from '@/lib/api';
+import { searchCity, getSuggestions, fetchAgodaPrices } from '@/lib/api';
+import type { AgodaPriceEntry } from '@/lib/api';
 import type { CitySearchResponse } from '@/lib/types';
 
 const DESTINATIONS = [
@@ -32,11 +33,13 @@ const STATS = [
 ];
 
 export default function HomePage() {
-  const [results, setResults]         = useState<CitySearchResponse | null>(null);
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState('');
-  const [progress, setProgress]       = useState(0);
+  const [results, setResults]           = useState<CitySearchResponse | null>(null);
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState('');
+  const [progress, setProgress]         = useState(0);
   const [searchValues, setSearchValues] = useState<SearchValues | null>(null);
+  const [agodaUpdating, setAgodaUpdating] = useState(false);
+  const [agodaPrices, setAgodaPrices]   = useState<Record<string, AgodaPriceEntry> | null>(null);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const resultsRef  = useRef<HTMLDivElement>(null);
 
@@ -59,6 +62,8 @@ export default function HomePage() {
     setLoading(true);
     setError('');
     setResults(null);
+    setAgodaPrices(null);
+    setAgodaUpdating(false);
     setSearchValues(v);
     startProgress();
     try {
@@ -100,6 +105,7 @@ export default function HomePage() {
         ? v.query.replace(/\s+by\s+.*/i, '').trim()  // strip "by Brand" suffix
         : undefined;
 
+      // Phase 1 — Booking.com results (fast, ~10s). Show immediately.
       const resp = await searchCity({
         location: searchLocation,
         checkin: v.checkin,
@@ -109,16 +115,35 @@ export default function HomePage() {
         limit: 20,
         force_refresh: v.forceRefresh,
         hotel_name: hotelNameParam,
+        booking_only: true,
       });
       if (!resp.hotels?.length) {
         setError('No hotels found. Try different dates or destination.');
         return;
       }
       setResults(resp);
+      finishProgress();
+      setLoading(false);
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+
+      // Phase 2 — Agoda prices in background (~30s). Merge when ready.
+      setAgodaUpdating(true);
+      fetchAgodaPrices({
+        location: searchLocation,
+        checkin: v.checkin,
+        checkout: v.checkout,
+        adults: v.adults,
+      })
+        .then(agResp => {
+          if (Object.keys(agResp.prices).length > 0) {
+            setAgodaPrices(agResp.prices);
+          }
+        })
+        .catch(() => { /* Agoda unavailable — booking prices already visible */ })
+        .finally(() => setAgodaUpdating(false));
+
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Search failed. Is the backend running?');
-    } finally {
       finishProgress();
       setLoading(false);
     }
@@ -180,12 +205,23 @@ export default function HomePage() {
         {/* Results */}
         {results && searchValues && (
           <div ref={resultsRef} className="mt-2">
+            {/* Agoda loading banner */}
+            {agodaUpdating && (
+              <div className="flex items-center gap-2 mb-4 px-4 py-2.5 bg-teal/5 border border-teal/20 rounded-xl text-sm text-teal">
+                <svg className="w-4 h-4 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Comparing prices across platforms…
+              </div>
+            )}
             <HotelGrid
               initialData={results}
               location={searchValues.location || searchValues.query}
               checkin={searchValues.checkin}
               checkout={searchValues.checkout}
               adults={searchValues.adults}
+              agodaPrices={agodaPrices}
             />
           </div>
         )}

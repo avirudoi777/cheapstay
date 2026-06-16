@@ -4,6 +4,7 @@ import HotelCard from './HotelCard';
 import FilterSidebar from './FilterSidebar';
 import { searchCity } from '@/lib/api';
 import type { Hotel, CitySearchResponse, FilterState } from '@/lib/types';
+import type { AgodaPriceEntry } from '@/lib/api';
 import { EMPTY_FILTERS } from '@/lib/types';
 
 const CITY_PAGE = 20;
@@ -31,9 +32,10 @@ interface HotelGridProps {
   checkin: string;
   checkout: string;
   adults: number;
+  agodaPrices?: Record<string, AgodaPriceEntry> | null;
 }
 
-export default function HotelGrid({ initialData, location, checkin, checkout, adults }: HotelGridProps) {
+export default function HotelGrid({ initialData, location, checkin, checkout, adults, agodaPrices }: HotelGridProps) {
   const [hotels, setHotels]           = useState<Hotel[]>(initialData.hotels);
   const [totalAgoda, setTotalAgoda]   = useState(initialData.total_agoda);
   const [offset, setOffset]           = useState(initialData.offset + initialData.hotels.length);
@@ -43,6 +45,30 @@ export default function HotelGrid({ initialData, location, checkin, checkout, ad
   const [rendered, setRendered]       = useState(CITY_PAGE);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Merge Agoda prices when they arrive from the background fetch
+  useEffect(() => {
+    if (!agodaPrices) return;
+    const nightCount = Math.max(1, Math.round((new Date(checkout).getTime() - new Date(checkin).getTime()) / 86400000));
+    setHotels(prev => prev.map(h => {
+      const norm = h.name.replace(/[^a-z0-9]/gi, '').toLowerCase();
+      const ag = agodaPrices[norm];
+      if (!ag) return h;
+      const agPrice = ag.price;
+      const bkPrice = h.booking_price;
+      const best = agPrice && bkPrice ? (agPrice < bkPrice ? 'agoda' : 'booking') : (agPrice ? 'agoda' : h.best_platform ?? 'booking');
+      const bestPrice = best === 'agoda' ? agPrice : (bkPrice ?? agPrice);
+      return {
+        ...h,
+        agoda_price: agPrice,
+        agoda_url: ag.url || h.agoda_url,
+        image_url: h.image_url || ag.img || null,
+        best_platform: best,
+        price: bestPrice ?? h.price,
+        total_price: bestPrice ? Math.round(bestPrice * nightCount * 100) / 100 : h.total_price,
+      };
+    }));
+  }, [agodaPrices, checkin, checkout]);
 
   const filtered = applyFilters(hotels, filters);
   const visible  = filtered.slice(0, rendered);
