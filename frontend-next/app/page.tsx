@@ -36,7 +36,7 @@ const CREDIT_CARDS = [
   {
     name: 'Chase Sapphire Preferred®',
     bank: 'Chase',
-    gradient: 'linear-gradient(135deg, #0f3460 0%, #1a5c8a 55%, #0b2545 100%)',
+    cardType: 'chase-sapphire',
     network: 'VISA',
     badge: 'Best for Hotels',
     hotelMult: 2,
@@ -51,7 +51,7 @@ const CREDIT_CARDS = [
   {
     name: 'Capital One Venture',
     bank: 'Capital One',
-    gradient: 'linear-gradient(135deg, #8b1a2e 0%, #c41230 50%, #6b1220 100%)',
+    cardType: 'venture',
     network: 'VISA',
     badge: 'Simplest Rewards',
     hotelMult: 2,
@@ -66,7 +66,7 @@ const CREDIT_CARDS = [
   {
     name: 'Amex Gold Card',
     bank: 'American Express',
-    gradient: 'linear-gradient(135deg, #6b4510 0%, #c8963c 45%, #d4a843 70%, #9a7020 100%)',
+    cardType: 'amex-gold',
     network: 'AMEX',
     badge: 'Biggest Bonus',
     hotelMult: 2,
@@ -369,19 +369,91 @@ export default function HomePage() {
               return (
                 <div key={card.name} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
                   {/* Card artwork */}
-                  <div className="relative mx-4 mt-4 rounded-xl overflow-hidden shadow-lg"
-                    style={{ background: card.gradient, aspectRatio: '1.586' }}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" />
-                    <div className="absolute top-4 left-4 w-9 h-6 rounded-md"
-                      style={{ background: 'linear-gradient(135deg,#d4a843,#f0cd7b,#b8872a)' }} />
-                    <div className="absolute top-[18px] left-[54px] text-white/40 text-base leading-none">)))</div>
-                    <div className="absolute bottom-8 left-4 text-white/70 text-[11px] tracking-[0.12em] font-mono">
-                      •••• •••• •••• 4242
-                    </div>
-                    <div className="absolute bottom-3 right-4 text-white/90 text-xs font-bold tracking-wide">
-                      {card.network}
-                    </div>
-                    <div className="absolute bottom-3 left-4 text-white/55 text-[10px]">{card.bank}</div>
+                  <div className="relative mx-4 mt-4 rounded-xl overflow-hidden shadow-lg" style={{ aspectRatio: '1.586' }}>
+
+                    {/* Chase Sapphire Preferred */}
+                    {card.cardType === 'chase-sapphire' && (
+                      <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg,#0c2d5e 0%,#1b5189 50%,#0a2340 100%)' }}>
+                        {/* Diagonal swoosh lines — the signature Sapphire look */}
+                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 320 200" preserveAspectRatio="none">
+                          <path d="M-30 190 Q60 155 160 100 Q240 55 360 10" stroke="rgba(120,195,255,0.35)" strokeWidth="28" fill="none" strokeLinecap="round"/>
+                          <path d="M-30 220 Q60 185 160 130 Q240 85 360 40" stroke="rgba(120,195,255,0.2)" strokeWidth="22" fill="none" strokeLinecap="round"/>
+                          <path d="M20 240 Q110 200 210 145 Q285 105 370 65" stroke="rgba(120,195,255,0.12)" strokeWidth="16" fill="none" strokeLinecap="round"/>
+                        </svg>
+                        {/* Chase 4-square logo */}
+                        <div className="absolute top-3.5 left-3.5 grid grid-cols-2 gap-[2px] w-7 h-7">
+                          <div className="bg-white/85 rounded-[2px]" /><div className="bg-white/85 rounded-[2px]" />
+                          <div className="bg-white/85 rounded-[2px]" /><div className="bg-white/85 rounded-[2px]" />
+                        </div>
+                        <div className="absolute top-4 left-11 text-white/80 text-[9px] font-bold tracking-widest leading-tight uppercase">SAPPHIRE<br/>PREFERRED</div>
+                        {/* Chip */}
+                        <div className="absolute top-[44%] left-4 w-8 h-[22px] rounded-[3px]" style={{ background: 'linear-gradient(135deg,#c8a830,#f0d060,#a87820)' }}>
+                          <div className="absolute inset-[3px] border border-yellow-700/30 rounded-[2px]" />
+                        </div>
+                        <div className="absolute top-[44%] left-[52px] text-white/35 text-sm leading-[22px]">)))</div>
+                        <div className="absolute bottom-6 left-4 text-white/60 text-[10px] tracking-[0.14em] font-mono">•••• •••• •••• 4242</div>
+                        <div className="absolute bottom-2 left-4 text-white/40 text-[9px]">D. CARDHOLDER</div>
+                        <div className="absolute bottom-2 right-4 text-white/90 text-sm font-bold italic tracking-wider">VISA</div>
+                      </div>
+                    )}
+
+                    {/* Capital One Venture */}
+                    {card.cardType === 'venture' && (
+                      <div className="absolute inset-0" style={{ background: 'linear-gradient(145deg,#0e0e14 0%,#1c1c28 55%,#0a0a10 100%)' }}>
+                        {/* Large VENTURE watermark */}
+                        <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+                          <span className="text-white/[0.06] font-black tracking-[0.25em] uppercase select-none"
+                            style={{ fontSize: '52px', transform: 'rotate(-12deg)' }}>VENTURE</span>
+                        </div>
+                        {/* Silver diagonal accent lines */}
+                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 320 200" preserveAspectRatio="none">
+                          <path d="M0 200 L200 0" stroke="rgba(200,200,220,0.08)" strokeWidth="40" fill="none"/>
+                          <path d="M60 200 L260 0" stroke="rgba(200,200,220,0.05)" strokeWidth="30" fill="none"/>
+                        </svg>
+                        {/* Capital One "C" logo */}
+                        <div className="absolute top-3.5 left-3.5 w-7 h-7 rounded-full border-[2.5px] border-red-500/80 flex items-center justify-center">
+                          <span className="text-red-400 font-black text-[13px] leading-none" style={{ marginLeft: '-1px' }}>C</span>
+                        </div>
+                        <div className="absolute top-3.5 left-13 text-white/70 text-[9px] font-bold tracking-widest uppercase" style={{ left: '44px' }}>CAPITAL ONE</div>
+                        {/* Chip */}
+                        <div className="absolute top-[44%] left-4 w-8 h-[22px] rounded-[3px]" style={{ background: 'linear-gradient(135deg,#c8a830,#f0d060,#a87820)' }}>
+                          <div className="absolute inset-[3px] border border-yellow-700/30 rounded-[2px]" />
+                        </div>
+                        <div className="absolute top-[44%] left-[52px] text-white/30 text-sm leading-[22px]">)))</div>
+                        <div className="absolute bottom-6 left-4 text-white/50 text-[10px] tracking-[0.14em] font-mono">•••• •••• •••• 4242</div>
+                        <div className="absolute bottom-2 left-4 text-white/35 text-[9px]">D. CARDHOLDER</div>
+                        <div className="absolute bottom-2 right-4 text-white/80 text-sm font-bold italic tracking-wider">VISA</div>
+                      </div>
+                    )}
+
+                    {/* Amex Gold */}
+                    {card.cardType === 'amex-gold' && (
+                      <div className="absolute inset-0" style={{ background: 'linear-gradient(145deg,#8a6010 0%,#c8920e 25%,#e8b830 45%,#d4a010 60%,#b07818 80%,#8a6010 100%)' }}>
+                        {/* Brushed-metal horizontal lines */}
+                        <svg className="absolute inset-0 w-full h-full opacity-25" viewBox="0 0 320 200" preserveAspectRatio="none">
+                          {Array.from({ length: 40 }).map((_, i) => (
+                            <line key={i} x1="0" y1={i * 5} x2="320" y2={i * 5} stroke="white" strokeWidth="0.6"/>
+                          ))}
+                        </svg>
+                        {/* Sheen overlay */}
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(115deg,rgba(255,255,255,0.18) 0%,transparent 40%,rgba(255,255,255,0.08) 70%,transparent 100%)' }} />
+                        {/* American Express text logo */}
+                        <div className="absolute top-3.5 left-3.5">
+                          <div className="text-[8px] font-black tracking-[0.2em] text-amber-900/80 uppercase leading-tight">AMERICAN</div>
+                          <div className="text-[8px] font-black tracking-[0.2em] text-amber-900/80 uppercase leading-tight">EXPRESS</div>
+                        </div>
+                        {/* GOLD text watermark */}
+                        <div className="absolute top-3 right-3 text-amber-900/25 font-black text-3xl tracking-widest uppercase select-none">GOLD</div>
+                        {/* Chip */}
+                        <div className="absolute top-[44%] left-4 w-8 h-[22px] rounded-[3px]" style={{ background: 'linear-gradient(135deg,#7a5008,#c8900c,#7a5008)' }}>
+                          <div className="absolute inset-[3px] border border-amber-900/40 rounded-[2px]" />
+                        </div>
+                        <div className="absolute top-[44%] left-[52px] text-amber-900/30 text-sm leading-[22px]">)))</div>
+                        <div className="absolute bottom-6 left-4 text-amber-900/60 text-[10px] tracking-[0.14em] font-mono">•••• •••••• 4242</div>
+                        <div className="absolute bottom-2 left-4 text-amber-900/50 text-[9px]">D. CARDHOLDER</div>
+                        <div className="absolute bottom-2 right-4 text-amber-900/80 text-[10px] font-black tracking-widest">AMEX</div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-4 flex flex-col flex-1">
