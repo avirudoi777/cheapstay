@@ -113,6 +113,69 @@ const TRAVEL_TOOLS = [
   },
 ];
 
+const TRAVEL_GEAR = [
+  {
+    icon: '🧳',
+    name: 'Away Carry-On',
+    tagline: 'Hard-shell carry-on with built-in battery',
+    badge: 'Best Carry-On',
+    price: 'From $295',
+    bullets: ['TSA-approved lock', 'USB charging port', 'Lifetime warranty'],
+    color: '#0f766e',
+    url: 'https://www.amazon.com/s?k=away+carry+on+luggage&tag=cheapstay-20',
+  },
+  {
+    icon: '📦',
+    name: 'Packing Cubes Set',
+    tagline: 'Organize your bag and pack twice as much',
+    badge: 'Traveler Favorite',
+    price: 'From $25',
+    bullets: ['6-piece sets available', 'Compressible styles', 'Multiple color options'],
+    color: '#7c3aed',
+    url: 'https://www.amazon.com/s?k=packing+cubes+travel&tag=cheapstay-20',
+  },
+  {
+    icon: '🔌',
+    name: 'Universal Travel Adapter',
+    tagline: 'Works in 150+ countries — one plug does all',
+    badge: 'Must-Have',
+    price: 'From $18',
+    bullets: ['USB-C + USB-A ports', 'EU, UK, AU, US plugs', 'Surge protection'],
+    color: '#b45309',
+    url: 'https://www.amazon.com/s?k=universal+travel+adapter+usb-c&tag=cheapstay-20',
+  },
+  {
+    icon: '🎧',
+    name: 'Noise-Cancelling Headphones',
+    tagline: 'Survive long flights and noisy hotel lobbies',
+    badge: 'Long-Haul Essential',
+    price: 'From $149',
+    bullets: ['ANC blocks engine noise', '30+ hr battery', 'Foldable for packing'],
+    color: '#1d4ed8',
+    url: 'https://www.amazon.com/s?k=noise+cancelling+headphones+travel&tag=cheapstay-20',
+  },
+  {
+    icon: '💊',
+    name: 'Travel Pharmacy Kit',
+    tagline: 'Antidiarrheal, antacid, antihistamine — all in one',
+    badge: 'Peace of Mind',
+    price: 'From $15',
+    bullets: ['Compact zip pouch', 'Covers most travel ailments', 'Airport-friendly sizes'],
+    color: '#dc2626',
+    url: 'https://www.amazon.com/s?k=travel+medicine+kit+pharmacy&tag=cheapstay-20',
+  },
+  {
+    icon: '🌙',
+    name: 'Sleep Travel Kit',
+    tagline: 'Eye mask, earplugs & neck pillow combo',
+    badge: 'Sleep Better',
+    price: 'From $20',
+    bullets: ['Blocks light completely', 'Memory foam neck pillow', 'Carry pouch included'],
+    color: '#475569',
+    url: 'https://www.amazon.com/s?k=travel+sleep+kit+eye+mask+neck+pillow&tag=cheapstay-20',
+  },
+];
+
 export default function HomePage() {
   const [results, setResults]           = useState<CitySearchResponse | null>(null);
   const [loading, setLoading]           = useState(false);
@@ -567,6 +630,45 @@ export default function HomePage() {
           </div>
           <p className="text-[11px] text-gray-400 mt-3 text-center">
             We may earn a commission if you book through our links, at no cost to you.
+          </p>
+        </section>
+
+        {/* Travel gear — always visible */}
+        <section className="mt-8 mb-8">
+          <div className="mb-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+            <div>
+              <h2 className="text-xl font-bold text-navy">Travel gear worth packing</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Tried-and-tested items that frequent travelers actually use</p>
+            </div>
+            <span className="self-start text-[11px] font-semibold px-2.5 py-1 rounded-full bg-orange-50 text-orange-600 border border-orange-100 whitespace-nowrap">
+              🛒 Amazon picks
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {TRAVEL_GEAR.map(item => (
+              <a key={item.name} href={item.url} target="_blank" rel="noopener noreferrer"
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col hover:shadow-md transition-shadow duration-200 group">
+                {/* Icon */}
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-2xl mb-3 flex-shrink-0"
+                  style={{ background: item.color + '15' }}>
+                  {item.icon}
+                </div>
+                {/* Badge */}
+                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full self-start mb-2"
+                  style={{ color: item.color, background: item.color + '18' }}>
+                  {item.badge}
+                </span>
+                {/* Name */}
+                <h3 className="font-bold text-navy text-xs leading-tight mb-1 group-hover:text-teal transition-colors">{item.name}</h3>
+                <p className="text-[10px] text-gray-400 leading-snug mb-3 flex-1">{item.tagline}</p>
+                {/* Price */}
+                <div className="text-xs font-bold mt-auto" style={{ color: item.color }}>{item.price}</div>
+                <div className="text-[10px] text-gray-400 mt-1">View on Amazon →</div>
+              </a>
+            ))}
+          </div>
+          <p className="text-[11px] text-gray-400 mt-3 text-center">
+            As an Amazon Associate we earn from qualifying purchases, at no extra cost to you.
           </p>
         </section>
       </div>
