@@ -143,27 +143,28 @@ export default function HotelCard({ h, agodaLoading }: { h: Hotel; agodaLoading?
         )}
 
         <div className="mt-3 space-y-1.5 pt-3 border-t border-gray-100">
-          {/* Price comparison rows — Agoda skeleton keeps card height stable while loading */}
-          {agodaPrice != null ? (
-            <PriceRow platform="Agoda" price={agodaPrice} isBest={best === 'agoda'} />
-          ) : agodaLoading ? (
-            <div className="flex items-center justify-between px-3 py-2 h-[38px] rounded-lg bg-gray-50">
-              <div className="h-2.5 w-10 bg-gray-200 rounded animate-pulse" />
-              <div className="h-2.5 w-20 bg-gray-200 rounded animate-pulse" />
-            </div>
-          ) : null}
+          {/* Agoda row — always occupies space (invisible when no price) to prevent masonry reflow */}
+          <div className={agodaPrice == null && !agodaLoading ? 'invisible' : undefined}>
+            {agodaPrice != null ? (
+              <PriceRow platform="Agoda" price={agodaPrice} isBest={best === 'agoda'} />
+            ) : (
+              <div className="flex items-center justify-between px-3 py-2 h-[38px] rounded-lg bg-gray-50">
+                <div className="h-2.5 w-10 bg-gray-200 rounded animate-pulse" />
+                <div className="h-2.5 w-20 bg-gray-200 rounded animate-pulse" />
+              </div>
+            )}
+          </div>
 
           {bookingPrice != null ? (
-            <PriceRow platform="Booking.com" price={bookingPrice} isBest={best === 'booking' && !agodaLoading} />
+            <PriceRow platform="Booking.com" price={bookingPrice} isBest={best === 'booking'} />
           ) : (
             <p className="text-sm text-gray-400">Price unavailable</p>
           )}
 
-          {hasBoth && saving >= 1 && (
-            <p className="text-xs font-semibold text-teal">
-              Save ${saving}/night booking on {cheaperPlatform}
-            </p>
-          )}
+          {/* Savings text — always occupies space to prevent layout shift */}
+          <p className={`text-xs font-semibold text-teal ${!(hasBoth && saving >= 1) ? 'invisible' : ''}`}>
+            {hasBoth && saving >= 1 ? `Save $${saving}/night booking on ${cheaperPlatform}` : 'x'}
+          </p>
 
           {h.total_price != null && (
             <p className="text-xs text-gray-400">${Math.round(h.total_price)} total for {nights} night{nights !== 1 ? 's' : ''}</p>
@@ -175,19 +176,20 @@ export default function HotelCard({ h, agodaLoading }: { h: Hotel; agodaLoading?
             Book on {best === 'agoda' ? 'Agoda' : 'Booking.com'} →
           </button>
 
-          {/* Secondary platform link */}
-          {hasBoth && best === 'agoda' && h.booking_url && (
-            <a href={h.booking_url} target="_blank" rel="noopener noreferrer"
-              className="block text-center text-xs text-gray-400 hover:text-navy transition-colors mt-1">
-              Also on Booking.com →
-            </a>
-          )}
-          {hasBoth && best === 'booking' && h.agoda_url && (
-            <a href={h.agoda_url} target="_blank" rel="noopener noreferrer"
-              className="block text-center text-xs text-gray-400 hover:text-navy transition-colors mt-1">
-              Also on Agoda →
-            </a>
-          )}
+          {/* Secondary platform link — always occupies space to prevent layout shift */}
+          <div className={!hasBoth ? 'invisible' : undefined}>
+            {best === 'agoda' ? (
+              <a href={h.booking_url ?? '#'} target="_blank" rel="noopener noreferrer"
+                className="block text-center text-xs text-gray-400 hover:text-navy transition-colors mt-1">
+                Also on Booking.com →
+              </a>
+            ) : (
+              <a href={h.agoda_url ?? '#'} target="_blank" rel="noopener noreferrer"
+                className="block text-center text-xs text-gray-400 hover:text-navy transition-colors mt-1">
+                Also on Agoda →
+              </a>
+            )}
+          </div>
         </div>
       </div>
 
