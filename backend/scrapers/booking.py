@@ -97,7 +97,7 @@ async def _fetch(url: str) -> str | None:
     return None
 
 
-def _parse_hotels(html: str, nights: int = 1) -> list[dict]:
+def _parse_hotels(html: str, nights: int = 1, checkin: str = "", checkout: str = "", adults: int = 2) -> list[dict]:
     soup = BeautifulSoup(html, "html.parser")
     cards = soup.select('[data-testid="property-card"]')
     hotels: list[dict] = []
@@ -133,10 +133,12 @@ def _parse_hotels(html: str, nights: int = 1) -> list[dict]:
                 total = min(nums)
                 price_per_night = round(total / max(nights, 1), 2)
 
-        # Strip Booking's own affiliate params from the link
+        # Strip Booking's tracking params, then re-append dates so the link lands with dates pre-filled
         href = link_el.get("href") if link_el else None
         if href and "?" in href:
             href = href.split("?")[0]
+        if href and checkin and checkout:
+            href = f"{href}?checkin={checkin}&checkout={checkout}&group_adults={adults}&no_rooms=1"
 
         # Review score — Booking.com text is "Scored 8.48.4Good…" (value doubled).
         # Match "Scored X.Y" to grab just the first occurrence before the repeat.
@@ -195,7 +197,7 @@ async def fetch_city_hotels(location: str, checkin: str, checkout: str, adults: 
     if not html:
         return {"hotels": [], "total_count": 0, "source_url": url}
 
-    hotels = _parse_hotels(html, nights)
+    hotels = _parse_hotels(html, nights, checkin, checkout, adults)
 
     if hotel_name and hotels:
         hotels.sort(key=lambda h: _name_match_score(hotel_name, h.get("name", "")), reverse=True)
@@ -223,7 +225,7 @@ async def fetch_price(hotel_name: str | None, location: str,
         return {"platform": "Booking.com", "raw_price": None, "currency": None,
                 "booking_url": fallback_url, "error": "Fetch failed"}
 
-    hotels = _parse_hotels(html, nights)
+    hotels = _parse_hotels(html, nights, checkin, checkout, adults)
     if not hotels:
         return {"platform": "Booking.com", "raw_price": None, "currency": None,
                 "booking_url": fallback_url, "error": "No hotels found"}
