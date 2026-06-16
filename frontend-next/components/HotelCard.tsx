@@ -4,6 +4,7 @@ import Image from 'next/image';
 import type { Hotel } from '@/lib/types';
 import AuthModal from './AuthModal';
 import { createClient } from '@/lib/supabase/client';
+import { analytics } from '@/lib/analytics';
 
 const StarSVG = ({ filled }: { filled: boolean }) => (
   <svg className={`w-3.5 h-3.5 ${filled ? 'text-amber-400' : 'text-white/30'}`} fill="currentColor" viewBox="0 0 20 20">
@@ -57,6 +58,7 @@ function HotelCardInner({ h }: { h: Hotel }) {
       price: h.price,
       destination: h.location,
     });
+    analytics.hotelBook(h.name, best, h.price, h.location);
     window.open(bestUrl, '_blank', 'noopener,noreferrer');
   }
 
@@ -243,6 +245,7 @@ function HotelCardInner({ h }: { h: Hotel }) {
           <a
             href={best === 'agoda' ? (h.booking_url ?? '#') : (h.agoda_url ?? '#')}
             target="_blank" rel="noopener noreferrer"
+            onClick={() => analytics.hotelSecondaryClick(h.name, best === 'agoda' ? 'booking' : 'agoda')}
             className="block text-center text-xs text-gray-400 hover:text-navy transition-colors mt-2">
             Also on {best === 'agoda' ? 'Booking.com' : 'Agoda'} →
           </a>

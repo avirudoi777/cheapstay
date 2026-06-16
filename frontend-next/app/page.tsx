@@ -4,6 +4,7 @@ import Image from 'next/image';
 import SearchBar, { type SearchValues } from '@/components/SearchBar';
 import HotelGrid from '@/components/HotelGrid';
 import { searchCity, getSuggestions, fetchAgodaPrices, getUserCountry } from '@/lib/api';
+import { analytics } from '@/lib/analytics';
 import type { AgodaPriceEntry } from '@/lib/api';
 import type { CitySearchResponse } from '@/lib/types';
 
@@ -261,6 +262,9 @@ export default function HomePage() {
         ? v.query.replace(/\s+by\s+.*/i, '').trim()  // strip "by Brand" suffix
         : undefined;
 
+      const nights = Math.max(1, Math.round((new Date(v.checkout).getTime() - new Date(v.checkin).getTime()) / 86400000));
+      analytics.search(searchLocation, v.checkin, v.checkout, nights, v.adults);
+
       // Phase 1 — Booking.com results (fast, ~10s). Show immediately.
       const resp = await searchCity({
         location: searchLocation,
@@ -427,6 +431,7 @@ export default function HomePage() {
                   <button
                     key={d.city}
                     onClick={() => {
+                      analytics.destinationClick(d.city);
                       const { checkin, checkout } = defaultDates();
                       handleSearch({ query: d.city, location: d.city, mode: 'city', checkin, checkout, adults: 2, rooms: 1, forceRefresh: false });
                     }}
@@ -525,6 +530,7 @@ export default function HomePage() {
                     <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100 mt-4">
                       <span className="text-xs text-gray-400">{card.fee}</span>
                       <a href={card.url} target="_blank" rel="noopener noreferrer"
+                        onClick={() => analytics.creditCardClick(card.name, card.bank)}
                         className="text-xs font-bold text-teal hover:underline transition-colors">
                         Apply now →
                       </a>
@@ -572,6 +578,7 @@ export default function HomePage() {
                   ))}
                 </ul>
                 <a href={tool.url} target="_blank" rel="noopener noreferrer"
+                  onClick={() => analytics.travelToolClick(tool.name)}
                   className="mt-auto block text-center text-xs font-bold py-2.5 rounded-xl text-white transition-opacity hover:opacity-90"
                   style={{ background: tool.color }}>
                   Learn more →
@@ -598,6 +605,7 @@ export default function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {TRAVEL_GEAR.map(item => (
               <a key={item.name} href={item.url} target="_blank" rel="noopener noreferrer"
+                onClick={() => analytics.travelGearClick(item.name, item.badge)}
                 className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col hover:shadow-md transition-shadow duration-200 group">
                 {/* Icon */}
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center text-2xl mb-3 flex-shrink-0"
