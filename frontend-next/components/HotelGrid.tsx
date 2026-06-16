@@ -49,10 +49,18 @@ export default function HotelGrid({ initialData, location, checkin, checkout, ad
   // Merge Agoda prices when they arrive from the background fetch
   useEffect(() => {
     if (!agodaPrices) return;
+    const agodaKeys = Object.keys(agodaPrices);
     const nightCount = Math.max(1, Math.round((new Date(checkout).getTime() - new Date(checkin).getTime()) / 86400000));
     setHotels(prev => prev.map(h => {
       const norm = h.name.replace(/[^a-z0-9]/gi, '').toLowerCase();
-      const ag = agodaPrices[norm];
+      // Exact match first, then partial match (one name contains the other)
+      let ag = agodaPrices[norm];
+      if (!ag) {
+        const fuzzyKey = agodaKeys.find(k =>
+          k.length > 6 && norm.length > 6 && (norm.includes(k) || k.includes(norm))
+        );
+        if (fuzzyKey) ag = agodaPrices[fuzzyKey];
+      }
       if (!ag) return h;
       const agPrice = ag.price;
       const bkPrice = h.booking_price;

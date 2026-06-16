@@ -105,7 +105,10 @@ def _parse_hotels(html: str, nights: int = 1, checkin: str = "", checkout: str =
 
     for card in cards:
         name_el = card.select_one('[data-testid="title"]')
-        price_el = card.select_one('[data-testid="price-and-discounted-price"]')
+        price_el = (card.select_one('[data-testid="price-and-discounted-price"]') or
+                    card.select_one('[data-testid="recommended-units-price"]') or
+                    card.select_one('.prco-valign-middle-helper') or
+                    card.select_one('[class*="price"]'))
         link_el = card.select_one('[data-testid="title-link"]')
         score_el = card.select_one('[data-testid="review-score"]')
         img_el = (card.select_one('img[src*="bstatic.com"]') or
