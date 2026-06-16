@@ -9,7 +9,7 @@ import HeaderClient from '@/components/HeaderClient';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? 'G-4N9WY15BK2';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://cheapstay.co'),
