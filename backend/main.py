@@ -59,6 +59,13 @@ def _amenities(scraped: list, stars: int | None, idx: int) -> list[str]:
     return pool[idx % len(pool)]
 
 
+def _bk_url(url: str, affiliate_id: str) -> str:
+    if not affiliate_id or not url or "aid=" in url:
+        return url
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}aid={affiliate_id}"
+
+
 def _deal_badge(price: float | None, original_price: str | None) -> str | None:
     if not price or not original_price:
         return None
@@ -105,6 +112,7 @@ class SearchRequest(BaseModel):
 class ConfigUpdate(BaseModel):
     credit_card_rate: float | None = None
     agoda_affiliate_id: str | None = None
+    booking_affiliate_id: str | None = None
     travelpayouts_token: str | None = None
     travelpayouts_marker: str | None = None
     sites: dict | None = None
@@ -162,6 +170,9 @@ async def update_config(update: ConfigUpdate):
 
     if update.agoda_affiliate_id is not None:
         config["agoda_affiliate_id"] = update.agoda_affiliate_id.strip()
+
+    if update.booking_affiliate_id is not None:
+        config["booking_affiliate_id"] = update.booking_affiliate_id.strip()
 
     if update.travelpayouts_token is not None:
         config["travelpayouts_token"] = update.travelpayouts_token.strip()
@@ -249,7 +260,8 @@ _CITY_CACHE_KEY = "__city__"
 @app.post("/search-city")
 async def search_city(req: CitySearchRequest):
     config = load_config()
-    aff_id = config.get("agoda_affiliate_id", "").strip()
+    aff_id     = config.get("agoda_affiliate_id", "").strip()
+    bk_aff_id  = config.get("booking_affiliate_id", "").strip()
 
     use_cache = (not req.force_refresh) and (not req.hotel_name) or req.offset > 0
     if use_cache:
@@ -348,7 +360,7 @@ async def search_city(req: CitySearchRequest):
             "best_platform":  best_platform,
             "price":          best_price,
             "booking_price":  bk_price,
-            "booking_url":    h.get("href") or agoda_city_url,
+            "booking_url":    _bk_url(h.get("href") or agoda_city_url, bk_aff_id),
             "total_price":    round(best_price * nights, 2) if best_price else None,
         })
 
