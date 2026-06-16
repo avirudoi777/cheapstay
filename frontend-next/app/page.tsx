@@ -26,10 +26,46 @@ function defaultDates() {
 }
 
 const STATS = [
-  { icon: '🏨', value: '{{HOTEL_COUNT}}', label: 'Hotels worldwide' },
-  { icon: '💰', value: 'Compare top sites', label: 'in one search' },
-  { icon: '⚡', value: 'Real-time',      label: 'Updated every search' },
-  { icon: '🌍', value: '{{COUNTRY_COUNT}}', label: 'Countries' },
+  { icon: '🔍', value: 'Booking + Agoda',  label: 'Compared automatically' },
+  { icon: '💰', value: 'Best price found', label: 'Every search' },
+  { icon: '⚡', value: 'Real-time',        label: 'Live prices, no cache' },
+  { icon: '🌍', value: '190+ Countries',   label: 'Worldwide coverage' },
+];
+
+const CREDIT_CARDS = [
+  {
+    name: 'Chase Sapphire Preferred®',
+    bank: 'Chase',
+    cardColor: '#0f3460',
+    badge: 'Most Popular',
+    bonus: '60,000 points',
+    bonusNote: 'after $4,000 spend in 3 months (~$750 in travel)',
+    earn: '3× dining · 2× travel · 1× everything else',
+    fee: '$95 / year',
+    url: 'https://creditcards.chase.com/travel-credit-cards/sapphire/preferred',
+  },
+  {
+    name: 'Capital One Venture',
+    bank: 'Capital One',
+    cardColor: '#c41230',
+    badge: 'Simplest Rewards',
+    bonus: '75,000 miles',
+    bonusNote: 'after $4,000 spend in 3 months (~$750 in travel)',
+    earn: '2× miles on every purchase, everywhere',
+    fee: '$95 / year',
+    url: 'https://www.capitalone.com/credit-cards/venture/',
+  },
+  {
+    name: 'Amex Gold Card',
+    bank: 'American Express',
+    cardColor: '#a07830',
+    badge: 'Best for Dining',
+    bonus: '60,000 points',
+    bonusNote: 'after $6,000 spend in 6 months (~$600 in travel)',
+    earn: '4× dining · 3× flights · 2× hotels',
+    fee: '$250 / year',
+    url: 'https://www.americanexpress.com/us/credit-cards/card/gold-card/',
+  },
 ];
 
 export default function HomePage() {
@@ -246,18 +282,64 @@ export default function HomePage() {
               </div>
             </section>
 
-            <section className="bg-white rounded-2xl border border-gray-100 p-6">
-              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-100">
-                {STATS.map((s, i) => (
-                  <div key={i} className="flex items-center gap-3 px-4 first:pl-0 last:pr-0">
-                    <span className="text-2xl flex-shrink-0">{s.icon}</span>
-                    <div>
-                      <div className="text-base font-bold text-navy leading-tight">{s.value}</div>
-                      <div className="text-xs text-gray-400">{s.label}</div>
+            {/* Stats */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {STATS.map((s, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3 shadow-sm">
+                  <span className="text-2xl flex-shrink-0">{s.icon}</span>
+                  <div>
+                    <div className="text-sm font-bold text-navy leading-tight">{s.value}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Credit card recommendations */}
+            <section className="mt-4">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-navy">Earn points on every booking</h2>
+                <p className="text-sm text-gray-500 mt-0.5">The right travel card turns hotel stays into free flights</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {CREDIT_CARDS.map(card => (
+                  <div key={card.name} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col">
+                    {/* Card visual + badge */}
+                    <div className="flex items-start justify-between mb-3">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-teal bg-teal/10 px-2 py-0.5 rounded-full">
+                        {card.badge}
+                      </span>
+                      <div className="w-14 h-9 rounded-lg shadow-sm flex-shrink-0" style={{ background: card.cardColor }} />
+                    </div>
+
+                    <h3 className="font-bold text-navy text-sm leading-tight">{card.name}</h3>
+                    <p className="text-xs text-gray-400 mb-3">{card.bank}</p>
+
+                    {/* Welcome bonus */}
+                    <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-3">
+                      <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide mb-0.5">Welcome bonus</p>
+                      <p className="text-base font-bold text-amber-900">{card.bonus}</p>
+                      <p className="text-[11px] text-amber-700 mt-0.5">{card.bonusNote}</p>
+                    </div>
+
+                    {/* Earn rate */}
+                    <p className="text-xs text-gray-400 mb-0.5">Earn rate</p>
+                    <p className="text-sm font-medium text-navy mb-4">{card.earn}</p>
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">
+                      <span className="text-xs text-gray-400">{card.fee}</span>
+                      <a href={card.url} target="_blank" rel="noopener noreferrer"
+                        className="text-xs font-bold text-teal hover:underline transition-colors">
+                        Apply now →
+                      </a>
                     </div>
                   </div>
                 ))}
               </div>
+              <p className="text-[11px] text-gray-400 mt-3 text-center">
+                We may earn a commission if you apply through our links, at no cost to you.
+              </p>
             </section>
           </>
         )}
