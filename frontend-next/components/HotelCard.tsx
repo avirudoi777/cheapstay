@@ -43,7 +43,7 @@ function PriceRow({ platform, price, isBest }: PriceRowProps) {
   );
 }
 
-export default function HotelCard({ h }: { h: Hotel }) {
+export default function HotelCard({ h, agodaLoading }: { h: Hotel; agodaLoading?: boolean }) {
   const [showAuth, setShowAuth] = useState(false);
   const best = h.best_platform || 'booking';
   const bestUrl = best === 'agoda' ? (h.agoda_url ?? h.booking_url ?? '#') : (h.booking_url ?? h.agoda_url ?? '#');
@@ -143,23 +143,26 @@ export default function HotelCard({ h }: { h: Hotel }) {
         )}
 
         <div className="mt-3 space-y-1.5 pt-3 border-t border-gray-100">
-          {/* Price comparison rows */}
-          {hasBoth ? (
-            <>
-              <PriceRow platform="Agoda" price={agodaPrice!} isBest={best === 'agoda'} />
-              <PriceRow platform="Booking.com" price={bookingPrice!} isBest={best === 'booking'} />
-              {saving >= 1 && (
-                <p className="text-xs font-semibold text-teal">
-                  Save ${saving}/night booking on {cheaperPlatform}
-                </p>
-              )}
-            </>
-          ) : agodaPrice != null ? (
-            <PriceRow platform="Agoda" price={agodaPrice} isBest={true} />
-          ) : bookingPrice != null ? (
-            <PriceRow platform="Booking.com" price={bookingPrice} isBest={true} />
+          {/* Price comparison rows — Agoda skeleton keeps card height stable while loading */}
+          {agodaPrice != null ? (
+            <PriceRow platform="Agoda" price={agodaPrice} isBest={best === 'agoda'} />
+          ) : agodaLoading ? (
+            <div className="flex items-center justify-between px-3 py-2 h-[38px] rounded-lg bg-gray-50">
+              <div className="h-2.5 w-10 bg-gray-200 rounded animate-pulse" />
+              <div className="h-2.5 w-20 bg-gray-200 rounded animate-pulse" />
+            </div>
+          ) : null}
+
+          {bookingPrice != null ? (
+            <PriceRow platform="Booking.com" price={bookingPrice} isBest={best === 'booking' && !agodaLoading} />
           ) : (
             <p className="text-sm text-gray-400">Price unavailable</p>
+          )}
+
+          {hasBoth && saving >= 1 && (
+            <p className="text-xs font-semibold text-teal">
+              Save ${saving}/night booking on {cheaperPlatform}
+            </p>
           )}
 
           {h.total_price != null && (

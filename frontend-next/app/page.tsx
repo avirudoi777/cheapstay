@@ -222,6 +222,7 @@ export default function HomePage() {
               checkout={searchValues.checkout}
               adults={searchValues.adults}
               agodaPrices={agodaPrices}
+              agodaLoading={agodaUpdating}
             />
           </div>
         )}
