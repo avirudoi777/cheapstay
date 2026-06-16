@@ -345,152 +345,135 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* US: credit card recommendations — non-US: travel tools */}
-            {userCountry !== null && (
-              <section className="mt-4">
-                {userCountry === 'US' ? (
-                  <>
-                    <div className="mb-5">
-                      <h2 className="text-xl font-bold text-navy">Stack points on top of savings</h2>
-                      <p className="text-sm text-gray-500 mt-0.5">
-                        Use the right travel card when you book — earn points that pay for future trips
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {CREDIT_CARDS.map(card => {
-                        const exampleNight = 150;
-                        const pts = exampleNight * card.hotelMult;
-                        const val = ((pts * card.pointValue) / 100).toFixed(2);
-                        return (
-                          <div key={card.name} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-                            {/* Card artwork */}
-                            <div className="relative mx-4 mt-4 rounded-xl overflow-hidden shadow-lg"
-                              style={{ background: card.gradient, aspectRatio: '1.586' }}>
-                              <div className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" />
-                              {/* Chip */}
-                              <div className="absolute top-4 left-4 w-9 h-6 rounded-md"
-                                style={{ background: 'linear-gradient(135deg,#d4a843,#f0cd7b,#b8872a)' }} />
-                              {/* Contactless */}
-                              <div className="absolute top-[18px] left-[54px] text-white/40 text-base leading-none">)))</div>
-                              {/* Number */}
-                              <div className="absolute bottom-8 left-4 text-white/70 text-[11px] tracking-[0.12em] font-mono">
-                                •••• •••• •••• 4242
-                              </div>
-                              {/* Network */}
-                              <div className="absolute bottom-3 right-4 text-white/90 text-xs font-bold tracking-wide">
-                                {card.network}
-                              </div>
-                              {/* Bank */}
-                              <div className="absolute bottom-3 left-4 text-white/55 text-[10px]">{card.bank}</div>
-                            </div>
-
-                            <div className="p-4 flex flex-col flex-1">
-                              {/* Badge + name */}
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-teal bg-teal/10 px-2 py-0.5 rounded-full">
-                                  {card.badge}
-                                </span>
-                              </div>
-                              <h3 className="font-bold text-navy text-sm leading-tight">{card.name}</h3>
-
-                              {/* Hotel points callout */}
-                              <div className="mt-3 bg-teal/5 border border-teal/15 rounded-xl p-3">
-                                <p className="text-[10px] font-semibold text-teal uppercase tracking-wide mb-1">
-                                  On a ${exampleNight} hotel booking
-                                </p>
-                                <div className="flex items-baseline gap-1.5">
-                                  <span className="text-base font-bold text-navy">{pts} {card.pointName}</span>
-                                  <span className="text-xs text-gray-500">≈ ${val} extra back</span>
-                                </div>
-                                <p className="text-[11px] text-gray-400 mt-0.5">
-                                  {card.hotelMult}× on hotels · stacks with Cheapstay savings
-                                </p>
-                              </div>
-
-                              {/* Welcome bonus */}
-                              <div className="mt-3 bg-amber-50 border border-amber-100 rounded-xl p-3">
-                                <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide mb-0.5">
-                                  Welcome bonus
-                                </p>
-                                <p className="text-sm font-bold text-amber-900">{card.bonus} <span className="font-normal text-amber-700 text-xs">({card.bonusValue})</span></p>
-                                <p className="text-[11px] text-amber-600">after {card.bonusSpend}</p>
-                              </div>
-
-                              {/* Footer */}
-                              <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100 mt-4">
-                                <span className="text-xs text-gray-400">{card.fee}</span>
-                                <a href={card.url} target="_blank" rel="noopener noreferrer"
-                                  className="text-xs font-bold text-teal hover:underline transition-colors">
-                                  Apply now →
-                                </a>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <p className="text-[11px] text-gray-400 mt-3 text-center">
-                      We may earn a commission if you apply through our links, at no cost to you.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div className="mb-5">
-                      <h2 className="text-xl font-bold text-navy">Smart travel essentials</h2>
-                      <p className="text-sm text-gray-500 mt-0.5">Everything you need before and during your trip</p>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {TRAVEL_TOOLS.map(tool => (
-                        <div key={tool.name} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col">
-                          {/* Icon header */}
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
-                              style={{ background: tool.color + '18' }}>
-                              {tool.icon}
-                            </div>
-                            <div>
-                              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                style={{ color: tool.color, background: tool.color + '18' }}>
-                                {tool.badge}
-                              </span>
-                            </div>
-                          </div>
-
-                          <h3 className="font-bold text-navy text-sm leading-tight">{tool.name}</h3>
-                          <p className="text-xs text-gray-400 mt-0.5 mb-3">{tool.tagline}</p>
-
-                          {/* Highlight price */}
-                          <div className="rounded-xl p-3 mb-3" style={{ background: tool.color + '0f' }}>
-                            <p className="text-base font-bold" style={{ color: tool.color }}>{tool.highlight}</p>
-                          </div>
-
-                          {/* Bullets */}
-                          <ul className="space-y-1.5 mb-4 flex-1">
-                            {tool.bullets.map(b => (
-                              <li key={b} className="flex items-center gap-2 text-xs text-gray-600">
-                                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: tool.color }} />
-                                {b}
-                              </li>
-                            ))}
-                          </ul>
-
-                          <a href={tool.url} target="_blank" rel="noopener noreferrer"
-                            className="mt-auto block text-center text-xs font-bold py-2.5 rounded-xl text-white transition-opacity hover:opacity-90"
-                            style={{ background: tool.color }}>
-                            Learn more →
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-[11px] text-gray-400 mt-3 text-center">
-                      We may earn a commission if you book through our links, at no cost to you.
-                    </p>
-                  </>
-                )}
-              </section>
-            )}
           </>
         )}
+
+        {/* Credit card recommendations — always visible */}
+        <section className="mt-8">
+          <div className="mb-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+            <div>
+              <h2 className="text-xl font-bold text-navy">Stack points on top of savings</h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Use the right travel card when you book — earn points that pay for future trips
+              </p>
+            </div>
+            <span className="self-start text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-100 whitespace-nowrap">
+              🇺🇸 Recommended for US citizens
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {CREDIT_CARDS.map(card => {
+              const exampleNight = 150;
+              const pts = exampleNight * card.hotelMult;
+              const val = ((pts * card.pointValue) / 100).toFixed(2);
+              return (
+                <div key={card.name} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+                  {/* Card artwork */}
+                  <div className="relative mx-4 mt-4 rounded-xl overflow-hidden shadow-lg"
+                    style={{ background: card.gradient, aspectRatio: '1.586' }}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" />
+                    <div className="absolute top-4 left-4 w-9 h-6 rounded-md"
+                      style={{ background: 'linear-gradient(135deg,#d4a843,#f0cd7b,#b8872a)' }} />
+                    <div className="absolute top-[18px] left-[54px] text-white/40 text-base leading-none">)))</div>
+                    <div className="absolute bottom-8 left-4 text-white/70 text-[11px] tracking-[0.12em] font-mono">
+                      •••• •••• •••• 4242
+                    </div>
+                    <div className="absolute bottom-3 right-4 text-white/90 text-xs font-bold tracking-wide">
+                      {card.network}
+                    </div>
+                    <div className="absolute bottom-3 left-4 text-white/55 text-[10px]">{card.bank}</div>
+                  </div>
+
+                  <div className="p-4 flex flex-col flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-teal bg-teal/10 px-2 py-0.5 rounded-full">
+                        {card.badge}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-navy text-sm leading-tight">{card.name}</h3>
+
+                    <div className="mt-3 bg-teal/5 border border-teal/15 rounded-xl p-3">
+                      <p className="text-[10px] font-semibold text-teal uppercase tracking-wide mb-1">
+                        On a ${exampleNight} hotel booking
+                      </p>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-base font-bold text-navy">{pts} {card.pointName}</span>
+                        <span className="text-xs text-gray-500">≈ ${val} extra back</span>
+                      </div>
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        {card.hotelMult}× on hotels · stacks with Cheapstay savings
+                      </p>
+                    </div>
+
+                    <div className="mt-3 bg-amber-50 border border-amber-100 rounded-xl p-3">
+                      <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide mb-0.5">
+                        Welcome bonus
+                      </p>
+                      <p className="text-sm font-bold text-amber-900">{card.bonus} <span className="font-normal text-amber-700 text-xs">({card.bonusValue})</span></p>
+                      <p className="text-[11px] text-amber-600">after {card.bonusSpend}</p>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100 mt-4">
+                      <span className="text-xs text-gray-400">{card.fee}</span>
+                      <a href={card.url} target="_blank" rel="noopener noreferrer"
+                        className="text-xs font-bold text-teal hover:underline transition-colors">
+                        Apply now →
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-gray-400 mt-3 text-center">
+            We may earn a commission if you apply through our links, at no cost to you.
+          </p>
+        </section>
+
+        {/* Travel tools — always visible */}
+        <section className="mt-8">
+          <div className="mb-5">
+            <h2 className="text-xl font-bold text-navy">Smart travel essentials</h2>
+            <p className="text-sm text-gray-500 mt-0.5">Everything you need before and during your trip</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {TRAVEL_TOOLS.map(tool => (
+              <div key={tool.name} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+                    style={{ background: tool.color + '18' }}>
+                    {tool.icon}
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                    style={{ color: tool.color, background: tool.color + '18' }}>
+                    {tool.badge}
+                  </span>
+                </div>
+                <h3 className="font-bold text-navy text-sm leading-tight">{tool.name}</h3>
+                <p className="text-xs text-gray-400 mt-0.5 mb-3">{tool.tagline}</p>
+                <div className="rounded-xl p-3 mb-3" style={{ background: tool.color + '0f' }}>
+                  <p className="text-base font-bold" style={{ color: tool.color }}>{tool.highlight}</p>
+                </div>
+                <ul className="space-y-1.5 mb-4 flex-1">
+                  {tool.bullets.map(b => (
+                    <li key={b} className="flex items-center gap-2 text-xs text-gray-600">
+                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: tool.color }} />
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+                <a href={tool.url} target="_blank" rel="noopener noreferrer"
+                  className="mt-auto block text-center text-xs font-bold py-2.5 rounded-xl text-white transition-opacity hover:opacity-90"
+                  style={{ background: tool.color }}>
+                  Learn more →
+                </a>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-gray-400 mt-3 text-center">
+            We may earn a commission if you book through our links, at no cost to you.
+          </p>
+        </section>
       </div>
     </>
   );
