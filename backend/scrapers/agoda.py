@@ -24,20 +24,39 @@ _CITY_IDS: dict[str, int] = {
 }
 
 _COUNTRY_CODES = {
+    # SE Asia
     "bangkok": "th", "phuket": "th", "chiangmai": "th", "chiang mai": "th",
     "pattaya": "th", "hua hin": "th", "krabi": "th", "koh samui": "th", "thailand": "th",
     "jakarta": "id", "bali": "id", "indonesia": "id",
     "singapore": "sg",
     "kuala lumpur": "my", "penang": "my", "malaysia": "my",
     "ho chi minh": "vn", "hanoi": "vn", "da nang": "vn", "vietnam": "vn",
+    # East Asia
     "tokyo": "jp", "osaka": "jp", "kyoto": "jp", "japan": "jp",
     "seoul": "kr", "korea": "kr",
     "hong kong": "hk",
     "taipei": "tw", "taiwan": "tw",
     "manila": "ph", "philippines": "ph",
+    # Middle East
     "dubai": "ae", "uae": "ae",
-    "london": "gb",
-    "new york": "us", "los angeles": "us",
+    # Europe
+    "london": "gb", "united kingdom": "gb",
+    "paris": "fr", "france": "fr",
+    "amsterdam": "nl",
+    "rome": "it", "milan": "it", "italy": "it",
+    "berlin": "de", "germany": "de",
+    "barcelona": "es", "madrid": "es", "spain": "es",
+    # US
+    "new york": "us", "los angeles": "us", "las vegas": "us", "paradise": "us",
+    "miami": "us", "chicago": "us", "san francisco": "us", "seattle": "us",
+    "boston": "us", "denver": "us", "orlando": "us", "dallas": "us",
+    "phoenix": "us", "atlanta": "us", "washington": "us", "hawaii": "us",
+    "nevada": "us", "california": "us", "florida": "us", "texas": "us",
+    "united states": "us",
+    # Australia / Canada / India
+    "sydney": "au", "melbourne": "au", "australia": "au",
+    "toronto": "ca", "vancouver": "ca", "canada": "ca",
+    "mumbai": "in", "delhi": "in", "goa": "in", "india": "in",
 }
 
 _BROWSER_ARGS = [
@@ -181,6 +200,7 @@ async def _fetch_graphql_hotels(
     checkin: str,
     checkout: str,
     adults: int,
+    location: str = "",
 ) -> tuple[list[dict], int]:
     """
     Fetch hotels via Agoda's internal GraphQL API.
@@ -222,8 +242,13 @@ async def _fetch_graphql_hotels(
                                 pass
 
                     page.on("request", _on_request)
-                    dateless_url = f"https://www.agoda.com/city/{slug}.html"
-                    await page.goto(dateless_url, timeout=60000, wait_until="domcontentloaded")
+                    # Use text search URL for discovery — works for any global destination.
+                    # Slug-based city URLs only exist for pre-known Agoda city slugs.
+                    if location:
+                        discovery_url = f"https://www.agoda.com/search?q={location.replace(' ', '+')}&currencyCode=USD"
+                    else:
+                        discovery_url = f"https://www.agoda.com/city/{slug}.html"
+                    await page.goto(discovery_url, timeout=60000, wait_until="domcontentloaded")
                     # Wait until we have the city ID (max 6s)
                     for _ in range(12):
                         if captured_id:
@@ -301,7 +326,7 @@ async def fetch_city_hotels(location: str, checkin: str, checkout: str, adults: 
                             hotel_name: str = "") -> dict:
     """Fetch Agoda city results via GraphQL intercept. Thai IP gives geo-discounted prices."""
     slug = _city_slug(location, hotel_name or "")
-    hotels, total_count = await _fetch_graphql_hotels(slug, checkin, checkout, adults)
+    hotels, total_count = await _fetch_graphql_hotels(slug, checkin, checkout, adults, location)
 
     if hotel_name and hotels:
         hotels.sort(key=lambda h: _name_match_score(hotel_name, h.get("name", "")), reverse=True)
@@ -320,7 +345,7 @@ async def fetch_price(
     slug = _city_slug(location, hotel_name or "")
     fallback_url = build_search_url(hotel_name, location, checkin, checkout, adults)
 
-    hotels, _ = await _fetch_graphql_hotels(slug, checkin, checkout, adults)
+    hotels, _ = await _fetch_graphql_hotels(slug, checkin, checkout, adults, location)
     if not hotels:
         return {"platform": "Agoda", "raw_price": None, "currency": None,
                 "booking_url": fallback_url, "error": "No hotels found"}
