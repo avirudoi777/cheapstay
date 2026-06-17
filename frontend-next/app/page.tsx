@@ -169,7 +169,7 @@ const TRAVEL_GEAR = [
     badge: 'Sleep Better',
     price: 'From $20',
     color: '#475569',
-    img: 'https://images.unsplash.com/photo-1631157768545-a0ea5b55c327?w=400&h=240&fit=crop&auto=format',
+    img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=240&fit=crop&auto=format',
     url: 'https://www.amazon.com/s?k=travel+sleep+kit+eye+mask+neck+pillow&tag=cheapstay-20',
   },
 ];
