@@ -58,6 +58,20 @@ export default function HeaderClient() {
 
   return (
     <>
+      {/* Nav links — hidden on mobile */}
+      <nav className="hidden md:flex items-center gap-1 mr-4">
+        {[
+          { href: '/#how-it-works', label: 'The hack' },
+          { href: '/vpn-guide', label: 'VPN guide' },
+          { href: '/blog', label: 'Blog' },
+          { href: '/shop', label: 'Shop' },
+        ].map(link => (
+          <Link key={link.href} href={link.href}
+            className="text-xs font-semibold text-gray-500 hover:text-navy px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+            {link.label}
+          </Link>
+        ))}
+      </nav>
       <div className="flex items-center gap-2">
         {user ? (
           <div className="relative" ref={menuRef}>

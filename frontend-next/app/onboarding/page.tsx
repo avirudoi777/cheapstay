@@ -36,6 +36,8 @@ export default function OnboardingPage() {
   const [budget, setBudget]       = useState('mid');
   const [trips, setTrips]         = useState(2);
   const [saving, setSaving]       = useState(false);
+  const [wantsDeals, setWantsDeals] = useState(true);
+  const [wantsHacks, setWantsHacks] = useState(true);
 
   function toggleStyle(id: string) {
     setStyles(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
@@ -49,14 +51,21 @@ export default function OnboardingPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      await supabase.from('user_profiles').upsert({
-        id: user.id,
-        travel_styles: styles,
-        preferred_regions: regions,
-        budget_range: budget,
-        trips_per_year: trips,
-        onboarding_done: true,
-      });
+      await Promise.all([
+        supabase.from('user_profiles').upsert({
+          id: user.id,
+          travel_styles: styles,
+          preferred_regions: regions,
+          budget_range: budget,
+          trips_per_year: trips,
+          onboarding_done: true,
+        }),
+        supabase.from('user_preferences').upsert({
+          user_id: user.id,
+          wants_deals: wantsDeals,
+          wants_hacks: wantsHacks,
+        }),
+      ]);
     }
     router.push('/');
     router.refresh();
@@ -158,6 +167,56 @@ export default function OnboardingPage() {
           className="flex-1 py-3 rounded-xl font-bold text-navy text-sm border border-gray-200 hover:border-teal transition-colors">
           ← Back
         </button>
+        <button onClick={() => setStep(3)}
+          className="flex-1 py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+          Next →
+        </button>
+      </div>
+    </div>,
+
+    // Step 3 — notification preferences
+    <div key="prefs" className="space-y-4">
+      <div className="text-center">
+        <div className="text-4xl mb-3">🔔</div>
+        <h2 className="text-xl font-bold text-navy">What do you want to hear about?</h2>
+        <p className="text-gray-400 text-sm mt-1">We&apos;ll only send what you care about</p>
+      </div>
+      <div className="space-y-3">
+        {[
+          { key: 'deals', label: 'New hotel deals', desc: 'Price drops and limited-time offers', icon: '🏨', value: wantsDeals, set: setWantsDeals },
+          { key: 'hacks', label: 'Booking hacks & tips', desc: 'Weekly travel saving tricks', icon: '💡', value: wantsHacks, set: setWantsHacks },
+        ].map(opt => (
+          <button key={opt.key} onClick={() => opt.set(v => !v)}
+            className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${opt.value ? 'border-teal bg-teal/5 shadow-sm' : 'border-gray-200 hover:border-teal/50'}`}>
+            <span className="text-2xl">{opt.icon}</span>
+            <div className="flex-1">
+              <div className={`text-sm font-bold ${opt.value ? 'text-teal-dark' : 'text-navy'}`}>{opt.label}</div>
+              <div className="text-xs text-gray-400">{opt.desc}</div>
+            </div>
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${opt.value ? 'bg-teal border-teal' : 'border-gray-300'}`}>
+              {opt.value && (
+                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+          </button>
+        ))}
+        <button onClick={() => { setWantsDeals(true); setWantsHacks(true); }}
+          className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${wantsDeals && wantsHacks ? 'border-teal bg-teal/5 shadow-sm' : 'border-gray-200 hover:border-teal/50'}`}>
+          <span className="text-2xl">🎯</span>
+          <div className="flex-1">
+            <div className={`text-sm font-bold ${wantsDeals && wantsHacks ? 'text-teal-dark' : 'text-navy'}`}>Both <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-teal/10 text-teal ml-1">Recommended</span></div>
+            <div className="text-xs text-gray-400">Get the full CheapStay experience</div>
+          </div>
+        </button>
+      </div>
+      <div className="flex gap-2">
+        <button onClick={() => setStep(2)}
+          className="flex-1 py-3 rounded-xl font-bold text-navy text-sm border border-gray-200 hover:border-teal transition-colors">
+          ← Back
+        </button>
         <button onClick={finish} disabled={saving}
           className="flex-1 py-3 rounded-xl font-bold text-white text-sm disabled:opacity-60 transition-opacity"
           style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
@@ -174,11 +233,11 @@ export default function OnboardingPage() {
           <Image src="/logo.png" alt="Cheapstay" width={120} height={32} className="h-8 w-auto mx-auto mb-4" />
           {/* Progress dots */}
           <div className="flex justify-center gap-2">
-            {[0, 1, 2].map(i => (
+            {[0, 1, 2, 3].map(i => (
               <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? 'w-6 bg-teal' : i < step ? 'w-6 bg-teal/40' : 'w-6 bg-gray-200'}`} />
             ))}
           </div>
-          <p className="text-xs text-gray-400 mt-2">Step {step + 1} of 3</p>
+          <p className="text-xs text-gray-400 mt-2">Step {step + 1} of 4</p>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           {steps[step]}

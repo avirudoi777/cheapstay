@@ -14,26 +14,26 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? 'G-4N9WY15BK2';
 export const metadata: Metadata = {
   metadataBase: new URL('https://cheapstay.co'),
   title: {
-    default: 'CheapStay — Compare Cheap Hotel Prices | Agoda vs Booking.com',
+    default: 'CheapStay — Book Hotels 40% Cheaper | Thai IP Hack + VPN Guide',
     template: '%s | CheapStay',
   },
-  description: 'Find the cheapest hotel prices by comparing Agoda and Booking.com in real-time. Save money on every booking — Bangkok, Bali, Tokyo and 190+ destinations worldwide.',
-  keywords: ['cheap hotels', 'cheapstay', 'hotel price comparison', 'Agoda vs Booking.com', 'cheap stay', 'best hotel deals', 'Bangkok cheap hotels', 'Asia hotel prices'],
-  authors: [{ name: 'CheapStay', url: 'https://cheapstay.co' }],
+  description: 'Discover the Thai IP hack that saves travelers 20–40% on every hotel booking worldwide. Compare Agoda vs Booking.com, stack cashback and credit card points. Used by 10,000+ nomads.',
+  keywords: ['travel hacks', 'cheap hotel deals', 'hotel price comparison', 'save money on hotels', 'travel savings', 'VPN hotel hack', 'Agoda discount', 'Booking.com discount', 'travel tips', 'digital nomad hotels', 'cheap travel', 'hotel booking tips', 'cashback travel', 'best travel credit cards'],
+  authors: [{ name: 'Avi', url: 'https://cheapstay.co/about' }],
   creator: 'CheapStay',
   openGraph: {
-    title: 'CheapStay — Compare Cheap Hotel Prices',
-    description: 'Find the cheapest hotel prices by comparing Agoda and Booking.com side by side in real-time. Always get the best rate.',
+    title: 'Book Any Hotel 40% Cheaper — The Thai IP Hack',
+    description: 'The insider trick full-time travelers use to save 20–40% on every hotel booking. Free to learn, takes 5 minutes to set up.',
     url: 'https://cheapstay.co',
     siteName: 'CheapStay',
     type: 'website',
     locale: 'en_US',
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'CheapStay — Hotel Price Comparison' }],
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'CheapStay — Book Hotels 40% Cheaper with Thai IP Hack' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'CheapStay — Find the Cheapest Hotel Price',
-    description: 'Compare Agoda and Booking.com side by side. Always find the best rate.',
+    title: 'Book Any Hotel 40% Cheaper — The Thai IP Hack',
+    description: 'The insider trick full-time travelers use to save 20–40% on every hotel booking. Free to learn, takes 5 minutes to set up.',
     images: ['/og-image.png'],
   },
   robots: {
@@ -59,28 +59,50 @@ const jsonLd = {
       '@id': 'https://cheapstay.co/#website',
       url: 'https://cheapstay.co',
       name: 'CheapStay',
-      description: 'Compare cheap hotel prices across Agoda and Booking.com in real-time.',
+      description: 'Hotel price comparison and travel savings hacks for digital nomads and frequent travelers',
       potentialAction: {
         '@type': 'SearchAction',
-        target: {
-          '@type': 'EntryPoint',
-          urlTemplate: 'https://cheapstay.co/?q={search_term_string}',
-        },
+        target: { '@type': 'EntryPoint', urlTemplate: 'https://cheapstay.co/search?q={search_term_string}' },
         'query-input': 'required name=search_term_string',
       },
     },
     {
-      '@type': 'Organization',
-      '@id': 'https://cheapstay.co/#organization',
-      name: 'CheapStay',
-      url: 'https://cheapstay.co',
-      logo: {
-        '@type': 'ImageObject',
-        url: 'https://cheapstay.co/logo.png',
-        width: 200,
-        height: 60,
-      },
-      description: 'Hotel price comparison tool that finds the cheapest rate across Agoda and Booking.com.',
+      '@type': 'Person',
+      name: 'Avi',
+      jobTitle: 'Full-time traveler & founder of CheapStay',
+      description: 'Full-time traveler who has visited 50+ countries and stayed in hundreds of hotels. Founded CheapStay to share insider booking hacks.',
+      url: 'https://cheapstay.co/about',
+      sameAs: [],
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'How do I book hotels cheaper using a VPN?',
+          acceptedAnswer: { '@type': 'Answer', text: 'Set your VPN to a Thailand server before searching on Agoda or Booking.com. Thai IP addresses are shown prices 20-40% lower than US or European IPs — for hotels anywhere in the world.' },
+        },
+        {
+          '@type': 'Question',
+          name: 'Is using a VPN to find cheaper hotel prices legal?',
+          acceptedAnswer: { '@type': 'Answer', text: 'Yes, using a VPN is completely legal in most countries. You are simply browsing the internet from a different location. CheapStay teaches you how to find the best publicly available price.' },
+        },
+        {
+          '@type': 'Question',
+          name: 'Which is cheaper — Agoda or Booking.com?',
+          acceptedAnswer: { '@type': 'Answer', text: 'It depends on the destination and dates. CheapStay compares both in real time so you always see the lowest price. In Asia, Agoda is often cheaper. In Europe, Booking.com tends to win.' },
+        },
+        {
+          '@type': 'Question',
+          name: 'What credit card is best for hotel bookings?',
+          acceptedAnswer: { '@type': 'Answer', text: 'Chase Sapphire Preferred earns 2x points on hotels with no foreign fees — best for most travelers. Amex Gold has the biggest welcome bonus. Capital One Venture is the simplest — 2x miles on everything.' },
+        },
+        {
+          '@type': 'Question',
+          name: 'Can I get cashback on hotel bookings?',
+          acceptedAnswer: { '@type': 'Answer', text: 'Yes. TopCashback and Rakuten offer 3–8% cashback on Agoda and Booking.com. Stack this with Thai IP pricing and a travel credit card for maximum savings.' },
+        },
+      ],
     },
   ],
 };
@@ -132,20 +154,48 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <main className="flex-1">{children}</main>
 
-        <footer className="bg-white border-t border-gray-100 mt-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Image src="/logo.png" alt="CheapStay" width={100} height={28} className="h-7 w-auto opacity-80" />
-              <span className="text-xs text-gray-400">© 2026 CheapStay</span>
+        <footer className="bg-white border-t border-gray-100 mt-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-8">
+              <div>
+                <p className="text-xs font-bold text-navy uppercase tracking-wider mb-3">Guides</p>
+                <div className="space-y-2">
+                  <Link href="/vpn-guide" className="block text-xs text-gray-400 hover:text-navy transition-colors">How to use a VPN for cheaper hotels</Link>
+                  <Link href="/cashback" className="block text-xs text-gray-400 hover:text-navy transition-colors">Cashback guide</Link>
+                  <Link href="/blog" className="block text-xs text-gray-400 hover:text-navy transition-colors">Travel hacks &amp; tips</Link>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-navy uppercase tracking-wider mb-3">Destinations</p>
+                <div className="space-y-2">
+                  <Link href="/destinations" className="block text-xs text-gray-400 hover:text-navy transition-colors">Popular destinations</Link>
+                  <Link href="/hotels/bangkok" className="block text-xs text-gray-400 hover:text-navy transition-colors">Bangkok hotels</Link>
+                  <Link href="/hotels/bali" className="block text-xs text-gray-400 hover:text-navy transition-colors">Bali hotels</Link>
+                  <Link href="/hotels/tokyo" className="block text-xs text-gray-400 hover:text-navy transition-colors">Tokyo hotels</Link>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-navy uppercase tracking-wider mb-3">Shop</p>
+                <div className="space-y-2">
+                  <Link href="/shop" className="block text-xs text-gray-400 hover:text-navy transition-colors">Travel gear</Link>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-navy uppercase tracking-wider mb-3">Company</p>
+                <div className="space-y-2">
+                  <Link href="/about" className="block text-xs text-gray-400 hover:text-navy transition-colors">About</Link>
+                  <Link href="/contact" className="block text-xs text-gray-400 hover:text-navy transition-colors">Contact</Link>
+                  <Link href="/privacy" className="block text-xs text-gray-400 hover:text-navy transition-colors">Privacy Policy</Link>
+                </div>
+              </div>
             </div>
-            <nav className="flex items-center gap-4 text-xs text-gray-400">
-              <Link href="/privacy" className="hover:text-navy transition-colors">Privacy Policy</Link>
-              <span>·</span>
-              <Link href="/about" className="hover:text-navy transition-colors">About</Link>
-              <span>·</span>
-              <Link href="/contact" className="hover:text-navy transition-colors">Contact</Link>
-            </nav>
-            <p className="text-xs text-gray-400">Compare cheap hotel prices worldwide</p>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6 border-t border-gray-100">
+              <div className="flex items-center gap-3">
+                <Image src="/logo.png" alt="CheapStay" width={100} height={28} className="h-7 w-auto opacity-80" />
+                <span className="text-xs text-gray-400">© 2026 CheapStay</span>
+              </div>
+              <p className="text-xs text-gray-400">Compare cheap hotel prices worldwide · Thai IP pricing</p>
+            </div>
           </div>
         </footer>
 
