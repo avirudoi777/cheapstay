@@ -117,8 +117,8 @@ def _lookup_city(location: str) -> Optional[tuple[str, str]]:
     return None
 
 
-async def fetch_hotel_ids(api_key: str, country_code: str, city_name: str, limit: int = 50) -> list[str]:
-    """Fetch hotel IDs for a city from Liteapi."""
+async def fetch_hotel_data(api_key: str, country_code: str, city_name: str, limit: int = 50) -> list[dict]:
+    """Fetch hotel metadata (id, name, stars, photo, rating) for a city."""
     async with httpx.AsyncClient(timeout=20, trust_env=False) as client:
         r = await client.get(
             f"{BASE_URL}/data/hotels",
@@ -132,8 +132,7 @@ async def fetch_hotel_ids(api_key: str, country_code: str, city_name: str, limit
         )
         r.raise_for_status()
         data = r.json()
-        hotels = data.get("data", [])
-        return [h["id"] for h in hotels if h.get("id")]
+        return data.get("data", [])
 
 
 async def fetch_rates(
@@ -178,47 +177,44 @@ def _nights(checkin: str, checkout: str) -> int:
         return 1
 
 
-def _parse_rate(hotel_rate: dict, nights: int) -> Optional[dict]:
-    """Convert a Liteapi hotel rate object into the format CheapStay frontend expects."""
-    hotel_info = hotel_rate.get("hotel", {})
-    rates = hotel_rate.get("roomTypes", [])
+def _parse_rate(hotel_rate: dict, nights: int, hotel_info: dict) -> Optional[dict]:
+    """Convert a Liteapi hotel rate object into the format CheapStay frontend expects.
 
-    if not rates:
+    hotel_info comes from /data/hotels (name, stars, photo, rating).
+    In production the rates response only contains hotelId + roomTypes — no embedded hotel data.
+    offerId lives on the roomType level, not the rate level.
+    """
+    room_types = hotel_rate.get("roomTypes", [])
+    if not room_types:
         return None
 
-    # Pick cheapest room
+    # Pick cheapest rate; track its roomType's offerId
     cheapest = None
     cheapest_price = None
-    for room in rates:
+    best_offer_id = None
+
+    for room in room_types:
+        room_offer_id = room.get("offerId")
         for rate in room.get("rates", []):
             price = rate.get("retailRate", {}).get("total", [{}])[0].get("amount")
             if price is not None:
                 if cheapest_price is None or price < cheapest_price:
                     cheapest_price = price
                     cheapest = rate
+                    best_offer_id = room_offer_id
 
-    if cheapest_price is None:
+    if cheapest_price is None or cheapest is None:
         return None
 
     price_per_night = round(cheapest_price / nights, 2) if nights > 0 else cheapest_price
 
-    # Build booking URL
-    booking_url = hotel_rate.get("bookingUrl") or cheapest.get("bookingUrl") or ""
-
-    # Extract hotel details
-    name = hotel_info.get("name", "Unknown Hotel")
-    stars = hotel_info.get("starRating")
-    rating = hotel_info.get("rating")
-    address = hotel_info.get("address", {})
-    location_str = address.get("city") or address.get("country") or ""
-
-    # Images
-    images = hotel_info.get("images", [])
-    image_url = images[0].get("url") if images else None
-
-    # Amenities
-    facilities = hotel_info.get("facilities", [])
-    amenity_names = [f.get("name") for f in facilities[:3] if f.get("name")]
+    # Hotel metadata from /data/hotels lookup
+    name       = hotel_info.get("name") or "Unknown Hotel"
+    stars      = hotel_info.get("stars")
+    rating     = hotel_info.get("rating")
+    review_count = hotel_info.get("reviewCount")
+    city       = hotel_info.get("city") or ""
+    image_url  = hotel_info.get("main_photo") or hotel_info.get("thumbnail") or None
 
     # Cancellation
     cancel_policy = cheapest.get("cancellationPolicies", {})
@@ -229,12 +225,12 @@ def _parse_rate(hotel_rate: dict, nights: int) -> Optional[dict]:
         "image_url": image_url,
         "rating": str(rating) if rating else None,
         "review_label": None,
-        "review_count": None,
+        "review_count": str(review_count) if review_count else None,
         "stars": int(stars) if stars else None,
-        "location": location_str,
+        "location": city,
         "original_price": None,
         "nights": nights,
-        "amenities": amenity_names,
+        "amenities": [],
         "review_snippet": None,
         "deal_badge": None,
         "agoda_price": None,
@@ -244,11 +240,11 @@ def _parse_rate(hotel_rate: dict, nights: int) -> Optional[dict]:
         "best_platform": "liteapi",
         "price": price_per_night,
         "booking_price": price_per_night,
-        "booking_url": booking_url,
+        "booking_url": "",
         "total_price": round(cheapest_price, 2),
-        "offer_id": cheapest.get("offerId"),
+        "offer_id": best_offer_id,
         "free_cancellation": is_free_cancel,
-        "thai_price": True,  # Always true — we use guestNationality=TH
+        "thai_price": True,
     }
 
 
@@ -274,12 +270,16 @@ async def fetch_city_hotels(
     country_code, city_name = city_info
 
     try:
-        hotel_ids = await fetch_hotel_ids(api_key, country_code, city_name, limit=50)
+        hotel_data = await fetch_hotel_data(api_key, country_code, city_name, limit=50)
     except Exception as e:
         return {"hotels": [], "total_count": 0, "error": str(e)}
 
-    if not hotel_ids:
+    if not hotel_data:
         return {"hotels": [], "total_count": 0}
+
+    # Build id→metadata map for fast lookup during rate parsing
+    hotel_map = {h["id"]: h for h in hotel_data if h.get("id")}
+    hotel_ids = list(hotel_map.keys())
 
     try:
         rates = await fetch_rates(api_key, hotel_ids, checkin, checkout, adults)
@@ -288,7 +288,9 @@ async def fetch_city_hotels(
 
     hotels = []
     for hotel_rate in rates:
-        parsed = _parse_rate(hotel_rate, nights)
+        hid = hotel_rate.get("hotelId", "")
+        info = hotel_map.get(hid, {})
+        parsed = _parse_rate(hotel_rate, nights, info)
         if parsed is None:
             continue
         # Filter by hotel name if provided
