@@ -4,8 +4,8 @@ Replaces Agoda + Booking.com scrapers with a legitimate REST API.
 Uses guestNationality="TH" to fetch Thai-market pricing automatically.
 """
 
+import re
 import httpx
-from urllib.parse import quote
 from typing import Optional
 
 BASE_URL = "https://api.liteapi.travel/v3.0"
@@ -221,11 +221,15 @@ def _parse_rate(hotel_rate: dict, nights: int, hotel_info: dict, checkin: str = 
     cancel_policy = cheapest.get("cancellationPolicies", {})
     is_free_cancel = bool(cancel_policy.get("cancelPolicyInfos"))
 
-    # Booking.com search URL — deep-links user to the right hotel with dates
+    # Direct Booking.com hotel page URL using name slug + country
+    # Format: booking.com/hotel/{country}/{slug}.html?checkin=...
+    country_code = (hotel_info.get("country") or "").lower().strip()
+    raw_slug = re.sub(r'[^a-z0-9\s]', '', name.lower())
+    slug = re.sub(r'\s+', '-', raw_slug.strip())
+    slug = re.sub(r'-+', '-', slug)  # collapse multiple hyphens
     booking_url = (
-        f"https://www.booking.com/searchresults.html"
-        f"?ss={quote(name)}"
-        f"&checkin={checkin}&checkout={checkout}"
+        f"https://www.booking.com/hotel/{country_code}/{slug}.html"
+        f"?checkin={checkin}&checkout={checkout}"
         f"&group_adults={adults}&no_rooms=1"
     )
 
