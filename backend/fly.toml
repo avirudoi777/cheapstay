@@ -1,5 +1,5 @@
 app = "cheapstay-backend"
-primary_region = "bkk"
+primary_region = "sin"
 
 [build]
   dockerfile = "Dockerfile"
