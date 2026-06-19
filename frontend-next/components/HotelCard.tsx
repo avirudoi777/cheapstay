@@ -85,7 +85,7 @@ function HotelCardInner({ h }: { h: Hotel }) {
         <div className="absolute top-3 left-3 flex gap-1.5">
           {h.thai_price && (
             <span className="bg-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
-              🇹🇭 Thai price
+              Best price
             </span>
           )}
           {!h.thai_price && hasBoth && saving >= 1 && (

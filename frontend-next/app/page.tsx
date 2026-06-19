@@ -29,9 +29,9 @@ function defaultDates() {
 
 const SAVINGS_STACK = [
   {
-    icon: '🇹🇭',
-    title: 'Thai IP via VPN',
-    desc: 'Prices shown to Thai users are 20–40% lower on Agoda and Booking.com — everywhere in the world.',
+    icon: '🔍',
+    title: 'Multi-source price comparison',
+    desc: 'We search Agoda and Booking.com simultaneously and surface the lowest available rate for every hotel.',
     badge: 'Save up to 40%',
     featured: true,
   },
@@ -155,10 +155,10 @@ const FLIGHT_TIPS = [
     featured: false,
   },
   {
-    icon: '🇹🇭',
-    title: 'Thai IP on flights too',
-    desc: 'Some airlines and OTAs also show lower prices to Thai IP users. We test this automatically for every route.',
-    tag: 'Auto-tested per route',
+    icon: '🔔',
+    title: 'Price drop alerts',
+    desc: 'Set an alert for your route and we notify you when the price drops — so you book at the right moment.',
+    tag: 'Coming soon',
     featured: false,
   },
   {
@@ -382,24 +382,24 @@ export default function HomePage() {
             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
-            The only comparison site that auto-fetches Thai IP prices
+            Compare Agoda &amp; Booking.com — find the lowest price instantly
           </div>
 
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-tight">
-            We automatically find you Thai IP prices<br className="hidden sm:block" />
-            <span style={{ color: '#1D9E75' }}> — up to 40% cheaper</span> than Agoda or Booking.com directly
+            Stop overpaying for hotels.<br className="hidden sm:block" />
+            <span style={{ color: '#1D9E75' }}>Save up to 40%</span> by comparing the right prices.
           </h1>
 
           <p className="mt-4 text-sm sm:text-base text-white/70 max-w-2xl mx-auto">
-            Our server fetches prices at Thai IP rates so you don&apos;t have to. Search, compare, then use a VPN to lock in the price when you book.
+            We search Agoda and Booking.com simultaneously and show you the lowest available rate — no sign-up required.
           </p>
 
           {/* 3-step flow */}
           <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-0">
             {[
-              { n: '1', text: 'Search here → we fetch prices via Thai IP automatically' },
-              { n: '2', text: 'Find your hotel → see the real Thai IP price' },
-              { n: '3', text: 'Connect VPN to Thailand → book at that price' },
+              { n: '1', text: 'Search any destination worldwide' },
+              { n: '2', text: 'Compare prices across Agoda & Booking.com' },
+              { n: '3', text: 'Click Book → go straight to the cheapest option' },
             ].map((step, i) => (
               <div key={i} className="flex items-center gap-2">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
@@ -471,9 +471,9 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-8 text-center">
             {[
-              'Thai IP prices fetched automatically — no VPN needed to search',
               'Agoda + Booking.com compared side by side',
-              'Real-time prices, no cache',
+              'Real-time prices, updated constantly',
+              'No sign-up required',
               'Up to 40% cheaper than booking directly',
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-2 text-xs font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>
@@ -495,7 +495,7 @@ export default function HomePage() {
             </div>
             <div className="text-center">
               <p className="text-navy font-semibold text-base">Searching hotels in {searchValues?.location || searchValues?.query}…</p>
-              <p className="text-gray-400 text-sm mt-1">Fetching Thai IP prices automatically</p>
+              <p className="text-gray-400 text-sm mt-1">Comparing prices across Agoda & Booking.com</p>
             </div>
           </div>
         )}
@@ -512,7 +512,7 @@ export default function HomePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span className="text-xs font-semibold text-teal">{bookingCount} hotels found · Thai IP prices</span>
+              <span className="text-xs font-semibold text-teal">{bookingCount} hotels found · Best prices</span>
             </div>
           </div>
         )}
@@ -634,7 +634,7 @@ export default function HomePage() {
                 <div className="text-lg font-bold text-navy">${calcOriginal}</div>
               </div>
               <div className="text-center p-3 rounded-xl" style={{ background: '#E1F5EE' }}>
-                <div className="text-xs mb-1" style={{ color: '#0F6E56' }}>With Thai IP</div>
+                <div className="text-xs mb-1" style={{ color: '#0F6E56' }}>With CheapStay</div>
                 <div className="text-lg font-bold" style={{ color: '#1D9E75' }}>${calcThaiIP}</div>
               </div>
               <div className="text-center p-3 rounded-xl" style={{ background: '#fff7ed' }}>
@@ -650,9 +650,9 @@ export default function HomePage() {
       <section style={{ background: '#0a1628' }} className="py-14 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-2xl font-extrabold text-white">Set your IP to Thailand, unlock lower prices instantly</h2>
+            <h2 className="text-2xl font-extrabold text-white">Browse privately & securely while traveling</h2>
             <p className="text-sm mt-2" style={{ color: 'rgba(255,255,255,0.6)' }}>
-              Takes 5 minutes to set up. Works on every device. Cancel anytime.
+              A VPN protects your connection on hotel & airport WiFi. Takes 5 minutes to set up, works on every device.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
