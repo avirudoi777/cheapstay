@@ -3,6 +3,7 @@ import { useState, memo } from 'react';
 import Image from 'next/image';
 import type { Hotel } from '@/lib/types';
 import AuthModal from './AuthModal';
+import BookingModal from './BookingModal';
 import { createClient } from '@/lib/supabase/client';
 import { analytics } from '@/lib/analytics';
 
@@ -32,8 +33,12 @@ function ratingBg(score: string | null): string {
 }
 
 function HotelCardInner({ h }: { h: Hotel }) {
-  const [showAuth, setShowAuth] = useState(false);
+  const [showAuth, setShowAuth]       = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
+  const [userEmail, setUserEmail]     = useState('');
+  const [userFullName, setUserFullName] = useState('');
 
+  const isDirectBooking = Boolean(h.offer_id);
   const best       = h.best_platform || 'booking';
   const bestUrl    = best === 'agoda'
     ? (h.agoda_url ?? h.booking_url ?? '#')
@@ -41,16 +46,32 @@ function HotelCardInner({ h }: { h: Hotel }) {
 
   const agodaPrice   = h.agoda_price;
   const bookingPrice = h.booking_price ?? (best === 'booking' ? h.price : null);
-  const bestPrice    = best === 'agoda' ? agodaPrice : bookingPrice;
-  const hasBoth      = agodaPrice != null && bookingPrice != null;
+  const bestPrice    = isDirectBooking ? h.price : (best === 'agoda' ? agodaPrice : bookingPrice);
+  const hasBoth      = !isDirectBooking && agodaPrice != null && bookingPrice != null;
   const saving       = hasBoth ? Math.round(Math.abs(bookingPrice! - agodaPrice!)) : 0;
   const hasAnyPrice  = bestPrice != null;
+
+  async function openBookingModal() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setUserEmail(user.email ?? '');
+      setUserFullName(user.user_metadata?.full_name ?? '');
+    }
+    setShowBooking(true);
+  }
 
   async function handleBook(e: React.MouseEvent) {
     e.preventDefault();
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setShowAuth(true); return; }
+
+    if (isDirectBooking) {
+      await openBookingModal();
+      return;
+    }
+
     await supabase.from('booking_clicks').insert({
       user_id: user.id,
       hotel_name: h.name,
@@ -83,12 +104,17 @@ function HotelCardInner({ h }: { h: Hotel }) {
 
         {/* Top badges */}
         <div className="absolute top-3 left-3 flex gap-1.5">
-          {hasBoth && saving >= 1 && (
+          {isDirectBooking && (
+            <span className="bg-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+              🇹🇭 Thai price
+            </span>
+          )}
+          {!isDirectBooking && hasBoth && saving >= 1 && (
             <span className="bg-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
               Save ${saving}/night
             </span>
           )}
-          {h.deal_badge === 'hot' && !hasBoth && (
+          {h.deal_badge === 'hot' && !hasBoth && !isDirectBooking && (
             <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">🔥 Hot deal</span>
           )}
         </div>
@@ -112,7 +138,9 @@ function HotelCardInner({ h }: { h: Hotel }) {
       <div className="p-4 flex flex-col flex-1">
 
         {/* Hotel name */}
-        <a href={bestUrl} target="_blank" rel="noopener noreferrer"
+        <a href={isDirectBooking ? '#' : bestUrl}
+          {...(!isDirectBooking && { target: '_blank', rel: 'noopener noreferrer' })}
+          onClick={isDirectBooking ? (e) => { e.preventDefault(); handleBook(e); } : undefined}
           className="font-bold text-navy text-base leading-snug hover:text-teal transition-colors line-clamp-2 mb-1">
           {h.name}
         </a>
@@ -171,47 +199,49 @@ function HotelCardInner({ h }: { h: Hotel }) {
                 </div>
               </div>
               <span className="text-[10px] font-bold px-2 py-1 rounded-full mb-0.5" style={{ color: '#0d9488', background: 'rgba(13,148,136,0.1)' }}>
-                via {best === 'agoda' ? 'Agoda' : 'Booking.com'}
+                {isDirectBooking ? 'via CheapStay' : `via ${best === 'agoda' ? 'Agoda' : 'Booking.com'}`}
               </span>
             </div>
 
-            {/* Platform comparison — 2-col, Agoda invisible when no price */}
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className={`rounded-xl border p-2.5 ${
-                agodaPrice != null
-                  ? best === 'agoda' ? 'border-teal/30 bg-teal/5' : 'border-gray-100 bg-gray-50'
-                  : 'invisible'
-              }`}>
-                <p className="text-[9px] font-black uppercase tracking-widest text-orange-500 mb-1">
-                  Agoda {best === 'agoda' && agodaPrice != null && (
-                    <span className="bg-teal text-white px-1 rounded ml-0.5 text-[8px]">BEST</span>
-                  )}
-                </p>
-                <p className="text-sm font-bold text-gray-800">
-                  {agodaPrice != null ? `$${Math.round(agodaPrice)}` : '—'}
-                  <span className="text-[10px] font-normal text-gray-400">/night</span>
-                </p>
-              </div>
-              <div className={`rounded-xl border p-2.5 ${
-                bookingPrice != null
-                  ? best === 'booking' ? 'border-teal/30 bg-teal/5' : 'border-gray-100 bg-gray-50'
-                  : 'border-gray-100 bg-gray-50'
-              }`}>
-                <p className="text-[9px] font-black uppercase tracking-widest text-blue-600 mb-1">
-                  Booking {best === 'booking' && bookingPrice != null && (
-                    <span className="bg-teal text-white px-1 rounded ml-0.5 text-[8px]">BEST</span>
-                  )}
-                </p>
-                {bookingPrice != null ? (
+            {/* Platform comparison — hidden for direct bookings */}
+            {!isDirectBooking && (
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className={`rounded-xl border p-2.5 ${
+                  agodaPrice != null
+                    ? best === 'agoda' ? 'border-teal/30 bg-teal/5' : 'border-gray-100 bg-gray-50'
+                    : 'invisible'
+                }`}>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-orange-500 mb-1">
+                    Agoda {best === 'agoda' && agodaPrice != null && (
+                      <span className="bg-teal text-white px-1 rounded ml-0.5 text-[8px]">BEST</span>
+                    )}
+                  </p>
                   <p className="text-sm font-bold text-gray-800">
-                    ${Math.round(bookingPrice)}
+                    {agodaPrice != null ? `$${Math.round(agodaPrice)}` : '—'}
                     <span className="text-[10px] font-normal text-gray-400">/night</span>
                   </p>
-                ) : (
-                  <p className="text-xs text-gray-400">Unavailable</p>
-                )}
+                </div>
+                <div className={`rounded-xl border p-2.5 ${
+                  bookingPrice != null
+                    ? best === 'booking' ? 'border-teal/30 bg-teal/5' : 'border-gray-100 bg-gray-50'
+                    : 'border-gray-100 bg-gray-50'
+                }`}>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-blue-600 mb-1">
+                    Booking {best === 'booking' && bookingPrice != null && (
+                      <span className="bg-teal text-white px-1 rounded ml-0.5 text-[8px]">BEST</span>
+                    )}
+                  </p>
+                  {bookingPrice != null ? (
+                    <p className="text-sm font-bold text-gray-800">
+                      ${Math.round(bookingPrice)}
+                      <span className="text-[10px] font-normal text-gray-400">/night</span>
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-400">Unavailable</p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </>
         ) : (
           /* No price state */
@@ -234,14 +264,18 @@ function HotelCardInner({ h }: { h: Hotel }) {
         {/* Book button */}
         <button onClick={handleBook}
           className="w-full text-sm font-bold text-white rounded-xl py-3 cursor-pointer transition-opacity hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)' }}>
-          {hasAnyPrice
-            ? `Book on ${best === 'agoda' ? 'Agoda' : 'Booking.com'} →`
-            : 'Check availability →'}
+          style={{ background: isDirectBooking
+            ? 'linear-gradient(135deg, #00C9B1, #1A73E8)'
+            : 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)' }}>
+          {isDirectBooking
+            ? 'Book on CheapStay →'
+            : hasAnyPrice
+              ? `Book on ${best === 'agoda' ? 'Agoda' : 'Booking.com'} →`
+              : 'Check availability →'}
         </button>
 
-        {/* Secondary link — invisible preserves height when only one platform */}
-        <div className={!hasBoth ? 'invisible' : undefined}>
+        {/* Secondary link — only shown for non-direct bookings with both platforms */}
+        <div className={(!hasBoth || isDirectBooking) ? 'invisible' : undefined}>
           <a
             href={best === 'agoda' ? (h.booking_url ?? '#') : (h.agoda_url ?? '#')}
             target="_blank" rel="noopener noreferrer"
@@ -255,8 +289,23 @@ function HotelCardInner({ h }: { h: Hotel }) {
       <AuthModal
         open={showAuth}
         onClose={() => setShowAuth(false)}
-        onContinue={() => { setShowAuth(false); window.open(bestUrl, '_blank', 'noopener,noreferrer'); }}
+        onContinue={async () => {
+          setShowAuth(false);
+          if (isDirectBooking) {
+            await openBookingModal();
+          } else {
+            window.open(bestUrl, '_blank', 'noopener,noreferrer');
+          }
+        }}
         hotelName={h.name}
+      />
+
+      <BookingModal
+        hotel={h}
+        open={showBooking}
+        onClose={() => setShowBooking(false)}
+        userEmail={userEmail}
+        userFullName={userFullName}
       />
     </div>
   );

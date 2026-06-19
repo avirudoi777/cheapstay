@@ -161,3 +161,42 @@ export async function saveConfig(payload: Partial<Config>): Promise<boolean> {
     return false;
   }
 }
+
+export async function prebookRate(offerId: string): Promise<Record<string, unknown>> {
+  const res = await fetch(`${getBase()}/prebook`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ offer_id: offerId }),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const detail = await res.json().then((d) => d.detail).catch(() => res.statusText);
+    throw new Error(String(detail) ?? 'Prebook failed');
+  }
+  return res.json();
+}
+
+export interface GuestInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export async function bookHotel(prebookId: string, guest: GuestInfo): Promise<Record<string, unknown>> {
+  const res = await fetch(`${getBase()}/book`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prebook_id: prebookId,
+      first_name: guest.firstName,
+      last_name: guest.lastName,
+      email: guest.email,
+    }),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const detail = await res.json().then((d) => d.detail).catch(() => res.statusText);
+    throw new Error(String(detail) ?? 'Booking failed');
+  }
+  return res.json();
+}

@@ -219,6 +219,46 @@ async def search_city(req: CitySearchRequest):
     }
 
 
+class PrebookRequest(BaseModel):
+    offer_id: str
+
+
+class BookRequest(BaseModel):
+    prebook_id: str
+    first_name: str
+    last_name: str
+    email: str
+
+
+@app.post("/prebook")
+async def prebook_rate(req: PrebookRequest):
+    config = load_config()
+    liteapi_key = config.get("liteapi_key", "").strip()
+    if not liteapi_key:
+        raise HTTPException(status_code=503, detail="No liteapi_key configured")
+    try:
+        data = await liteapi.prebook(liteapi_key, req.offer_id)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@app.post("/book")
+async def book_rate(req: BookRequest):
+    config = load_config()
+    liteapi_key = config.get("liteapi_key", "").strip()
+    if not liteapi_key:
+        raise HTTPException(status_code=503, detail="No liteapi_key configured")
+    try:
+        data = await liteapi.book_hotel(
+            liteapi_key, req.prebook_id,
+            req.first_name, req.last_name, req.email,
+        )
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}

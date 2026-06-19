@@ -9,6 +9,7 @@ import re as _re
 from typing import Optional
 
 BASE_URL = "https://api.liteapi.travel/v3.0"
+BOOK_URL = "https://book.liteapi.travel/v3.0"
 
 # City name → (countryCode, cityName for API)
 # Add more as needed
@@ -246,6 +247,7 @@ def _parse_rate(hotel_rate: dict, nights: int) -> Optional[dict]:
         "booking_price": price_per_night,
         "booking_url": booking_url,
         "total_price": round(cheapest_price, 2),
+        "offer_id": cheapest.get("offerId"),
         "free_cancellation": is_free_cancel,
         "thai_price": True,  # Always true — we use guestNationality=TH
     }
@@ -304,3 +306,35 @@ async def fetch_city_hotels(
         hotels[0]["best"] = True
 
     return {"hotels": hotels, "total_count": len(hotels)}
+
+
+async def prebook(api_key: str, offer_id: str) -> dict:
+    """Lock a rate and get final price + cancellation policy before booking."""
+    async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
+        r = await client.post(
+            f"{BOOK_URL}/rates/prebook",
+            headers=_headers(api_key),
+            json={"offerId": offer_id, "usePaymentSdk": False},
+        )
+        r.raise_for_status()
+        return r.json().get("data", {})
+
+
+async def book_hotel(api_key: str, prebook_id: str, first: str, last: str, email: str) -> dict:
+    """Complete a booking using a prebookId and guest info."""
+    async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
+        r = await client.post(
+            f"{BOOK_URL}/rates/book",
+            headers=_headers(api_key),
+            json={
+                "prebookId": prebook_id,
+                "guestInfo": {
+                    "guestFirstName": first,
+                    "guestLastName": last,
+                    "guestEmail": email,
+                },
+                "payment": {"type": "ACC_CREDIT_CARD"},
+            },
+        )
+        r.raise_for_status()
+        return r.json().get("data", {})

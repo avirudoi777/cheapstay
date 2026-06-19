@@ -20,6 +20,9 @@ export interface Hotel {
   booking_price: number | null;
   booking_url: string | null;
   total_price: number | null;
+  offer_id?: string | null;
+  free_cancellation?: boolean;
+  thai_price?: boolean;
 }
 
 export interface CitySearchResponse {
