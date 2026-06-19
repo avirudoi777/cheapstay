@@ -5,6 +5,7 @@ Uses guestNationality="TH" to fetch Thai-market pricing automatically.
 """
 
 import httpx
+from urllib.parse import quote
 from typing import Optional
 
 BASE_URL = "https://api.liteapi.travel/v3.0"
@@ -177,7 +178,7 @@ def _nights(checkin: str, checkout: str) -> int:
         return 1
 
 
-def _parse_rate(hotel_rate: dict, nights: int, hotel_info: dict) -> Optional[dict]:
+def _parse_rate(hotel_rate: dict, nights: int, hotel_info: dict, checkin: str = "", checkout: str = "", adults: int = 2) -> Optional[dict]:
     """Convert a Liteapi hotel rate object into the format CheapStay frontend expects.
 
     hotel_info comes from /data/hotels (name, stars, photo, rating).
@@ -220,6 +221,14 @@ def _parse_rate(hotel_rate: dict, nights: int, hotel_info: dict) -> Optional[dic
     cancel_policy = cheapest.get("cancellationPolicies", {})
     is_free_cancel = bool(cancel_policy.get("cancelPolicyInfos"))
 
+    # Booking.com search URL — deep-links user to the right hotel with dates
+    booking_url = (
+        f"https://www.booking.com/searchresults.html"
+        f"?ss={quote(name)}"
+        f"&checkin={checkin}&checkout={checkout}"
+        f"&group_adults={adults}&no_rooms=1"
+    )
+
     return {
         "name": name,
         "image_url": image_url,
@@ -237,10 +246,10 @@ def _parse_rate(hotel_rate: dict, nights: int, hotel_info: dict) -> Optional[dic
         "agoda_url": "",
         "hl_price": None,
         "hl_url": None,
-        "best_platform": "liteapi",
+        "best_platform": "booking",
         "price": price_per_night,
         "booking_price": price_per_night,
-        "booking_url": "",
+        "booking_url": booking_url,
         "total_price": round(cheapest_price, 2),
         "offer_id": best_offer_id,
         "free_cancellation": is_free_cancel,
@@ -290,7 +299,7 @@ async def fetch_city_hotels(
     for hotel_rate in rates:
         hid = hotel_rate.get("hotelId", "")
         info = hotel_map.get(hid, {})
-        parsed = _parse_rate(hotel_rate, nights, info)
+        parsed = _parse_rate(hotel_rate, nights, info, checkin, checkout, adults)
         if parsed is None:
             continue
         # Filter by hotel name if provided
