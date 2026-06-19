@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from cashback import load_config, save_config, apply_cashback
 from scrapers import agoda
 from scrapers import booking
+from scrapers import liteapi
 from cache import search_cache
 
 
@@ -154,8 +155,8 @@ async def search(req: SearchRequest):
 @app.get("/config")
 async def get_config():
     config = load_config()
-    # Don't expose the API key to the frontend
-    safe = {k: v for k, v in config.items() if k != "scraperapi_key"}
+    # Don't expose API keys to the frontend
+    safe = {k: v for k, v in config.items() if k not in ("scraperapi_key", "liteapi_key")}
     return safe
 
 
@@ -260,9 +261,9 @@ _CITY_CACHE_KEY = "__city__"
 @app.post("/search-city")
 async def search_city(req: CitySearchRequest):
     config = load_config()
-    aff_id     = config.get("agoda_affiliate_id", "").strip()
-    bk_aff_id  = config.get("booking_affiliate_id", "").strip()
+    liteapi_key = config.get("liteapi_key", "").strip()
 
+    # ── Cache check ──────────────────────────────────────────────────────────
     use_cache = (not req.force_refresh) and (not req.hotel_name) or req.offset > 0
     if use_cache:
         cached = await search_cache.get(_CITY_CACHE_KEY, req.location, req.checkin, req.checkout, req.adults)
@@ -283,16 +284,25 @@ async def search_city(req: CitySearchRequest):
         return {"hotels": [], "total_agoda": 0, "cached_count": 0,
                 "offset": req.offset, "limit": req.limit, "has_more": False}
 
-    nights = _nights(req.checkin, req.checkout)
+    # ── Fetch from Liteapi ───────────────────────────────────────────────────
+    if liteapi_key:
+        result = await liteapi.fetch_city_hotels(
+            liteapi_key,
+            req.location,
+            req.checkin,
+            req.checkout,
+            req.adults,
+            hotel_name=req.hotel_name or "",
+        )
+        results     = result.get("hotels", [])
+        total_count = result.get("total_count", len(results))
 
-    if req.booking_only:
-        async with _scrape_sem:
-            bk_result = await booking.fetch_city_hotels(
-                req.location, req.checkin, req.checkout, req.adults,
-                hotel_name=req.hotel_name or "",
-            )
-        ag_result = {"hotels": [], "total_count": 0}
     else:
+        # ── Fallback: scrapers (legacy, only if no Liteapi key configured) ──
+        nights = _nights(req.checkin, req.checkout)
+        aff_id    = config.get("agoda_affiliate_id", "").strip()
+        bk_aff_id = config.get("booking_affiliate_id", "").strip()
+
         async with _scrape_sem:
             bk_result, ag_result = await asyncio.gather(
                 booking.fetch_city_hotels(
@@ -305,65 +315,61 @@ async def search_city(req: CitySearchRequest):
                 ),
             )
 
-    bk_hotels   = bk_result.get("hotels") or []
-    ag_hotels   = ag_result.get("hotels") or []
-    total_count = bk_result.get("total_count") or len(bk_hotels)
+        bk_hotels   = bk_result.get("hotels") or []
+        ag_hotels   = ag_result.get("hotels") or []
+        total_count = bk_result.get("total_count") or len(bk_hotels)
 
-    # Build Agoda price lookup by normalised hotel name
-    def _norm(s: str) -> str:
-        return _re.sub(r"[^a-z0-9]", "", s.lower())
+        def _norm(s: str) -> str:
+            return _re.sub(r"[^a-z0-9]", "", s.lower())
 
-    ag_by_name: dict[str, dict] = {}
-    for h in ag_hotels:
-        ag_by_name[_norm(h["name"])] = h
+        ag_by_name: dict[str, dict] = {}
+        for h in ag_hotels:
+            ag_by_name[_norm(h["name"])] = h
 
-    agoda_city_url = agoda.build_search_url(None, req.location, req.checkin, req.checkout, req.adults)
-    if aff_id:
-        agoda_city_url += f"&cid={aff_id}"
+        agoda_city_url = agoda.build_search_url(None, req.location, req.checkin, req.checkout, req.adults)
+        if aff_id:
+            agoda_city_url += f"&cid={aff_id}"
 
-    results = []
-    for idx, h in enumerate(bk_hotels):
-        bk_price = h.get("price")
-        stars    = h.get("stars")
+        results = []
+        for idx, h in enumerate(bk_hotels):
+            bk_price = h.get("price")
+            stars    = h.get("stars")
+            ag_match = ag_by_name.get(_norm(h["name"]))
+            ag_price = ag_match.get("price") if ag_match else None
+            ag_url   = ag_match.get("href") or agoda_city_url if ag_match else agoda_city_url
+            prices   = {k: v for k, v in {"booking": bk_price, "agoda": ag_price}.items() if v}
+            if prices:
+                best_platform = min(prices, key=lambda k: prices[k])
+                best_price    = prices[best_platform]
+            else:
+                best_platform = "booking"
+                best_price    = bk_price
 
-        # Try to match Agoda hotel by name
-        ag_match = ag_by_name.get(_norm(h["name"]))
-        ag_price = ag_match.get("price") if ag_match else None
-        ag_url   = ag_match.get("href") or agoda_city_url if ag_match else agoda_city_url
+            results.append({
+                "name":           h["name"],
+                "image_url":      h.get("imgUrl") or (ag_match.get("imgUrl") if ag_match else None),
+                "rating":         h.get("rating") or (ag_match.get("rating") if ag_match else None),
+                "review_label":   None,
+                "review_count":   None,
+                "stars":          stars or (ag_match.get("stars") if ag_match else None),
+                "location":       h.get("location"),
+                "original_price": h.get("originalPrice") or (ag_match.get("originalPrice") if ag_match else None),
+                "nights":         nights,
+                "amenities":      (ag_match.get("amenities") or []) if ag_match else [],
+                "review_snippet": (ag_match.get("reviewSnippet")) if ag_match else None,
+                "deal_badge":     _deal_badge(best_price, h.get("originalPrice")),
+                "agoda_price":    ag_price,
+                "agoda_url":      ag_url,
+                "hl_price":       None,
+                "hl_url":         None,
+                "best_platform":  best_platform,
+                "price":          best_price,
+                "booking_price":  bk_price,
+                "booking_url":    _bk_url(h.get("href") or agoda_city_url, bk_aff_id),
+                "total_price":    round(best_price * nights, 2) if best_price else None,
+            })
 
-        # Best price: whichever platform is cheaper
-        prices = {k: v for k, v in {"booking": bk_price, "agoda": ag_price}.items() if v}
-        if prices:
-            best_platform = min(prices, key=lambda k: prices[k])
-            best_price    = prices[best_platform]
-        else:
-            best_platform = "booking"
-            best_price    = bk_price
-
-        results.append({
-            "name":           h["name"],
-            "image_url":      h.get("imgUrl") or (ag_match.get("imgUrl") if ag_match else None),
-            "rating":         h.get("rating") or (ag_match.get("rating") if ag_match else None),
-            "review_label":   None,
-            "review_count":   None,
-            "stars":          stars or (ag_match.get("stars") if ag_match else None),
-            "location":       h.get("location"),
-            "original_price": h.get("originalPrice") or (ag_match.get("originalPrice") if ag_match else None),
-            "nights":         nights,
-            "amenities":      (ag_match.get("amenities") or []) if ag_match else [],
-            "review_snippet": (ag_match.get("reviewSnippet")) if ag_match else None,
-            "deal_badge":     _deal_badge(best_price, h.get("originalPrice")),
-            "agoda_price":    ag_price,
-            "agoda_url":      ag_url,
-            "hl_price":       None,
-            "hl_url":         None,
-            "best_platform":  best_platform,
-            "price":          best_price,
-            "booking_price":  bk_price,
-            "booking_url":    _bk_url(h.get("href") or agoda_city_url, bk_aff_id),
-            "total_price":    round(best_price * nights, 2) if best_price else None,
-        })
-
+    # ── Cache and return ─────────────────────────────────────────────────────
     await search_cache.set(_CITY_CACHE_KEY, req.location, req.checkin, req.checkout, req.adults, {
         "hotels": results, "total_count": total_count,
     })
