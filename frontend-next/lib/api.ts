@@ -180,6 +180,7 @@ export interface GuestInfo {
   firstName: string;
   lastName: string;
   email: string;
+  phone?: string;
 }
 
 export async function bookHotel(prebookId: string, guest: GuestInfo): Promise<Record<string, unknown>> {
@@ -191,6 +192,7 @@ export async function bookHotel(prebookId: string, guest: GuestInfo): Promise<Re
       first_name: guest.firstName,
       last_name: guest.lastName,
       email: guest.email,
+      phone: guest.phone ?? '',
     }),
     cache: 'no-store',
   });

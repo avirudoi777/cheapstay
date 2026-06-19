@@ -5,7 +5,6 @@ Uses guestNationality="TH" to fetch Thai-market pricing automatically.
 """
 
 import httpx
-import re as _re
 from typing import Optional
 
 BASE_URL = "https://api.liteapi.travel/v3.0"
@@ -320,7 +319,7 @@ async def prebook(api_key: str, offer_id: str) -> dict:
         return r.json().get("data", {})
 
 
-async def book_hotel(api_key: str, prebook_id: str, first: str, last: str, email: str) -> dict:
+async def book_hotel(api_key: str, prebook_id: str, first: str, last: str, email: str, phone: str = "") -> dict:
     """Complete a booking using a prebookId and guest info."""
     async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
         r = await client.post(
@@ -328,12 +327,21 @@ async def book_hotel(api_key: str, prebook_id: str, first: str, last: str, email
             headers=_headers(api_key),
             json={
                 "prebookId": prebook_id,
-                "guestInfo": {
-                    "guestFirstName": first,
-                    "guestLastName": last,
-                    "guestEmail": email,
+                "holder": {
+                    "firstName": first,
+                    "lastName": last,
+                    "email": email,
+                    "phone": phone,
                 },
-                "payment": {"type": "ACC_CREDIT_CARD"},
+                "guests": [
+                    {
+                        "occupancyNumber": 1,
+                        "firstName": first,
+                        "lastName": last,
+                        "email": email,
+                    }
+                ],
+                "payment": {"method": "ACC_CREDIT_CARD"},
             },
         )
         r.raise_for_status()

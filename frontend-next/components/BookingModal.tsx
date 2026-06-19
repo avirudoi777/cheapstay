@@ -21,6 +21,7 @@ export default function BookingModal({ hotel, open, onClose, userEmail = '', use
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [bookingResult, setBookingResult] = useState<Record<string, unknown> | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -64,6 +65,7 @@ export default function BookingModal({ hotel, open, onClose, userEmail = '', use
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim(),
+        phone: phone.trim(),
       });
       setBookingResult(result);
       setStep('done');
@@ -192,13 +194,23 @@ export default function BookingModal({ hotel, open, onClose, userEmail = '', use
                   placeholder="you@email.com"
                 />
               </div>
+              <div>
+                <label className="text-[11px] font-semibold text-gray-500 block mb-1">Phone *</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/40 focus:border-teal"
+                  placeholder="+1 234 567 8900"
+                />
+              </div>
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setStep('confirm')}
                   className="flex-1 py-3 rounded-xl font-bold text-navy text-sm border border-gray-200 hover:border-teal transition-colors">
                   ← Back
                 </button>
                 <button type="submit"
-                  disabled={!firstName.trim() || !lastName.trim() || !email.trim()}
+                  disabled={!firstName.trim() || !lastName.trim() || !email.trim() || !phone.trim()}
                   className="flex-1 py-3 rounded-xl font-bold text-white text-sm disabled:opacity-40 transition-opacity hover:opacity-90"
                   style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
                   Confirm Booking →

@@ -228,6 +228,7 @@ class BookRequest(BaseModel):
     first_name: str
     last_name: str
     email: str
+    phone: str = ""
 
 
 @app.post("/prebook")
@@ -252,7 +253,7 @@ async def book_rate(req: BookRequest):
     try:
         data = await liteapi.book_hotel(
             liteapi_key, req.prebook_id,
-            req.first_name, req.last_name, req.email,
+            req.first_name, req.last_name, req.email, req.phone,
         )
         return data
     except Exception as e:
