@@ -16,7 +16,12 @@ export async function POST(req: Request) {
     .from('newsletter_subscribers')
     .insert({ email });
 
-  if (error && error.code !== '23505') {
+  if (error) {
+    console.error('newsletter insert error:', error);
+    if (error.code === '23505') {
+      // duplicate — treat as success
+      return NextResponse.json({ ok: true });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
