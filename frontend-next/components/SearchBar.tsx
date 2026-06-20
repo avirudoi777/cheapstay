@@ -3,16 +3,20 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { getSuggestions } from '@/lib/api';
 import type { Suggestion } from '@/lib/types';
 
-// ── Date helpers ──────────────────────────────────────────────────────────────
-
 function toDateStr(d: Date): string {
   return d.toISOString().split('T')[0];
 }
 
-function fmt(dateStr: string): string {
+function fmtShort(dateStr: string): string {
   if (!dateStr) return '';
   const d = new Date(dateStr + 'T12:00:00');
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function fmtDay(dateStr: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T12:00:00');
+  return String(d.getDate());
 }
 
 // ── Calendar ──────────────────────────────────────────────────────────────────
@@ -21,9 +25,10 @@ interface CalendarProps {
   checkin: string;
   checkout: string;
   onSelect: (ci: string, co: string, done?: boolean) => void;
+  onClose: () => void;
 }
 
-function Calendar({ checkin, checkout, onSelect }: CalendarProps) {
+function Calendar({ checkin, checkout, onSelect, onClose }: CalendarProps) {
   const today = toDateStr(new Date());
   const [viewYear, setViewYear] = useState(() => {
     const d = checkin ? new Date(checkin + 'T12:00:00') : new Date();
@@ -34,7 +39,7 @@ function Calendar({ checkin, checkout, onSelect }: CalendarProps) {
     return d.getMonth();
   });
   const [hover, setHover] = useState('');
-  const [picking, setPicking] = useState<'ci' | 'co'>(checkin ? 'co' : 'ci');
+  const [picking, setPicking] = useState<'ci' | 'co'>(checkin && !checkout ? 'co' : 'ci');
 
   function handleDay(ds: string) {
     if (ds < today) return;
@@ -43,6 +48,7 @@ function Calendar({ checkin, checkout, onSelect }: CalendarProps) {
       setPicking('co');
     } else {
       onSelect(checkin, ds, true);
+      setPicking('ci');
     }
   }
 
@@ -57,32 +63,38 @@ function Calendar({ checkin, checkout, onSelect }: CalendarProps) {
     const effectiveEnd = hover && picking === 'co' && hover > checkin ? hover : checkout;
 
     return (
-      <div>
-        <div className="text-sm font-semibold text-navy text-center mb-3">{label}</div>
-        <div className="grid grid-cols-7 text-[11px] text-gray-400 text-center mb-1">
+      <div className="min-w-0">
+        <div className="text-sm font-bold text-gray-800 text-center mb-3">{label}</div>
+        <div className="grid grid-cols-7 text-[11px] text-gray-400 font-semibold text-center mb-2">
           {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d}>{d}</div>)}
         </div>
-        <div className="grid grid-cols-7 gap-y-0.5">
+        <div className="grid grid-cols-7">
           {cells.map((ds, i) => {
             if (!ds) return <div key={i} />;
             const isPast = ds < today;
             const isCi = ds === checkin;
             const isCo = ds === checkout;
             const inRange = checkin && effectiveEnd && ds > checkin && ds < effectiveEnd;
+            const isStartOfRange = isCi && checkout;
+            const isEndOfRange = isCo;
+
             return (
               <button key={ds} type="button" disabled={isPast}
                 onClick={() => handleDay(ds)}
                 onMouseEnter={() => setHover(ds)}
                 onMouseLeave={() => setHover('')}
                 className={[
-                  'h-8 w-full text-sm rounded-lg transition-all',
+                  'relative h-9 w-full text-sm transition-all flex items-center justify-center',
                   isPast ? 'text-gray-300 cursor-not-allowed' : 'cursor-pointer',
-                  isCi || isCo ? 'bg-navy text-white font-semibold' : '',
-                  inRange ? 'bg-teal/20 text-navy rounded-none' : '',
-                  !isCi && !isCo && !inRange && !isPast ? 'hover:bg-teal/20' : '',
+                  (isCi || isCo) ? 'bg-teal text-white font-bold z-10' : '',
+                  isCi ? 'rounded-l-full' : '',
+                  isCo ? 'rounded-r-full' : '',
+                  (!isCi && !isCo && inRange) ? 'bg-teal/15 text-gray-800 rounded-none' : '',
+                  (!isCi && !isCo && !inRange && !isPast) ? 'hover:bg-gray-100 rounded-full' : '',
+                  (isStartOfRange && !inRange) ? 'rounded-full' : '',
                 ].filter(Boolean).join(' ')}
               >
-                {parseInt(ds.split('-')[2])}
+                {fmtDay(ds)}
               </button>
             );
           })}
@@ -102,49 +114,70 @@ function Calendar({ checkin, checkout, onSelect }: CalendarProps) {
   const nextYear = viewMonth === 11 ? viewYear + 1 : viewYear;
   const nextMonthIdx = viewMonth === 11 ? 0 : viewMonth + 1;
 
+  const nights = checkin && checkout
+    ? Math.max(0, Math.round((new Date(checkout).getTime() - new Date(checkin).getTime()) / 86400000))
+    : 0;
+
   return (
-    <div className="absolute top-full left-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50"
-      style={{ width: 'min(700px, 95vw)' }}>
-      {/* Tabs */}
-      <div className="flex items-center gap-4 mb-4 text-sm border-b border-gray-100 pb-3">
+    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+      {/* Header tabs */}
+      <div className="flex border-b border-gray-100">
         <button type="button" onClick={() => setPicking('ci')}
-          className={`flex-1 p-2 rounded-xl text-left transition-all ${picking === 'ci' ? 'bg-teal/10 border border-teal/30' : 'hover:bg-gray-50'}`}>
-          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Check-in</div>
-          <div className="font-semibold text-navy">{checkin ? fmt(checkin) : '—'}</div>
+          className={`flex-1 px-6 py-4 text-left transition-colors ${picking === 'ci' ? 'bg-teal/5 border-b-2 border-teal' : 'hover:bg-gray-50'}`}>
+          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Check-in</div>
+          <div className={`text-base font-bold ${checkin ? 'text-gray-900' : 'text-gray-400'}`}>
+            {checkin ? fmtShort(checkin) : 'Add date'}
+          </div>
         </button>
-        <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-        <button type="button" onClick={() => checkin && setPicking('co')}
-          className={`flex-1 p-2 rounded-xl text-left transition-all ${picking === 'co' ? 'bg-teal/10 border border-teal/30' : 'hover:bg-gray-50'}`}>
-          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Check-out</div>
-          <div className="font-semibold text-navy">{checkout ? fmt(checkout) : '—'}</div>
-        </button>
-      </div>
-      {/* Calendars */}
-      <div className="flex items-start justify-between mb-4">
-        <button type="button" onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-          <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
+        <div className="flex items-center px-2 text-gray-300">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
           </svg>
-        </button>
-        <div className="flex-1 grid grid-cols-2 gap-8 px-2">
-          {renderMonth(viewYear, viewMonth)}
-          {renderMonth(nextYear, nextMonthIdx)}
         </div>
-        <button type="button" onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-          <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
-          </svg>
+        <button type="button" onClick={() => checkin && setPicking('co')}
+          className={`flex-1 px-6 py-4 text-left transition-colors ${picking === 'co' ? 'bg-teal/5 border-b-2 border-teal' : 'hover:bg-gray-50'}`}>
+          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
+            Check-out{nights > 0 && <span className="ml-1 normal-case font-semibold text-teal">· {nights} night{nights !== 1 ? 's' : ''}</span>}
+          </div>
+          <div className={`text-base font-bold ${checkout ? 'text-gray-900' : 'text-gray-400'}`}>
+            {checkout ? fmtShort(checkout) : 'Add date'}
+          </div>
         </button>
       </div>
-      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-        <span className="text-xs text-gray-400">Prices shown in USD · per night</span>
-        <button type="button" onClick={() => onSelect(checkin, checkout, true)}
-          disabled={!checkin || !checkout}
-          className="bg-navy disabled:bg-gray-200 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors hover:bg-navy-light">
-          Done
-        </button>
+
+      {/* Calendars */}
+      <div className="p-5">
+        <div className="flex items-start gap-2">
+          <button type="button" onClick={prevMonth}
+            className="flex-shrink-0 mt-1 p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <div className="flex-1 grid grid-cols-2 gap-6">
+            {renderMonth(viewYear, viewMonth)}
+            {renderMonth(nextYear, nextMonthIdx)}
+          </div>
+          <button type="button" onClick={nextMonth}
+            className="flex-shrink-0 mt-1 p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+          <button type="button" onClick={() => { onSelect('', ''); setPicking('ci'); }}
+            className="text-sm text-gray-500 hover:text-gray-800 underline transition-colors">
+            Clear dates
+          </button>
+          <button type="button"
+            onClick={() => checkin && checkout && onClose()}
+            disabled={!checkin || !checkout}
+            className="bg-teal disabled:bg-gray-200 disabled:text-gray-400 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors hover:bg-teal-dark">
+            Done
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -158,27 +191,29 @@ function GuestPicker({ adults, rooms, onChange, onClose }: {
   onClose: () => void;
 }) {
   return (
-    <div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50 w-72">
+    <div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 p-5 z-50 w-72">
       {[
         { label: 'Adults', sub: 'Age 18+', val: adults, setVal: (v: number) => onChange(v, rooms), min: 1, max: 9 },
         { label: 'Rooms', sub: 'Max 4 per booking', val: rooms, setVal: (v: number) => onChange(adults, v), min: 1, max: 4 },
       ].map(row => (
-        <div key={row.label} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+        <div key={row.label} className="flex items-center justify-between py-3.5 border-b border-gray-100 last:border-0">
           <div>
-            <div className="text-sm font-semibold text-navy">{row.label}</div>
+            <div className="text-sm font-semibold text-gray-800">{row.label}</div>
             <div className="text-xs text-gray-400">{row.sub}</div>
           </div>
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => row.setVal(Math.max(row.min, row.val - 1))}
-              className="w-8 h-8 rounded-full border border-gray-300 text-gray-600 font-bold text-lg flex items-center justify-center hover:border-teal hover:text-teal transition-colors">−</button>
-            <span className="w-5 text-center font-semibold text-navy">{row.val}</span>
+              className="w-8 h-8 rounded-full border-2 border-gray-300 text-gray-600 font-bold text-lg flex items-center justify-center hover:border-teal hover:text-teal transition-colors disabled:opacity-30"
+              disabled={row.val <= row.min}>−</button>
+            <span className="w-5 text-center font-bold text-gray-800 text-sm">{row.val}</span>
             <button type="button" onClick={() => row.setVal(Math.min(row.max, row.val + 1))}
-              className="w-8 h-8 rounded-full border border-gray-300 text-gray-600 font-bold text-lg flex items-center justify-center hover:border-teal hover:text-teal transition-colors">+</button>
+              className="w-8 h-8 rounded-full border-2 border-gray-300 text-gray-600 font-bold text-lg flex items-center justify-center hover:border-teal hover:text-teal transition-colors disabled:opacity-30"
+              disabled={row.val >= row.max}>+</button>
           </div>
         </div>
       ))}
       <button type="button" onClick={onClose}
-        className="w-full bg-navy text-white font-semibold py-2.5 rounded-xl text-sm mt-3 hover:bg-navy-light transition-colors">
+        className="w-full bg-teal text-white font-bold py-2.5 rounded-xl text-sm mt-4 hover:bg-teal-dark transition-colors">
         Done
       </button>
     </div>
@@ -205,28 +240,26 @@ interface SearchBarProps {
 }
 
 export default function SearchBar({ onSearch, loading = false, initialValues }: SearchBarProps) {
-  const today = toDateStr(new Date());
   const defaultCi = toDateStr(new Date(Date.now() + 30 * 86400000));
   const defaultCo = toDateStr(new Date(Date.now() + 33 * 86400000));
 
-  const [query, setQuery]         = useState(initialValues?.query ?? '');
-  const [location, setLocation]   = useState(initialValues?.location ?? '');
-  const [mode, setMode]           = useState<'city' | 'hotel'>(initialValues?.mode ?? 'hotel');
-  const [checkin, setCheckin]     = useState(initialValues?.checkin ?? defaultCi);
-  const [checkout, setCheckout]   = useState(initialValues?.checkout ?? defaultCo);
-  const [adults, setAdults]       = useState(initialValues?.adults ?? 2);
-  const [rooms, setRooms]         = useState(initialValues?.rooms ?? 1);
+  const [query, setQuery]       = useState(initialValues?.query ?? '');
+  const [location, setLocation] = useState(initialValues?.location ?? '');
+  const [mode, setMode]         = useState<'city' | 'hotel'>(initialValues?.mode ?? 'hotel');
+  const [checkin, setCheckin]   = useState(initialValues?.checkin ?? defaultCi);
+  const [checkout, setCheckout] = useState(initialValues?.checkout ?? defaultCo);
+  const [adults, setAdults]     = useState(initialValues?.adults ?? 2);
+  const [rooms, setRooms]       = useState(initialValues?.rooms ?? 1);
   const [forceRefresh, setForceRefresh] = useState(false);
 
-  const [showCal, setShowCal]     = useState(false);
+  const [showCal, setShowCal]       = useState(false);
   const [showGuests, setShowGuests] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [showSug, setShowSug]     = useState(false);
+  const [showSug, setShowSug]       = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
@@ -264,7 +297,7 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
     } else {
       setQuery(s.city ? `${s.name} ${s.city}` : s.name);
       setMode('hotel');
-      setLocation(s.city || '');  // store city so hotel-name searches know where to look
+      setLocation(s.city || '');
     }
     setSuggestions([]);
     setShowSug(false);
@@ -289,33 +322,43 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
     ? Math.max(0, Math.round((new Date(checkout).getTime() - new Date(checkin).getTime()) / 86400000))
     : 0;
 
+  const dateLabel = checkin && checkout
+    ? `${fmtShort(checkin)} – ${fmtShort(checkout)}`
+    : checkin ? `${fmtShort(checkin)} – Add checkout` : 'Add dates';
+
   return (
     <div ref={wrapRef} className="relative">
       <form onSubmit={submit} autoComplete="off">
-        {/* Destination input */}
-        <div className="relative mb-3">
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Where are you going?</label>
+
+        {/* ── Row 1: Destination ── */}
+        <div className="relative mb-2">
           <div className="relative">
-            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            <input type="text" value={query} onChange={e => handleQueryChange(e.target.value)}
+            <input
+              type="text"
+              value={query}
+              onChange={e => handleQueryChange(e.target.value)}
               onFocus={() => suggestions.length > 0 && setShowSug(true)}
-              placeholder="City or hotel — e.g. Bangkok or Mandarin Oriental"
+              placeholder="Where are you going?"
               required
-              className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-gray-200 text-sm font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-all" />
+              className="w-full pl-11 pr-4 py-4 rounded-2xl border-2 border-gray-200 text-base font-medium placeholder-gray-400 focus:outline-none focus:border-teal transition-all bg-white"
+            />
           </div>
 
-          {/* Suggestions dropdown */}
-          {showSug && (
-            <ul className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
+          {/* Suggestions */}
+          {showSug && suggestions.length > 0 && (
+            <ul className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
               {suggestions.slice(0, 8).map((s, i) => (
                 <li key={i}>
                   <button type="button" onClick={() => pickSuggestion(s)}
-                    className="w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left">
-                    <span className="text-lg mt-0.5 flex-shrink-0">{s.is_city ? '🏙️' : '🏨'}</span>
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-sm">
+                      {s.is_city ? '🏙️' : '🏨'}
+                    </div>
                     <div>
-                      <div className="text-sm font-semibold text-navy">{s.name}</div>
+                      <div className="text-sm font-semibold text-gray-800">{s.name}</div>
                       {(s.city || s.country) && (
                         <div className="text-xs text-gray-400">{[s.city, s.country].filter(Boolean).join(', ')}</div>
                       )}
@@ -323,15 +366,14 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
                   </button>
                 </li>
               ))}
-              {/* "Search anyway" row — submit the form immediately */}
               {query.trim().length >= 3 && (
                 <li>
                   <button type="submit"
                     className="w-full flex items-center gap-3 px-4 py-3 hover:bg-teal/5 border-t border-gray-100 transition-colors text-left">
-                    <span className="text-lg flex-shrink-0">🔍</span>
+                    <div className="w-8 h-8 rounded-full bg-teal/10 flex items-center justify-center flex-shrink-0 text-sm">🔍</div>
                     <div>
-                      <div className="text-sm font-semibold text-navy">Search &ldquo;{query.trim()}&rdquo;</div>
-                      <div className="text-xs text-gray-400">Find the best price for this hotel</div>
+                      <div className="text-sm font-semibold text-gray-800">Search &ldquo;{query.trim()}&rdquo;</div>
+                      <div className="text-xs text-gray-400">Find the best price</div>
                     </div>
                   </button>
                 </li>
@@ -340,46 +382,37 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
           )}
         </div>
 
-        {/* Date + guests + search */}
-        <div className="flex items-stretch gap-2 relative">
-          {/* Check-in pill */}
-          <button type="button" onClick={() => { setShowCal(true); setShowGuests(false); }}
-            className={`flex-1 flex items-center gap-2.5 px-4 py-3 rounded-xl border transition-all text-left ${showCal ? 'border-teal ring-2 ring-teal/20 bg-teal/5' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
-            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        {/* ── Row 2: Dates + Guests + Search ── */}
+        <div className="flex items-stretch gap-2">
+
+          {/* Date range button */}
+          <button type="button"
+            onClick={() => { setShowCal(v => !v); setShowGuests(false); }}
+            className={`flex-1 flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 transition-all text-left bg-white ${showCal ? 'border-teal' : 'border-gray-200 hover:border-gray-300'}`}>
+            <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
             </svg>
             <div className="min-w-0">
-              <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Check-in</div>
-              <div className="text-sm font-semibold text-navy truncate">{checkin ? fmt(checkin) : 'Select date'}</div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
+                Dates{nights > 0 && <span className="ml-1 normal-case font-semibold text-teal">· {nights} night{nights !== 1 ? 's' : ''}</span>}
+              </div>
+              <div className="text-sm font-semibold text-gray-800 truncate">{dateLabel}</div>
             </div>
           </button>
 
-          <div className="w-px bg-gray-200 self-stretch my-1" />
-
-          {/* Check-out pill */}
-          <button type="button" onClick={() => { setShowCal(true); setShowGuests(false); }}
-            className={`flex-1 flex items-center gap-2.5 px-4 py-3 rounded-xl border transition-all text-left ${showCal ? 'border-teal ring-2 ring-teal/20 bg-teal/5' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
-            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-            <div className="min-w-0">
-              <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Check-out{nights > 0 && <span className="ml-1 normal-case">· {nights}n</span>}</div>
-              <div className="text-sm font-semibold text-navy truncate">{checkout ? fmt(checkout) : 'Select date'}</div>
-            </div>
-          </button>
-
-          <div className="w-px bg-gray-200 self-stretch my-1" />
-
-          {/* Guests pill */}
+          {/* Guests button */}
           <div className="relative flex-shrink-0">
-            <button type="button" onClick={() => { setShowGuests(g => !g); setShowCal(false); }}
-              className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border transition-all ${showGuests ? 'border-teal ring-2 ring-teal/20 bg-teal/5' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
-              <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <button type="button"
+              onClick={() => { setShowGuests(g => !g); setShowCal(false); }}
+              className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 transition-all bg-white ${showGuests ? 'border-teal' : 'border-gray-200 hover:border-gray-300'}`}>
+              <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
               </svg>
               <div>
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Guests</div>
-                <div className="text-sm font-semibold text-navy whitespace-nowrap">{adults} Adult{adults !== 1 ? 's' : ''} · {rooms} Room{rooms !== 1 ? 's' : ''}</div>
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Guests</div>
+                <div className="text-sm font-semibold text-gray-800 whitespace-nowrap">
+                  {adults} Adult{adults !== 1 ? 's' : ''} · {rooms} Room{rooms !== 1 ? 's' : ''}
+                </div>
               </div>
             </button>
             {showGuests && (
@@ -391,26 +424,30 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
 
           {/* Search button */}
           <button type="submit" disabled={loading || !query.trim()}
-            className="flex items-center gap-2 px-6 py-3 bg-teal hover:bg-teal-dark disabled:bg-gray-300 text-white font-bold rounded-xl transition-all text-sm flex-shrink-0 shadow-sm">
+            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-teal hover:bg-teal-dark disabled:bg-gray-300 text-white font-bold rounded-2xl transition-all text-sm flex-shrink-0 shadow-md">
             {loading ? (
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             ) : (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
             )}
-            {loading ? 'Searching…' : 'Search'}
+            <span className="hidden sm:inline">{loading ? 'Searching…' : 'Search'}</span>
           </button>
-
-          {/* Calendar dropdown */}
-          {showCal && (
-            <Calendar checkin={checkin} checkout={checkout}
-              onSelect={handleDateSelect} />
-          )}
         </div>
+
+        {/* Calendar — positioned relative to outer wrapper, full width */}
+        {showCal && (
+          <Calendar
+            checkin={checkin}
+            checkout={checkout}
+            onSelect={handleDateSelect}
+            onClose={() => setShowCal(false)}
+          />
+        )}
 
         {/* Force refresh */}
         <div className="mt-3 flex items-center gap-2">
