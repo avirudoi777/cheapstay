@@ -269,20 +269,36 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
   const [to, setTo] = useState('');
   const [depart, setDepart] = useState('');
   const [ret, setRet] = useState('');
+  const [tripType, setTripType] = useState<'round' | 'oneway'>('round');
+
+  function handleSearch() {
+    onSearch(from, to, depart, tripType === 'round' ? ret : '');
+  }
 
   return (
     <div className="space-y-4">
-      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold"
-        style={{ background: '#E1F5EE', color: '#0F6E56' }}>
-        ✈️ Priceline 24hr free cancellation shown automatically
+      {/* Trip type toggle */}
+      <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: 'rgba(255,255,255,0.08)' }}>
+        {([['round', 'Round trip'], ['oneway', 'One way']] as const).map(([val, label]) => (
+          <button key={val} type="button" onClick={() => setTripType(val)}
+            className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
+            style={tripType === val
+              ? { background: '#1D9E75', color: '#fff' }
+              : { color: 'rgba(255,255,255,0.5)' }}>
+            {label}
+          </button>
+        ))}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+      <div className={`grid gap-3 ${tripType === 'round' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3'}`}>
         <AirportInput label="FROM" value={from} onChange={setFrom} />
         <AirportInput label="TO" value={to} onChange={setTo} />
         <DatePicker label="DEPART" value={depart} onChange={setDepart} />
-        <DatePicker label="RETURN" value={ret} minDate={depart || undefined} onChange={setRet} />
+        {tripType === 'round' && (
+          <DatePicker label="RETURN" value={ret} minDate={depart || undefined} onChange={setRet} />
+        )}
       </div>
-      <button type="button" onClick={() => onSearch(from, to, depart, ret)}
+      <button type="button" onClick={handleSearch}
         className="w-full py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
         style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
         Search Flights →

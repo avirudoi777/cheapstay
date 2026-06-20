@@ -240,10 +240,13 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'hotel' | 'flight'>('hotel');
 
   function handleFlightSearch(from: string, to: string, depart: string, ret: string) {
-    const url = from && to
-      ? `https://www.google.com/travel/flights/search?q=Flights+from+${encodeURIComponent(from)}+to+${encodeURIComponent(to)}`
-      : 'https://www.google.com/travel/flights/';
-    window.open(url, '_blank', 'noopener');
+    if (!from || !to) { window.open('https://www.google.com/travel/flights/', '_blank', 'noopener'); return; }
+    const base = `https://www.google.com/travel/flights/search?q=Flights+from+${encodeURIComponent(from)}+to+${encodeURIComponent(to)}`;
+    const params = new URLSearchParams();
+    if (depart) params.set('tfs', depart);
+    if (ret) params.set('return', ret);
+    const qs = params.toString();
+    window.open(qs ? `${base}&${qs}` : base, '_blank', 'noopener');
   }
 
   // Credit card filter
