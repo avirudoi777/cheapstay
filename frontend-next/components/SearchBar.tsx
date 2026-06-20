@@ -289,10 +289,12 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
   const [suggestions, setSuggestions]   = useState<Suggestion[]>([]);
   const [showSug, setShowSug]           = useState(false);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const wrapRef     = useRef<HTMLDivElement>(null);
-  const dateBtnRef  = useRef<HTMLButtonElement>(null);
-  const guestBtnRef = useRef<HTMLButtonElement>(null);
+  const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wrapRef      = useRef<HTMLDivElement>(null);
+  const dateBtnRef   = useRef<HTMLButtonElement>(null);
+  const guestBtnRef  = useRef<HTMLButtonElement>(null);
+  const inputRef     = useRef<HTMLInputElement>(null);
+  const [inputAnchor, setInputAnchor] = useState<DOMRect | null>(null);
 
   // Close suggestion dropdown on outside click
   useEffect(() => {
@@ -319,6 +321,7 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
     setQuery(v);
     setMode('hotel');
     setLocation('');
+    if (inputRef.current) setInputAnchor(inputRef.current.getBoundingClientRect());
     fetchSuggestions(v);
   }
 
@@ -334,6 +337,7 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
     }
     setSuggestions([]);
     setShowSug(false);
+    setInputAnchor(null);
   }
 
   function openCal() {
@@ -374,56 +378,26 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
       <form onSubmit={submit} autoComplete="off">
 
         {/* ── Destination ── */}
-        <div className="relative mb-2">
+        <div className="mb-2">
           <div className="relative">
             <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
               fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
+              ref={inputRef}
               type="text"
               value={query}
               onChange={e => handleQueryChange(e.target.value)}
-              onFocus={() => suggestions.length > 0 && setShowSug(true)}
+              onFocus={() => {
+                if (inputRef.current) setInputAnchor(inputRef.current.getBoundingClientRect());
+                if (suggestions.length > 0) setShowSug(true);
+              }}
               placeholder="Where are you going?"
               required
               className="w-full pl-11 pr-4 py-4 rounded-2xl border-2 border-gray-200 text-base font-medium placeholder-gray-400 focus:outline-none focus:border-teal transition-all bg-white"
             />
           </div>
-
-          {/* Suggestions */}
-          {showSug && suggestions.length > 0 && (
-            <ul className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
-              {suggestions.slice(0, 8).map((s, i) => (
-                <li key={i}>
-                  <button type="button" onClick={() => pickSuggestion(s)}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left">
-                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-sm">
-                      {s.is_city ? '🏙️' : '🏨'}
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-gray-800">{s.name}</div>
-                      {(s.city || s.country) && (
-                        <div className="text-xs text-gray-400">{[s.city, s.country].filter(Boolean).join(', ')}</div>
-                      )}
-                    </div>
-                  </button>
-                </li>
-              ))}
-              {query.trim().length >= 3 && (
-                <li>
-                  <button type="submit"
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-teal/5 border-t border-gray-100 transition-colors text-left">
-                    <div className="w-8 h-8 rounded-full bg-teal/10 flex items-center justify-center flex-shrink-0 text-sm">🔍</div>
-                    <div>
-                      <div className="text-sm font-semibold text-gray-800">Search &ldquo;{query.trim()}&rdquo;</div>
-                      <div className="text-xs text-gray-400">Find the best price</div>
-                    </div>
-                  </button>
-                </li>
-              )}
-            </ul>
-          )}
         </div>
 
         {/* ── Dates + Guests + Search ── */}
@@ -485,6 +459,43 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
       </form>
 
       {/* Portals — rendered at document.body, never clipped by overflow:hidden parents */}
+      {showSug && suggestions.length > 0 && inputAnchor && createPortal(
+        <ul style={{ position: 'fixed', top: inputAnchor.bottom + 4, left: inputAnchor.left, width: inputAnchor.width, zIndex: 9999 }}
+          className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+          {suggestions.slice(0, 8).map((s, i) => (
+            <li key={i}>
+              <button type="button" onClick={() => pickSuggestion(s)}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left">
+                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-sm">
+                  {s.is_city ? '🏙️' : '🏨'}
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-gray-800">{s.name}</div>
+                  {(s.city || s.country) && (
+                    <div className="text-xs text-gray-400">{[s.city, s.country].filter(Boolean).join(', ')}</div>
+                  )}
+                </div>
+              </button>
+            </li>
+          ))}
+          {query.trim().length >= 3 && (
+            <li>
+              <button type="button" onClick={() => {
+                setShowSug(false); setInputAnchor(null);
+                onSearch({ query: query.trim(), location, mode, checkin, checkout, adults, rooms, forceRefresh });
+              }}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-teal/5 border-t border-gray-100 transition-colors text-left">
+                <div className="w-8 h-8 rounded-full bg-teal/10 flex items-center justify-center flex-shrink-0 text-sm">🔍</div>
+                <div>
+                  <div className="text-sm font-semibold text-gray-800">Search &ldquo;{query.trim()}&rdquo;</div>
+                  <div className="text-xs text-gray-400">Find the best price</div>
+                </div>
+              </button>
+            </li>
+          )}
+        </ul>,
+        document.body
+      )}
       {calAnchor && (
         <Calendar
           checkin={checkin}
