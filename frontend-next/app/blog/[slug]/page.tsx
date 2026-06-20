@@ -278,7 +278,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: post.title,
     description: post.excerpt,
-    openGraph: { title: post.title, description: post.excerpt, images: [post.img] },
+    authors: [{ name: 'Avi', url: 'https://cheapstay.co/about' }],
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      images: [post.img],
+      type: 'article',
+      authors: ['Avi'],
+    },
+    alternates: { canonical: `https://cheapstay.co/blog/${slug}` },
   };
 }
 
@@ -344,8 +352,32 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   const catColor = CATEGORY_COLORS[post.category] ?? '#6b7280';
 
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.excerpt,
+    image: post.img,
+    author: {
+      '@type': 'Person',
+      name: 'Avi',
+      url: 'https://cheapstay.co/about',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'CheapStay',
+      url: 'https://cheapstay.co',
+    },
+    url: `https://cheapstay.co/blog/${slug}`,
+    mainEntityOfPage: `https://cheapstay.co/blog/${slug}`,
+  };
+
   return (
     <main className="min-h-screen bg-gray-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
       <div className="relative w-full h-64 sm:h-80">
         <Image src={post.img} alt={post.title} fill className="object-cover" unoptimized priority />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/10" />

@@ -238,6 +238,25 @@ export default function HomePage() {
   // Hero tab
   const [activeTab, setActiveTab] = useState<'hotel' | 'flight'>('hotel');
 
+  // Flight search
+  const [flightFrom, setFlightFrom] = useState('');
+  const [flightTo, setFlightTo] = useState('');
+  const [flightDepart, setFlightDepart] = useState('');
+  const [flightReturn, setFlightReturn] = useState('');
+
+  function handleFlightSearch() {
+    const q = [flightFrom, flightTo].filter(Boolean).join(' to ');
+    const params = new URLSearchParams();
+    if (flightFrom) params.set('f', flightFrom);
+    if (flightTo) params.set('t', flightTo);
+    if (flightDepart) params.set('d', flightDepart);
+    if (flightReturn) params.set('r', flightReturn);
+    const url = q
+      ? `https://www.google.com/travel/flights/search?q=Flights+from+${encodeURIComponent(flightFrom)}+to+${encodeURIComponent(flightTo)}`
+      : 'https://www.google.com/travel/flights/';
+    window.open(url, '_blank', 'noopener');
+  }
+
   // Credit card filter
   const [cardFilter, setCardFilter] = useState<'all' | 'hotels' | 'flights' | 'no-fees'>('all');
 
@@ -439,26 +458,26 @@ export default function HomePage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1">FROM</label>
-                      <input type="text" placeholder="City or airport" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                      <input type="text" value={flightFrom} onChange={e => setFlightFrom(e.target.value)} placeholder="City or airport" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1">TO</label>
-                      <input type="text" placeholder="City or airport" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                      <input type="text" value={flightTo} onChange={e => setFlightTo(e.target.value)} placeholder="City or airport" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1">DEPART</label>
-                      <input type="date" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                      <input type="date" value={flightDepart} onChange={e => setFlightDepart(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1">RETURN</label>
-                      <input type="date" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                      <input type="date" value={flightReturn} onChange={e => setFlightReturn(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
                     </div>
                   </div>
-                  <a href="https://www.priceline.com/flights/" target="_blank" rel="noopener noreferrer"
+                  <button onClick={handleFlightSearch}
                     className="block w-full text-center py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
                     style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
                     Search Flights →
-                  </a>
+                  </button>
                 </div>
               )}
             </div>
@@ -643,6 +662,12 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+          <p className="text-center text-xs text-gray-400 mt-4">
+            Already booked a trip?{' '}
+            <Link href="/overpaid-calculator" className="text-teal font-semibold hover:underline">
+              See how much you overpaid →
+            </Link>
+          </p>
         </div>
       </section>
 
