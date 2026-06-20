@@ -912,6 +912,63 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Consult CTA ──────────────────────────────────────────────────── */}
+      <section className="py-14 px-4 bg-white border-t border-gray-100">
+        <div className="max-w-4xl mx-auto">
+          <div className="rounded-3xl overflow-hidden" style={{ background: '#0a1628' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-0">
+              {/* Photo side */}
+              <div className="relative h-56 sm:h-auto min-h-[220px]">
+                <Image
+                  src="/avi-singapore.jpg"
+                  alt="Avi traveling"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, transparent, #0a1628)' }} />
+                {/* Profile pill overlay */}
+                <div className="absolute bottom-4 left-4 flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-2xl px-3 py-2 border border-white/20">
+                  <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-white/30">
+                    <Image src="/avi-profile.jpg" alt="Avi" fill className="object-cover object-top" />
+                  </div>
+                  <div>
+                    <p className="text-white text-xs font-bold leading-none">Avi</p>
+                    <p className="text-white/50 text-[10px]">50+ countries · Full-time traveler</p>
+                  </div>
+                </div>
+              </div>
+              {/* Text side */}
+              <div className="p-7 sm:p-8 flex flex-col justify-center">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold mb-4 w-fit"
+                  style={{ background: 'rgba(29,158,117,0.2)', color: '#1D9E75', border: '1px solid rgba(29,158,117,0.3)' }}>
+                  1-on-1 Consultation
+                </div>
+                <h2 className="text-xl font-extrabold text-white mb-2 leading-snug">
+                  Need help planning your trip?
+                </h2>
+                <p className="text-white/50 text-sm mb-5 leading-relaxed">
+                  Book a 1-hour call with me. Route planning, hotel picks, visa tips, and how to save 30–40% on every booking.
+                </p>
+                <div className="flex flex-wrap gap-2 mb-5">
+                  {['Route planning', 'Hotel picks', 'Visa advice', 'Booking hacks'].map(tag => (
+                    <span key={tag} className="text-[10px] font-semibold px-2.5 py-1 rounded-full"
+                      style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <Link href="/consult"
+                  className="inline-block px-6 py-2.5 rounded-xl text-sm font-bold text-white w-fit transition-opacity hover:opacity-90"
+                  style={{ background: '#1D9E75' }}>
+                  Book a call — $49 →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Affiliate disclosure ──────────────────────────────────────────── */}
       <div className="text-center py-4 px-4 text-[11px] text-gray-400">
         CheapStay earns a small commission when you book through our links — at no extra cost to you. This is how we keep the site free.
