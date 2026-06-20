@@ -9,6 +9,7 @@ import { searchCity, getSuggestions, getUserCountry } from '@/lib/api';
 import { analytics } from '@/lib/analytics';
 import type { CitySearchResponse } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
+import VisaBanner from '@/components/VisaBanner';
 
 const DESTINATIONS = [
   { city: 'Bangkok',   country: 'Thailand',  flag: '🇹🇭', img: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=400&h=200&fit=crop&auto=format', savings: 35 },
@@ -235,6 +236,7 @@ export default function HomePage() {
   const [bookingCount, setBookingCount] = useState(0);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const resultsRef  = useRef<HTMLDivElement>(null);
+  const [passportCode, setPassportCode] = useState('');
 
   // Hero tab
   const [activeTab, setActiveTab] = useState<'hotel' | 'flight'>('hotel');
@@ -266,6 +268,15 @@ export default function HomePage() {
 
   useEffect(() => {
     getUserCountry().catch(() => null);
+    createClient().auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      const { data: profile } = await createClient()
+        .from('user_profiles')
+        .select('passport_nationality')
+        .eq('id', data.user.id)
+        .single();
+      if (profile?.passport_nationality) setPassportCode(profile.passport_nationality);
+    });
   }, []);
 
   function startProgress() {
@@ -502,6 +513,12 @@ export default function HomePage() {
 
         {results && searchValues && (
           <div ref={resultsRef} className="mt-2">
+            {passportCode && (
+              <VisaBanner
+                passportCode={passportCode}
+                city={searchValues.location || searchValues.query}
+              />
+            )}
             <HotelGrid
               initialData={results}
               location={searchValues.location || searchValues.query}
