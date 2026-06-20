@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import SearchBar, { type SearchValues } from '@/components/SearchBar';
+import FlightSearchBar from '@/components/FlightSearchBar';
 import HotelGrid from '@/components/HotelGrid';
 import { searchCity, getSuggestions, getUserCountry } from '@/lib/api';
 import { analytics } from '@/lib/analytics';
@@ -238,21 +239,9 @@ export default function HomePage() {
   // Hero tab
   const [activeTab, setActiveTab] = useState<'hotel' | 'flight'>('hotel');
 
-  // Flight search
-  const [flightFrom, setFlightFrom] = useState('');
-  const [flightTo, setFlightTo] = useState('');
-  const [flightDepart, setFlightDepart] = useState('');
-  const [flightReturn, setFlightReturn] = useState('');
-
-  function handleFlightSearch() {
-    const q = [flightFrom, flightTo].filter(Boolean).join(' to ');
-    const params = new URLSearchParams();
-    if (flightFrom) params.set('f', flightFrom);
-    if (flightTo) params.set('t', flightTo);
-    if (flightDepart) params.set('d', flightDepart);
-    if (flightReturn) params.set('r', flightReturn);
-    const url = q
-      ? `https://www.google.com/travel/flights/search?q=Flights+from+${encodeURIComponent(flightFrom)}+to+${encodeURIComponent(flightTo)}`
+  function handleFlightSearch(from: string, to: string, depart: string, ret: string) {
+    const url = from && to
+      ? `https://www.google.com/travel/flights/search?q=Flights+from+${encodeURIComponent(from)}+to+${encodeURIComponent(to)}`
       : 'https://www.google.com/travel/flights/';
     window.open(url, '_blank', 'noopener');
   }
@@ -450,35 +439,7 @@ export default function HomePage() {
               {activeTab === 'hotel' ? (
                 <SearchBar onSearch={handleSearch} loading={loading} />
               ) : (
-                <div className="space-y-4">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold"
-                    style={{ background: '#E1F5EE', color: '#0F6E56' }}>
-                    ✈️ Priceline 24hr free cancellation shown automatically
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1">FROM</label>
-                      <input type="text" value={flightFrom} onChange={e => setFlightFrom(e.target.value)} placeholder="City or airport" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1">TO</label>
-                      <input type="text" value={flightTo} onChange={e => setFlightTo(e.target.value)} placeholder="City or airport" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1">DEPART</label>
-                      <input type="date" value={flightDepart} onChange={e => setFlightDepart(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1">RETURN</label>
-                      <input type="date" value={flightReturn} onChange={e => setFlightReturn(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                    </div>
-                  </div>
-                  <button onClick={handleFlightSearch}
-                    className="block w-full text-center py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
-                    style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
-                    Search Flights →
-                  </button>
-                </div>
+                <FlightSearchBar onSearch={handleFlightSearch} />
               )}
             </div>
           </div>

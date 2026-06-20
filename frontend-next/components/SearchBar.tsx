@@ -38,7 +38,6 @@ function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProp
   const [picking, setPicking] = useState<'ci' | 'co'>(checkin && !checkout ? 'co' : 'ci');
   const ref = useRef<HTMLDivElement>(null);
 
-  // Close on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
@@ -47,7 +46,6 @@ function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProp
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
-  // Close on scroll
   useEffect(() => {
     const handler = () => onClose();
     window.addEventListener('scroll', handler, { passive: true });
@@ -68,7 +66,7 @@ function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProp
   function renderMonth(year: number, month: number) {
     const firstDow = new Date(year, month, 1).getDay();
     const days = new Date(year, month + 1, 0).getDate();
-    const label = new Date(year, month).toLocaleString('en', { month: 'long', year: 'numeric' });
+    const monthName = new Date(year, month).toLocaleString('en', { month: 'long' });
     const cells: (string | null)[] = Array(firstDow).fill(null);
     for (let d = 1; d <= days; d++) {
       cells.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
@@ -76,33 +74,54 @@ function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProp
     const effectiveEnd = hover && picking === 'co' && hover > checkin ? hover : checkout;
 
     return (
-      <div className="min-w-0 flex-1">
-        <div className="text-sm font-bold text-gray-800 text-center mb-3">{label}</div>
-        <div className="grid grid-cols-7 text-[11px] text-gray-400 font-semibold text-center mb-2">
-          {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d}>{d}</div>)}
+      <div className="flex-1 min-w-0">
+        <div className="text-center mb-4">
+          <span className="text-sm font-extrabold text-gray-900">{monthName}</span>
+          <span className="text-sm font-medium text-gray-400 ml-1.5">{year}</span>
+        </div>
+        <div className="grid grid-cols-7 mb-2">
+          {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+            <div key={d} className="h-8 flex items-center justify-center text-[11px] font-bold text-gray-400">{d}</div>
+          ))}
         </div>
         <div className="grid grid-cols-7">
           {cells.map((ds, i) => {
-            if (!ds) return <div key={i} />;
+            if (!ds) return <div key={i} className="h-10" />;
             const isPast = ds < today;
             const isCi = ds === checkin;
             const isCo = ds === checkout;
+            const isToday = ds === today;
             const inRange = !!(checkin && effectiveEnd && ds > checkin && ds < effectiveEnd);
+            const isRangeStart = isCi && !!effectiveEnd;
+            const isRangeEnd = isCo && !!checkin;
+
             return (
-              <button key={ds} type="button" disabled={isPast}
-                onClick={() => handleDay(ds)}
-                onMouseEnter={() => setHover(ds)}
-                onMouseLeave={() => setHover('')}
+              <div key={ds}
                 className={[
-                  'h-9 w-full text-sm flex items-center justify-center transition-all',
-                  isPast ? 'text-gray-300 cursor-not-allowed' : 'cursor-pointer',
-                  (isCi || isCo) ? 'bg-teal text-white font-bold rounded-full' : '',
-                  inRange ? 'bg-teal/15 text-gray-800' : '',
-                  (!isCi && !isCo && !inRange && !isPast) ? 'hover:bg-gray-100 rounded-full' : '',
-                ].filter(Boolean).join(' ')}
-              >
-                {parseInt(ds.split('-')[2])}
-              </button>
+                  'relative h-10 flex items-center justify-center',
+                  inRange ? 'bg-teal/10' : '',
+                  isRangeStart ? 'rounded-l-full bg-teal/10' : '',
+                  isRangeEnd ? 'rounded-r-full bg-teal/10' : '',
+                ].filter(Boolean).join(' ')}>
+                <button
+                  type="button"
+                  disabled={isPast}
+                  onClick={() => handleDay(ds)}
+                  onMouseEnter={() => setHover(ds)}
+                  onMouseLeave={() => setHover('')}
+                  className={[
+                    'w-9 h-9 rounded-full text-sm flex items-center justify-center transition-all relative z-10 font-medium',
+                    isPast ? 'text-gray-300 cursor-not-allowed' : 'cursor-pointer',
+                    (isCi || isCo) ? 'text-white font-bold' : '',
+                    (!isCi && !isCo && !isPast) ? 'hover:bg-gray-100' : '',
+                    isToday && !isCi && !isCo ? 'font-extrabold text-teal' : '',
+                    !isCi && !isCo && inRange ? 'text-gray-800' : '',
+                    !isCi && !isCo && !inRange && !isPast && !isToday ? 'text-gray-700' : '',
+                  ].filter(Boolean).join(' ')}
+                  style={(isCi || isCo) ? { background: '#1D9E75' } : {}}>
+                  {parseInt(ds.split('-')[2])}
+                </button>
+              </div>
             );
           })}
         </div>
@@ -125,70 +144,76 @@ function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProp
     ? Math.max(0, Math.round((new Date(checkout).getTime() - new Date(checkin).getTime()) / 86400000))
     : 0;
 
-  // Position: below the anchor button, aligned left, max 660px wide
   const left = Math.min(anchor.left, window.innerWidth - 660 - 16);
   const top = anchor.bottom + 8;
 
   return createPortal(
     <div ref={ref}
       style={{ position: 'fixed', top, left, width: 660, zIndex: 9999 }}
-      className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
-    >
-      {/* Header tabs */}
+      className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+
+      {/* Header */}
       <div className="flex border-b border-gray-100">
         <button type="button" onClick={() => setPicking('ci')}
-          className={`flex-1 px-6 py-4 text-left transition-colors ${picking === 'ci' ? 'bg-teal/5 border-b-2 border-teal' : 'hover:bg-gray-50'}`}>
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Check-in</div>
-          <div className={`text-base font-bold ${checkin ? 'text-gray-900' : 'text-gray-400'}`}>
-            {checkin ? fmtShort(checkin) : 'Add date'}
+          className={`flex-1 px-6 py-4 text-left transition-colors ${picking === 'ci' ? 'border-b-2' : 'hover:bg-gray-50'}`}
+          style={picking === 'ci' ? { borderBottomColor: '#1D9E75' } : {}}>
+          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Check-in</div>
+          <div className={`text-base font-extrabold ${checkin ? 'text-gray-900' : 'text-gray-300'}`}>
+            {checkin ? fmtShort(checkin) : 'Select date'}
           </div>
         </button>
-        <div className="flex items-center px-3 text-gray-300">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-          </svg>
+        <div className="flex items-center px-4">
+          <div className="w-6 h-px bg-gray-200" />
         </div>
         <button type="button" onClick={() => checkin && setPicking('co')}
-          className={`flex-1 px-6 py-4 text-left transition-colors ${picking === 'co' ? 'bg-teal/5 border-b-2 border-teal' : 'hover:bg-gray-50'}`}>
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
-            Check-out{nights > 0 && <span className="ml-1 normal-case font-semibold text-teal">· {nights} night{nights !== 1 ? 's' : ''}</span>}
+          className={`flex-1 px-6 py-4 text-left transition-colors ${picking === 'co' ? 'border-b-2' : 'hover:bg-gray-50'}`}
+          style={picking === 'co' ? { borderBottomColor: '#1D9E75' } : {}}>
+          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+            Check-out
+            {nights > 0 && (
+              <span className="ml-2 normal-case font-bold px-1.5 py-0.5 rounded-full text-[10px]"
+                style={{ background: '#E1F5EE', color: '#0F6E56' }}>
+                {nights} night{nights !== 1 ? 's' : ''}
+              </span>
+            )}
           </div>
-          <div className={`text-base font-bold ${checkout ? 'text-gray-900' : 'text-gray-400'}`}>
-            {checkout ? fmtShort(checkout) : 'Add date'}
+          <div className={`text-base font-extrabold ${checkout ? 'text-gray-900' : 'text-gray-300'}`}>
+            {checkout ? fmtShort(checkout) : 'Select date'}
           </div>
         </button>
       </div>
 
-      {/* Calendars */}
-      <div className="p-5">
-        <div className="flex items-start gap-3">
+      {/* Grid */}
+      <div className="p-6">
+        <div className="flex items-start gap-2">
           <button type="button" onClick={prevMonth}
-            className="flex-shrink-0 mt-1 p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            className="mt-0.5 p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
+            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-          <div className="flex flex-1 gap-6">
+          <div className="flex flex-1 gap-8">
             {renderMonth(viewYear, viewMonth)}
             {renderMonth(nextYear, nextMonthIdx)}
           </div>
           <button type="button" onClick={nextMonth}
-            className="flex-shrink-0 mt-1 p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            className="mt-0.5 p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
+            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
             </svg>
           </button>
         </div>
 
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+        <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
           <button type="button" onClick={() => { onSelect('', ''); setPicking('ci'); }}
-            className="text-sm text-gray-500 hover:text-gray-800 underline transition-colors">
+            className="text-sm text-gray-400 hover:text-gray-700 font-medium transition-colors">
             Clear dates
           </button>
           <button type="button"
             onClick={() => checkin && checkout && onClose()}
             disabled={!checkin || !checkout}
-            className="bg-teal disabled:bg-gray-200 disabled:text-gray-400 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors hover:bg-teal-dark">
+            className="px-6 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-opacity"
+            style={{ background: '#1D9E75' }}>
             Done
           </button>
         </div>
