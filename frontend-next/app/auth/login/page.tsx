@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import GoogleButton from '@/components/GoogleButton';
+import { analytics } from '@/lib/analytics';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) { setError(error.message); return; }
+    analytics.login('email');
 
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {

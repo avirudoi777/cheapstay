@@ -679,6 +679,7 @@ export default function HomePage() {
                   ))}
                 </ul>
                 <a href={vpn.url} target="_blank" rel="noopener noreferrer"
+                  onClick={() => analytics.vpnAffiliateClick(vpn.name.toLowerCase().replace(/\s+/g, ''), 'homepage_vpn_section')}
                   className="block text-center py-2.5 rounded-xl font-bold text-sm transition-opacity hover:opacity-90"
                   style={vpn.featured
                     ? { background: '#1D9E75', color: 'white' }

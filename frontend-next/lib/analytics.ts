@@ -52,4 +52,28 @@ export const analytics = {
   filterApplied(filterType: string, value: string) {
     track('filter_applied', { filter_type: filterType, value });
   },
+
+  consultBookClick(location: 'hero' | 'cta_bottom') {
+    track('consult_book_click', { location });
+  },
+
+  vpnAffiliateClick(affiliate: string, pageLocation: string) {
+    track('vpn_affiliate_click', { affiliate, location: pageLocation });
+  },
+
+  signUp(method: 'google' | 'email') {
+    track('sign_up', { method });
+  },
+
+  login(method: 'google' | 'email') {
+    track('login', { method });
+  },
+
+  onboardingComplete(styles: string, budget: string, trips: number, hasPassport: boolean) {
+    track('onboarding_complete', { travel_styles: styles, budget, trips_per_year: trips, has_passport: hasPassport });
+  },
+
+  blogScroll(depth: '50' | '100', title: string, slug: string) {
+    track(`blog_read_${depth}`, { article_title: title, slug });
+  },
 };

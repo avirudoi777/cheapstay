@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
+import ConsultBookButton from '@/components/ConsultBookButton';
 
 export const metadata: Metadata = {
   title: 'Book a Travel Consultation with Avi | CheapStay',
@@ -70,12 +71,11 @@ export default function ConsultPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 items-start">
-                <a href="https://cal.com/avi-rudoi-gerpc4/travel-planning-call-with-avi"
-                  target="_blank" rel="noopener noreferrer"
+                <ConsultBookButton location="hero"
                   className="px-8 py-3.5 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
                   style={{ background: '#1D9E75' }}>
                   Book your call — $49 →
-                </a>
+                </ConsultBookButton>
                 <p className="text-xs text-white/40 self-center">Payment collected securely at booking</p>
               </div>
             </div>
@@ -245,12 +245,11 @@ export default function ConsultPage() {
           <p className="text-white/50 text-sm mb-8 max-w-sm mx-auto">
             Limited slots available each week. Book early to get the time you want.
           </p>
-          <a href="https://cal.com/avi-rudoi-gerpc4/travel-planning-call-with-avi"
-            target="_blank" rel="noopener noreferrer"
+          <ConsultBookButton location="cta_bottom"
             className="inline-block px-10 py-4 rounded-xl font-bold text-white text-base transition-opacity hover:opacity-90"
             style={{ background: '#1D9E75' }}>
             Book your 1-hour call — $49 →
-          </a>
+          </ConsultBookButton>
           <p className="text-white/30 text-xs mt-4">
             Not sure?{' '}
             <Link href="/contact" className="underline hover:text-white/60">Send me a message first</Link>

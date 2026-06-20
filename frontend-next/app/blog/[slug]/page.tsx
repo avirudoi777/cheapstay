@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import BlogScrollTracker from '@/components/BlogScrollTracker';
 
 const POSTS: Record<string, {
   title: string;
@@ -405,6 +406,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         <article className="space-y-1">
           {renderContent(post.content)}
         </article>
+
+        <BlogScrollTracker title={post.title} slug={slug} />
 
         <div className="mt-10 p-6 rounded-2xl text-center" style={{ background: '#0a1628' }}>
           <p className="text-white font-bold mb-1">Find the cheapest hotel price right now</p>

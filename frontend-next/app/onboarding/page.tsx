@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { COUNTRIES, flagEmoji } from '@/lib/visa-data';
+import { analytics } from '@/lib/analytics';
 
 const STYLES = [
   { id: 'beach',     label: 'Beach & Islands', icon: '🏖️' },
@@ -124,6 +125,7 @@ export default function OnboardingPage() {
         }),
       ]);
     }
+    analytics.onboardingComplete(styles.join(','), budget, trips, !!passport);
     router.push('/');
     router.refresh();
   }

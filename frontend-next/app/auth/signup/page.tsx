@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import GoogleButton from '@/components/GoogleButton';
+import { analytics } from '@/lib/analytics';
 
 export default function SignupPage() {
   const [email, setEmail]       = useState('');
@@ -28,6 +29,7 @@ export default function SignupPage() {
     });
     setLoading(false);
     if (error) { setError(error.message); return; }
+    analytics.signUp('email');
     setDone(true);
   }
 

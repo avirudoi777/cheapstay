@@ -278,13 +278,13 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
   return (
     <div className="space-y-4">
       {/* Trip type toggle */}
-      <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: 'rgba(255,255,255,0.08)' }}>
+      <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: '#f1f5f9' }}>
         {([['round', 'Round trip'], ['oneway', 'One way']] as const).map(([val, label]) => (
           <button key={val} type="button" onClick={() => setTripType(val)}
             className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
             style={tripType === val
               ? { background: '#1D9E75', color: '#fff' }
-              : { color: 'rgba(255,255,255,0.5)' }}>
+              : { color: '#6b7280' }}>
             {label}
           </button>
         ))}
