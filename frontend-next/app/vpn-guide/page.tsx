@@ -18,7 +18,7 @@ const VPNS = [
     label: 'Top pick',
     featured: true,
     features: ['Thailand server', 'Fast & reliable', 'All devices', '30-day money back'],
-    url: 'https://go.nordvpn.net/aff_c?offer_id=15&aff_id=112618',
+    url: 'https://nordvpn.com/',
     color: '#4687FF',
   },
   {
