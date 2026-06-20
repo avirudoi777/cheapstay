@@ -294,13 +294,17 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
   const dateBtnRef   = useRef<HTMLButtonElement>(null);
   const guestBtnRef  = useRef<HTMLButtonElement>(null);
   const inputRef     = useRef<HTMLInputElement>(null);
+  const sugListRef   = useRef<HTMLUListElement | null>(null);
   const [inputAnchor, setInputAnchor] = useState<DOMRect | null>(null);
 
-  // Close suggestion dropdown on outside click
+  // Close suggestion dropdown on outside click — must also exclude the portal list
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+      const inWrap = wrapRef.current?.contains(e.target as Node);
+      const inSug  = sugListRef.current?.contains(e.target as Node);
+      if (!inWrap && !inSug) {
         setShowSug(false);
+        setInputAnchor(null);
       }
     }
     document.addEventListener('mousedown', handler);
@@ -460,7 +464,9 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
 
       {/* Portals — rendered at document.body, never clipped by overflow:hidden parents */}
       {showSug && suggestions.length > 0 && inputAnchor && createPortal(
-        <ul style={{ position: 'fixed', top: inputAnchor.bottom + 4, left: inputAnchor.left, width: inputAnchor.width, zIndex: 9999 }}
+        <ul ref={sugListRef}
+          onMouseDown={e => e.preventDefault()}
+          style={{ position: 'fixed', top: inputAnchor.bottom + 4, left: inputAnchor.left, width: inputAnchor.width, zIndex: 9999 }}
           className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
           {suggestions.slice(0, 8).map((s, i) => (
             <li key={i}>
