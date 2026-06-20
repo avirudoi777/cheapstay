@@ -14,8 +14,7 @@ export async function POST(req: Request) {
 
   const { error } = await supabase
     .from('newsletter_subscribers')
-    .insert({ email })
-    .select();
+    .insert({ email });
 
   if (error && error.code !== '23505') {
     return NextResponse.json({ error: error.message }, { status: 500 });
