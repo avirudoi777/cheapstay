@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { getSuggestions } from '@/lib/api';
 import type { Suggestion } from '@/lib/types';
 
@@ -13,22 +14,17 @@ function fmtShort(dateStr: string): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-function fmtDay(dateStr: string): string {
-  if (!dateStr) return '';
-  const d = new Date(dateStr + 'T12:00:00');
-  return String(d.getDate());
-}
-
-// ── Calendar ──────────────────────────────────────────────────────────────────
+// ── Calendar (portal — renders at body level, never clipped) ──────────────────
 
 interface CalendarProps {
   checkin: string;
   checkout: string;
+  anchor: DOMRect;
   onSelect: (ci: string, co: string, done?: boolean) => void;
   onClose: () => void;
 }
 
-function Calendar({ checkin, checkout, onSelect, onClose }: CalendarProps) {
+function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProps) {
   const today = toDateStr(new Date());
   const [viewYear, setViewYear] = useState(() => {
     const d = checkin ? new Date(checkin + 'T12:00:00') : new Date();
@@ -40,6 +36,23 @@ function Calendar({ checkin, checkout, onSelect, onClose }: CalendarProps) {
   });
   const [hover, setHover] = useState('');
   const [picking, setPicking] = useState<'ci' | 'co'>(checkin && !checkout ? 'co' : 'ci');
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  // Close on scroll
+  useEffect(() => {
+    const handler = () => onClose();
+    window.addEventListener('scroll', handler, { passive: true });
+    return () => window.removeEventListener('scroll', handler);
+  }, [onClose]);
 
   function handleDay(ds: string) {
     if (ds < today) return;
@@ -63,7 +76,7 @@ function Calendar({ checkin, checkout, onSelect, onClose }: CalendarProps) {
     const effectiveEnd = hover && picking === 'co' && hover > checkin ? hover : checkout;
 
     return (
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="text-sm font-bold text-gray-800 text-center mb-3">{label}</div>
         <div className="grid grid-cols-7 text-[11px] text-gray-400 font-semibold text-center mb-2">
           {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d}>{d}</div>)}
@@ -74,27 +87,21 @@ function Calendar({ checkin, checkout, onSelect, onClose }: CalendarProps) {
             const isPast = ds < today;
             const isCi = ds === checkin;
             const isCo = ds === checkout;
-            const inRange = checkin && effectiveEnd && ds > checkin && ds < effectiveEnd;
-            const isStartOfRange = isCi && checkout;
-            const isEndOfRange = isCo;
-
+            const inRange = !!(checkin && effectiveEnd && ds > checkin && ds < effectiveEnd);
             return (
               <button key={ds} type="button" disabled={isPast}
                 onClick={() => handleDay(ds)}
                 onMouseEnter={() => setHover(ds)}
                 onMouseLeave={() => setHover('')}
                 className={[
-                  'relative h-9 w-full text-sm transition-all flex items-center justify-center',
+                  'h-9 w-full text-sm flex items-center justify-center transition-all',
                   isPast ? 'text-gray-300 cursor-not-allowed' : 'cursor-pointer',
-                  (isCi || isCo) ? 'bg-teal text-white font-bold z-10' : '',
-                  isCi ? 'rounded-l-full' : '',
-                  isCo ? 'rounded-r-full' : '',
-                  (!isCi && !isCo && inRange) ? 'bg-teal/15 text-gray-800 rounded-none' : '',
+                  (isCi || isCo) ? 'bg-teal text-white font-bold rounded-full' : '',
+                  inRange ? 'bg-teal/15 text-gray-800' : '',
                   (!isCi && !isCo && !inRange && !isPast) ? 'hover:bg-gray-100 rounded-full' : '',
-                  (isStartOfRange && !inRange) ? 'rounded-full' : '',
                 ].filter(Boolean).join(' ')}
               >
-                {fmtDay(ds)}
+                {parseInt(ds.split('-')[2])}
               </button>
             );
           })}
@@ -118,8 +125,15 @@ function Calendar({ checkin, checkout, onSelect, onClose }: CalendarProps) {
     ? Math.max(0, Math.round((new Date(checkout).getTime() - new Date(checkin).getTime()) / 86400000))
     : 0;
 
-  return (
-    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+  // Position: below the anchor button, aligned left, max 660px wide
+  const left = Math.min(anchor.left, window.innerWidth - 660 - 16);
+  const top = anchor.bottom + 8;
+
+  return createPortal(
+    <div ref={ref}
+      style={{ position: 'fixed', top, left, width: 660, zIndex: 9999 }}
+      className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+    >
       {/* Header tabs */}
       <div className="flex border-b border-gray-100">
         <button type="button" onClick={() => setPicking('ci')}
@@ -129,7 +143,7 @@ function Calendar({ checkin, checkout, onSelect, onClose }: CalendarProps) {
             {checkin ? fmtShort(checkin) : 'Add date'}
           </div>
         </button>
-        <div className="flex items-center px-2 text-gray-300">
+        <div className="flex items-center px-3 text-gray-300">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
           </svg>
@@ -147,14 +161,14 @@ function Calendar({ checkin, checkout, onSelect, onClose }: CalendarProps) {
 
       {/* Calendars */}
       <div className="p-5">
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-3">
           <button type="button" onClick={prevMonth}
             className="flex-shrink-0 mt-1 p-2 hover:bg-gray-100 rounded-full transition-colors">
             <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-          <div className="flex-1 grid grid-cols-2 gap-6">
+          <div className="flex flex-1 gap-6">
             {renderMonth(viewYear, viewMonth)}
             {renderMonth(nextYear, nextMonthIdx)}
           </div>
@@ -179,19 +193,36 @@ function Calendar({ checkin, checkout, onSelect, onClose }: CalendarProps) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
 // ── GuestPicker ───────────────────────────────────────────────────────────────
 
-function GuestPicker({ adults, rooms, onChange, onClose }: {
+function GuestPicker({ adults, rooms, onChange, onClose, anchor }: {
   adults: number; rooms: number;
   onChange: (a: number, r: number) => void;
   onClose: () => void;
+  anchor: DOMRect;
 }) {
-  return (
-    <div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 p-5 z-50 w-72">
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const right = window.innerWidth - anchor.right;
+  const top = anchor.bottom + 8;
+
+  return createPortal(
+    <div ref={ref}
+      style={{ position: 'fixed', top, right, width: 288, zIndex: 9999 }}
+      className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-5">
       {[
         { label: 'Adults', sub: 'Age 18+', val: adults, setVal: (v: number) => onChange(v, rooms), min: 1, max: 9 },
         { label: 'Rooms', sub: 'Max 4 per booking', val: rooms, setVal: (v: number) => onChange(adults, v), min: 1, max: 4 },
@@ -203,12 +234,12 @@ function GuestPicker({ adults, rooms, onChange, onClose }: {
           </div>
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => row.setVal(Math.max(row.min, row.val - 1))}
-              className="w-8 h-8 rounded-full border-2 border-gray-300 text-gray-600 font-bold text-lg flex items-center justify-center hover:border-teal hover:text-teal transition-colors disabled:opacity-30"
-              disabled={row.val <= row.min}>−</button>
+              disabled={row.val <= row.min}
+              className="w-8 h-8 rounded-full border-2 border-gray-300 text-gray-600 font-bold text-lg flex items-center justify-center hover:border-teal hover:text-teal transition-colors disabled:opacity-30">−</button>
             <span className="w-5 text-center font-bold text-gray-800 text-sm">{row.val}</span>
             <button type="button" onClick={() => row.setVal(Math.min(row.max, row.val + 1))}
-              className="w-8 h-8 rounded-full border-2 border-gray-300 text-gray-600 font-bold text-lg flex items-center justify-center hover:border-teal hover:text-teal transition-colors disabled:opacity-30"
-              disabled={row.val >= row.max}>+</button>
+              disabled={row.val >= row.max}
+              className="w-8 h-8 rounded-full border-2 border-gray-300 text-gray-600 font-bold text-lg flex items-center justify-center hover:border-teal hover:text-teal transition-colors disabled:opacity-30">+</button>
           </div>
         </div>
       ))}
@@ -216,7 +247,8 @@ function GuestPicker({ adults, rooms, onChange, onClose }: {
         className="w-full bg-teal text-white font-bold py-2.5 rounded-xl text-sm mt-4 hover:bg-teal-dark transition-colors">
         Done
       </button>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -252,19 +284,20 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
   const [rooms, setRooms]       = useState(initialValues?.rooms ?? 1);
   const [forceRefresh, setForceRefresh] = useState(false);
 
-  const [showCal, setShowCal]       = useState(false);
-  const [showGuests, setShowGuests] = useState(false);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [showSug, setShowSug]       = useState(false);
+  const [calAnchor, setCalAnchor]       = useState<DOMRect | null>(null);
+  const [guestAnchor, setGuestAnchor]   = useState<DOMRect | null>(null);
+  const [suggestions, setSuggestions]   = useState<Suggestion[]>([]);
+  const [showSug, setShowSug]           = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const wrapRef     = useRef<HTMLDivElement>(null);
+  const dateBtnRef  = useRef<HTMLButtonElement>(null);
+  const guestBtnRef = useRef<HTMLButtonElement>(null);
 
+  // Close suggestion dropdown on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setShowCal(false);
-        setShowGuests(false);
         setShowSug(false);
       }
     }
@@ -303,18 +336,28 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
     setShowSug(false);
   }
 
+  function openCal() {
+    if (dateBtnRef.current) setCalAnchor(dateBtnRef.current.getBoundingClientRect());
+    setGuestAnchor(null);
+  }
+
+  function openGuests() {
+    if (guestBtnRef.current) setGuestAnchor(guestBtnRef.current.getBoundingClientRect());
+    setCalAnchor(null);
+  }
+
   function handleDateSelect(ci: string, co: string, done?: boolean) {
     setCheckin(ci);
     setCheckout(co);
-    if (done && ci && co) setShowCal(false);
+    if (done && ci && co) setCalAnchor(null);
   }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!query.trim() || !checkin || !checkout) return;
     onSearch({ query: query.trim(), location, mode, checkin, checkout, adults, rooms, forceRefresh });
-    setShowCal(false);
-    setShowGuests(false);
+    setCalAnchor(null);
+    setGuestAnchor(null);
     setShowSug(false);
   }
 
@@ -330,10 +373,11 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
     <div ref={wrapRef} className="relative">
       <form onSubmit={submit} autoComplete="off">
 
-        {/* ── Row 1: Destination ── */}
+        {/* ── Destination ── */}
         <div className="relative mb-2">
           <div className="relative">
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
@@ -382,13 +426,13 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
           )}
         </div>
 
-        {/* ── Row 2: Dates + Guests + Search ── */}
+        {/* ── Dates + Guests + Search ── */}
         <div className="flex items-stretch gap-2">
 
           {/* Date range button */}
-          <button type="button"
-            onClick={() => { setShowCal(v => !v); setShowGuests(false); }}
-            className={`flex-1 flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 transition-all text-left bg-white ${showCal ? 'border-teal' : 'border-gray-200 hover:border-gray-300'}`}>
+          <button ref={dateBtnRef} type="button"
+            onClick={openCal}
+            className={`flex-1 flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 transition-all text-left bg-white ${calAnchor ? 'border-teal' : 'border-gray-200 hover:border-gray-300'}`}>
             <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
             </svg>
@@ -401,26 +445,19 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
           </button>
 
           {/* Guests button */}
-          <div className="relative flex-shrink-0">
-            <button type="button"
-              onClick={() => { setShowGuests(g => !g); setShowCal(false); }}
-              className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 transition-all bg-white ${showGuests ? 'border-teal' : 'border-gray-200 hover:border-gray-300'}`}>
-              <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-              </svg>
-              <div>
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Guests</div>
-                <div className="text-sm font-semibold text-gray-800 whitespace-nowrap">
-                  {adults} Adult{adults !== 1 ? 's' : ''} · {rooms} Room{rooms !== 1 ? 's' : ''}
-                </div>
+          <button ref={guestBtnRef} type="button"
+            onClick={openGuests}
+            className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 transition-all bg-white flex-shrink-0 ${guestAnchor ? 'border-teal' : 'border-gray-200 hover:border-gray-300'}`}>
+            <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+            </svg>
+            <div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Guests</div>
+              <div className="text-sm font-semibold text-gray-800 whitespace-nowrap">
+                {adults} Adult{adults !== 1 ? 's' : ''} · {rooms} Room{rooms !== 1 ? 's' : ''}
               </div>
-            </button>
-            {showGuests && (
-              <GuestPicker adults={adults} rooms={rooms}
-                onChange={(a, r) => { setAdults(a); setRooms(r); }}
-                onClose={() => setShowGuests(false)} />
-            )}
-          </div>
+            </div>
+          </button>
 
           {/* Search button */}
           <button type="submit" disabled={loading || !query.trim()}
@@ -439,16 +476,6 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
           </button>
         </div>
 
-        {/* Calendar — positioned relative to outer wrapper, full width */}
-        {showCal && (
-          <Calendar
-            checkin={checkin}
-            checkout={checkout}
-            onSelect={handleDateSelect}
-            onClose={() => setShowCal(false)}
-          />
-        )}
-
         {/* Force refresh */}
         <div className="mt-3 flex items-center gap-2">
           <input type="checkbox" id="force-refresh" checked={forceRefresh} onChange={e => setForceRefresh(e.target.checked)}
@@ -456,6 +483,26 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
           <label htmlFor="force-refresh" className="text-xs text-gray-400 cursor-pointer select-none">Force fresh search</label>
         </div>
       </form>
+
+      {/* Portals — rendered at document.body, never clipped by overflow:hidden parents */}
+      {calAnchor && (
+        <Calendar
+          checkin={checkin}
+          checkout={checkout}
+          anchor={calAnchor}
+          onSelect={handleDateSelect}
+          onClose={() => setCalAnchor(null)}
+        />
+      )}
+      {guestAnchor && (
+        <GuestPicker
+          adults={adults}
+          rooms={rooms}
+          anchor={guestAnchor}
+          onChange={(a, r) => { setAdults(a); setRooms(r); }}
+          onClose={() => setGuestAnchor(null)}
+        />
+      )}
     </div>
   );
 }
