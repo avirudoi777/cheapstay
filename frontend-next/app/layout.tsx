@@ -14,26 +14,26 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? 'G-4N9WY15BK2';
 export const metadata: Metadata = {
   metadataBase: new URL('https://cheapstay.co'),
   title: {
-    default: 'CheapStay — Book Hotels 40% Cheaper | Thai IP Hack + VPN Guide',
+    default: 'CheapStay — Compare Hotel Prices & Save Up to 40%',
     template: '%s | CheapStay',
   },
-  description: 'Discover the Thai IP hack that saves travelers 20–40% on every hotel booking worldwide. Compare Agoda vs Booking.com, stack cashback and credit card points. Used by 10,000+ nomads.',
+  description: 'Compare Agoda and Booking.com side by side and find the lowest hotel price instantly. Stack cashback and credit card points for extra savings. Used by 10,000+ travelers.',
   keywords: ['travel hacks', 'cheap hotel deals', 'hotel price comparison', 'save money on hotels', 'travel savings', 'VPN hotel hack', 'Agoda discount', 'Booking.com discount', 'travel tips', 'digital nomad hotels', 'cheap travel', 'hotel booking tips', 'cashback travel', 'best travel credit cards'],
   authors: [{ name: 'Avi', url: 'https://cheapstay.co/about' }],
   creator: 'CheapStay',
   openGraph: {
-    title: 'Book Any Hotel 40% Cheaper — The Thai IP Hack',
-    description: 'The insider trick full-time travelers use to save 20–40% on every hotel booking. Free to learn, takes 5 minutes to set up.',
+    title: 'CheapStay — Compare Hotel Prices & Save Up to 40%',
+    description: 'Compare Agoda and Booking.com side by side and find the lowest hotel price instantly. Stack cashback and credit card points for extra savings.',
     url: 'https://cheapstay.co',
     siteName: 'CheapStay',
     type: 'website',
     locale: 'en_US',
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'CheapStay — Book Hotels 40% Cheaper with Thai IP Hack' }],
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'CheapStay — Compare Hotel Prices & Save Up to 40%' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Book Any Hotel 40% Cheaper — The Thai IP Hack',
-    description: 'The insider trick full-time travelers use to save 20–40% on every hotel booking. Free to learn, takes 5 minutes to set up.',
+    title: 'CheapStay — Compare Hotel Prices & Save Up to 40%',
+    description: 'Compare Agoda and Booking.com side by side and find the lowest hotel price instantly. Stack cashback and credit card points for extra savings.',
     images: ['/og-image.png'],
   },
   robots: {
@@ -118,8 +118,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        {/* Travelpayouts affiliate tracking */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){var s=document.createElement("script");s.async=1;s.src='https://tpembars.com/NTM4MTk3.js?t=538197';document.head.appendChild(s);})();` }} />
+        {/* Travelpayouts Drive affiliate tracking — source 537802 */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var script=document.createElement("script");script.async=1;script.src='https://tpembars.com/NTM3ODAy.js?t=537802';document.head.appendChild(script);})();` }} />
       </head>
       <body className="min-h-full flex flex-col font-sans">
 
@@ -194,7 +194,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Image src="/logo.png" alt="CheapStay" width={100} height={28} className="h-7 w-auto opacity-80" />
                 <span className="text-xs text-gray-400">© 2026 CheapStay</span>
               </div>
-              <p className="text-xs text-gray-400">Compare cheap hotel prices worldwide · Thai IP pricing</p>
+              <p className="text-xs text-gray-400">Compare hotel prices worldwide · Agoda & Booking.com</p>
             </div>
           </div>
         </footer>
