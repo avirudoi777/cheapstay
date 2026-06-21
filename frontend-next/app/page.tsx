@@ -10,6 +10,7 @@ import { analytics } from '@/lib/analytics';
 import type { CitySearchResponse } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 import VisaBanner from '@/components/VisaBanner';
+import FlightResults from '@/components/FlightResults';
 
 const DESTINATIONS = [
   { city: 'Bangkok',   country: 'Thailand',  flag: '🇹🇭', img: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=400&h=200&fit=crop&auto=format', savings: 35 },
@@ -241,14 +242,30 @@ export default function HomePage() {
   // Hero tab
   const [activeTab, setActiveTab] = useState<'hotel' | 'flight'>('hotel');
 
+  // Flight search state
+  const [flightSearch, setFlightSearch] = useState<{
+    fromCode: string; toCode: string;
+    fromName: string; toName: string;
+    depart: string; ret: string;
+  } | null>(null);
+  const flightResultsRef = useRef<HTMLDivElement>(null);
+
   function handleFlightSearch(from: string, to: string, depart: string, ret: string) {
-    if (!from || !to) { window.open('https://www.google.com/travel/flights/', '_blank', 'noopener'); return; }
-    const base = `https://www.google.com/travel/flights/search?q=Flights+from+${encodeURIComponent(from)}+to+${encodeURIComponent(to)}`;
-    const params = new URLSearchParams();
-    if (depart) params.set('tfs', depart);
-    if (ret) params.set('return', ret);
-    const qs = params.toString();
-    window.open(qs ? `${base}&${qs}` : base, '_blank', 'noopener');
+    const codeMatch = (s: string) => s.match(/\(([A-Z]{3})\)/)?.[1] ?? '';
+    const nameOf    = (s: string) => s.replace(/\s*\([A-Z]{3}\).*/, '').trim();
+    const fromCode = codeMatch(from);
+    const toCode   = codeMatch(to);
+    if (!fromCode || !toCode) {
+      window.open('https://www.google.com/travel/flights/', '_blank', 'noopener');
+      return;
+    }
+    setFlightSearch({
+      fromCode, toCode,
+      fromName: nameOf(from) || fromCode,
+      toName:   nameOf(to)   || toCode,
+      depart, ret,
+    });
+    setTimeout(() => flightResultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   }
 
   // Credit card filter
@@ -482,6 +499,21 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* ── Flight results ────────────────────────────────────────────── */}
+      {flightSearch && (
+        <div ref={flightResultsRef}>
+          <FlightResults
+            fromCode={flightSearch.fromCode}
+            toCode={flightSearch.toCode}
+            fromName={flightSearch.fromName}
+            toName={flightSearch.toName}
+            depart={flightSearch.depart}
+            ret={flightSearch.ret}
+            onClear={() => setFlightSearch(null)}
+          />
+        </div>
+      )}
 
       {/* ── Search results / destinations ────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">

@@ -65,6 +65,7 @@ export default function HeaderClient() {
           { href: '/vpn-guide', label: 'VPN guide' },
           { href: '/blog', label: 'Blog' },
           { href: '/shop', label: 'Shop' },
+          { href: '/consult', label: '📞 Book a call' },
         ].map(link => (
           <Link key={link.href} href={link.href}
             className="text-xs font-semibold text-gray-500 hover:text-navy px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">

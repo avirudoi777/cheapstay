@@ -120,6 +120,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         {/* Travelpayouts Drive affiliate tracking — source 537802 */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){var script=document.createElement("script");script.async=1;script.src='https://tpembars.com/NTM3ODAy.js?t=537802';document.head.appendChild(script);})();` }} />
+        {/* Microsoft Clarity — heatmaps & session recordings */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","x9y4hja5ui");` }} />
       </head>
       <body className="min-h-full flex flex-col font-sans">
 
@@ -184,6 +186,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <p className="text-xs font-bold text-navy uppercase tracking-wider mb-3">Company</p>
                 <div className="space-y-2">
                   <Link href="/about" className="block text-xs text-gray-400 hover:text-navy transition-colors">About</Link>
+                  <Link href="/consult" className="block text-xs font-semibold hover:opacity-80 transition-colors" style={{ color: '#1D9E75' }}>📞 Book a call with Avi</Link>
                   <Link href="/contact" className="block text-xs text-gray-400 hover:text-navy transition-colors">Contact</Link>
                   <Link href="/privacy" className="block text-xs text-gray-400 hover:text-navy transition-colors">Privacy Policy</Link>
                 </div>
