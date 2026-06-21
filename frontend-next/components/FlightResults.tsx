@@ -88,6 +88,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [offers, setOffers] = useState<FlightOffer[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [scope, setScope] = useState<'exact' | 'month' | 'open' | ''>('');
 
   const departDay   = depart.split('-')[2];
   const departMonth = depart.split('-')[1];
@@ -114,7 +115,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         if (json.error === 'no_token')       setError('no_token');
         else if (json.error)                 setError('search_failed');
         else if (!json.data?.length)         setError('no_results');
-        else                                 setOffers(json.data);
+        else { setOffers(json.data); setScope(json.scope ?? ''); }
       })
       .catch(() => setError('search_failed'))
       .finally(() => setLoading(false));
@@ -145,6 +146,18 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         </div>
       </div>
 
+      {/* Scope notice — shown when results are not for the exact date */}
+      {!loading && offers && scope !== 'exact' && (
+        <div className="mb-3 px-4 py-2.5 rounded-xl text-xs font-medium flex items-center gap-2"
+          style={{ background: '#FFFBEB', color: '#92400E', border: '1px solid #FDE68A' }}>
+          <span>ℹ️</span>
+          {scope === 'month'
+            ? `No cached prices for your exact date — showing cheapest found in ${new Date(depart + 'T12:00').toLocaleString('en', { month: 'long' })} for this route.`
+            : 'Showing recently cached prices for this route. Dates may differ from your search.'}
+          <span className="ml-auto text-amber-600 font-semibold">Check Aviasales for live availability →</span>
+        </div>
+      )}
+
       {/* Loading */}
       {loading && (
         <div className="space-y-3">
@@ -170,13 +183,18 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       {/* No results */}
       {!loading && error === 'no_results' && (
         <div className="rounded-2xl border border-gray-200 p-6 text-center bg-gray-50">
-          <p className="text-sm font-bold text-gray-800 mb-1">No cached prices found for this route</p>
-          <p className="text-xs text-gray-500 mb-4">Search directly on Aviasales for live availability and current prices.</p>
+          <p className="text-2xl mb-2">✈️</p>
+          <p className="text-sm font-bold text-gray-800 mb-1">This route isn&apos;t in the price cache yet</p>
+          <p className="text-xs text-gray-500 mb-4">
+            The Travelpayouts cache only covers frequently searched routes.{' '}
+            Aviasales has live prices for all routes — click below to search directly.
+          </p>
           <a href={fallbackUrl} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
-            style={{ background: '#1D9E75' }}>
-            Search on Aviasales →
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+            Search live prices on Aviasales →
           </a>
+          <p className="text-xs text-gray-400 mt-3">Opens Aviasales with your route pre-filled · affiliate link</p>
         </div>
       )}
 
