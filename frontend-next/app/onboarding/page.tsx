@@ -30,48 +30,44 @@ const BUDGETS = [
   { id: 'luxury',  label: 'Luxury',    desc: '$150+/night',        icon: '💎' },
 ];
 
-function CountryCombobox({ value, onChange }: { value: string; onChange: (code: string) => void }) {
+function CountryCombobox({ value, onChange, exclude = [], placeholder = 'Search your country…' }: {
+  value: string;
+  onChange: (code: string) => void;
+  exclude?: string[];
+  placeholder?: string;
+}) {
   const [query, setQuery] = useState('');
   const [open, setOpen]   = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const pool = COUNTRIES.filter(c => !exclude.includes(c.code));
   const filtered = query.length >= 1
-    ? COUNTRIES.filter(c => c.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
-    : COUNTRIES.slice(0, 8);
+    ? pool.filter(c => c.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
+    : pool.slice(0, 8);
 
-  const selected = COUNTRIES.find(c => c.code === value);
-
-  function select(code: string, name: string) {
+  function select(code: string) {
     onChange(code);
-    setQuery(name);
+    setQuery('');
     setOpen(false);
   }
 
   return (
     <div className="relative">
-      <div className="relative">
-        {selected && !open && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg pointer-events-none">
-            {flagEmoji(selected.code)}
-          </span>
-        )}
-        <input ref={inputRef} type="text"
-          value={open ? query : (selected ? selected.name : query)}
-          onFocus={() => { setOpen(true); setQuery(''); }}
-          onBlur={() => setTimeout(() => setOpen(false), 150)}
-          onChange={e => { setQuery(e.target.value); setOpen(true); }}
-          placeholder="Search your country..."
-          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 transition-colors"
-          style={{ paddingLeft: selected && !open ? '2.5rem' : '1rem' }}
-        />
-      </div>
+      <input ref={inputRef} type="text"
+        value={open ? query : ''}
+        onFocus={() => { setOpen(true); setQuery(''); }}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onChange={e => { setQuery(e.target.value); setOpen(true); }}
+        placeholder={placeholder}
+        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 transition-colors"
+      />
       {open && (
         <ul className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 max-h-52 overflow-y-auto">
           {filtered.length === 0 ? (
             <li className="px-4 py-3 text-sm text-gray-400">No countries found</li>
           ) : filtered.map(c => (
             <li key={c.code}
-              onMouseDown={() => select(c.code, c.name)}
+              onMouseDown={() => select(c.code)}
               className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
               <span className="text-lg">{flagEmoji(c.code)}</span>
               <span className="text-sm font-semibold text-gray-900">{c.name}</span>
@@ -91,7 +87,7 @@ export default function OnboardingPage() {
   const [regions, setRegions]         = useState<string[]>([]);
   const [budget, setBudget]           = useState('mid');
   const [trips, setTrips]             = useState(2);
-  const [passport, setPassport]       = useState('');
+  const [passports, setPassports]     = useState<string[]>([]);
   const [saving, setSaving]           = useState(false);
   const [wantsDeals, setWantsDeals]   = useState(true);
   const [wantsHacks, setWantsHacks]   = useState(true);
@@ -115,7 +111,8 @@ export default function OnboardingPage() {
           preferred_regions: regions,
           budget_range: budget,
           trips_per_year: trips,
-          passport_nationality: passport || null,
+          passport_nationality: passports[0] || null,
+          passport_nationalities: passports.length ? passports : null,
           onboarding_done: true,
         }),
         supabase.from('user_preferences').upsert({
@@ -125,7 +122,7 @@ export default function OnboardingPage() {
         }),
       ]);
     }
-    analytics.onboardingComplete(styles.join(','), budget, trips, !!passport);
+    analytics.onboardingComplete(styles.join(','), budget, trips, passports.length > 0);
     router.push('/');
     router.refresh();
   }
@@ -239,21 +236,34 @@ export default function OnboardingPage() {
       <div className="text-center">
         <div className="text-4xl mb-3">🛂</div>
         <h2 className="text-xl font-bold text-navy">What passport do you travel on?</h2>
-        <p className="text-gray-400 text-sm mt-1">We&apos;ll warn you about visas and vaccinations before you book</p>
+        <p className="text-gray-400 text-sm mt-1">Have two passports? Add both — we&apos;ll show the best entry option</p>
       </div>
-      <CountryCombobox value={passport} onChange={setPassport} />
-      {passport && (
-        <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
-          style={{ background: '#F0FBF7', border: '1px solid #1D9E75' }}>
-          <span className="text-2xl">{flagEmoji(passport)}</span>
-          <div>
-            <p className="text-sm font-bold text-teal-dark">
-              {COUNTRIES.find(c => c.code === passport)?.name} passport selected
-            </p>
-            <p className="text-xs text-gray-500">We&apos;ll show entry requirements when you search hotels</p>
-          </div>
+
+      {/* Selected chips */}
+      {passports.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {passports.map(code => (
+            <div key={code} className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
+              style={{ background: '#F0FBF7', border: '1px solid #1D9E75', color: '#0F6E56' }}>
+              <span className="text-base">{flagEmoji(code)}</span>
+              <span>{COUNTRIES.find(c => c.code === code)?.name}</span>
+              <button type="button" onClick={() => setPassports(p => p.filter(x => x !== code))}
+                className="ml-1 font-bold hover:opacity-60">×</button>
+            </div>
+          ))}
         </div>
       )}
+
+      {/* Add combobox — hide when 2 selected */}
+      {passports.length < 2 && (
+        <CountryCombobox
+          value=""
+          exclude={passports}
+          onChange={code => { if (code) setPassports(p => [...p, code]); }}
+          placeholder={passports.length === 0 ? 'Search your country…' : '+ Add second passport'}
+        />
+      )}
+
       <div className="flex gap-2">
         <button onClick={() => setStep(2)}
           className="flex-1 py-3 rounded-xl font-bold text-navy text-sm border border-gray-200 hover:border-teal transition-colors">
@@ -262,7 +272,7 @@ export default function OnboardingPage() {
         <button onClick={() => setStep(4)}
           className="flex-1 py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
           style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
-          {passport ? 'Next →' : 'Skip →'}
+          {passports.length > 0 ? 'Next →' : 'Skip →'}
         </button>
       </div>
     </div>,

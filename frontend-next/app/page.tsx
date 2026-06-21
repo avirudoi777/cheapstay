@@ -236,7 +236,7 @@ export default function HomePage() {
   const [bookingCount, setBookingCount] = useState(0);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const resultsRef  = useRef<HTMLDivElement>(null);
-  const [passportCode, setPassportCode] = useState('');
+  const [passportCodes, setPassportCodes] = useState<string[]>([]);
 
   // Hero tab
   const [activeTab, setActiveTab] = useState<'hotel' | 'flight'>('hotel');
@@ -272,10 +272,14 @@ export default function HomePage() {
       if (!data.user) return;
       const { data: profile } = await createClient()
         .from('user_profiles')
-        .select('passport_nationality')
+        .select('passport_nationality, passport_nationalities')
         .eq('id', data.user.id)
         .single();
-      if (profile?.passport_nationality) setPassportCode(profile.passport_nationality);
+      if (profile?.passport_nationalities?.length) {
+        setPassportCodes(profile.passport_nationalities);
+      } else if (profile?.passport_nationality) {
+        setPassportCodes([profile.passport_nationality]);
+      }
     });
   }, []);
 
@@ -513,9 +517,9 @@ export default function HomePage() {
 
         {results && searchValues && (
           <div ref={resultsRef} className="mt-2">
-            {passportCode && (
+            {passportCodes.length > 0 && (
               <VisaBanner
-                passportCode={passportCode}
+                passportCodes={passportCodes}
                 city={searchValues.location || searchValues.query}
               />
             )}

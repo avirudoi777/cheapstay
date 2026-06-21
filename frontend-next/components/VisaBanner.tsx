@@ -2,22 +2,30 @@
 import { getVisaInfo, getDestinationCountry, getCountryName, flagEmoji, type VisaEntry, type VisaRequirement } from '@/lib/visa-data';
 
 interface Props {
-  passportCode: string;
+  passportCodes: string[];
   city: string;
 }
 
+const PRIORITY: Record<VisaRequirement, number> = {
+  visa_free: 0,
+  e_visa: 1,
+  visa_on_arrival: 2,
+  embassy_visa: 3,
+  entry_restricted: 4,
+};
+
 const CONFIG: Record<VisaRequirement, { border: string; bg: string; icon: string; label: string }> = {
-  visa_free:       { border: '#1D9E75', bg: '#F0FBF7', icon: '✅', label: 'No visa needed' },
-  visa_on_arrival: { border: '#F59E0B', bg: '#FFFBEB', icon: '🛂', label: 'Visa on arrival' },
-  e_visa:          { border: '#F59E0B', bg: '#FFFBEB', icon: '💻', label: 'e-Visa required' },
-  embassy_visa:    { border: '#F97316', bg: '#FFF7ED', icon: '🏛️', label: 'Embassy visa required' },
-  entry_restricted:{ border: '#EF4444', bg: '#FEF2F2', icon: '🚫', label: 'Entry restriction' },
+  visa_free:        { border: '#1D9E75', bg: '#F0FBF7', icon: '✅', label: 'No visa needed' },
+  visa_on_arrival:  { border: '#F59E0B', bg: '#FFFBEB', icon: '🛂', label: 'Visa on arrival' },
+  e_visa:           { border: '#F59E0B', bg: '#FFFBEB', icon: '💻', label: 'e-Visa required' },
+  embassy_visa:     { border: '#F97316', bg: '#FFF7ED', icon: '🏛️', label: 'Embassy visa required' },
+  entry_restricted: { border: '#EF4444', bg: '#FEF2F2', icon: '🚫', label: 'Entry restriction' },
 };
 
 const VACCINATION_INFO: Record<string, { label: string; detail: string }> = {
   yellow_fever: {
     label: 'Yellow fever vaccine',
-    detail: 'Required if you are arriving from a country where yellow fever is endemic (e.g. Brazil, certain African countries). Airlines can deny boarding without proof of vaccination.',
+    detail: 'Required if arriving from a country where yellow fever is endemic (e.g. Brazil, certain African countries). Airlines can deny boarding without proof of vaccination.',
   },
 };
 
@@ -56,46 +64,69 @@ function OfficialLink({ destCode }: { destCode: string }) {
   );
 }
 
-export default function VisaBanner({ passportCode, city }: Props) {
-  const info: VisaEntry | null = getVisaInfo(passportCode, city);
+export default function VisaBanner({ passportCodes, city }: Props) {
   const destCode = getDestinationCountry(city);
-  if (!info || !destCode) return null;
+  if (!destCode || passportCodes.length === 0) return null;
 
-  const cfg = CONFIG[info.requirement];
-  const passportName = getCountryName(passportCode);
+  // Gather results for all passports, pick most favorable
+  const results = passportCodes
+    .map(code => ({ code, info: getVisaInfo(code, city) }))
+    .filter((r): r is { code: string; info: VisaEntry } => r.info !== null);
+
+  if (results.length === 0) return null;
+
+  const best = results.reduce((a, b) =>
+    PRIORITY[a.info.requirement] <= PRIORITY[b.info.requirement] ? a : b
+  );
+
+  const cfg = CONFIG[best.info.requirement];
   const destName = getCountryName(destCode);
+  const showPassportBadge = passportCodes.length > 1;
 
   return (
     <div className="rounded-2xl mb-4 overflow-hidden"
       style={{ border: `1.5px solid ${cfg.border}`, background: cfg.bg }}>
       <div className="px-4 py-3 flex items-start gap-3">
-        {/* Icon */}
         <span className="text-xl flex-shrink-0 mt-0.5">{cfg.icon}</span>
 
         <div className="flex-1 min-w-0">
-          {/* Header row */}
+          {/* Header */}
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="text-sm font-bold text-gray-900">
-              {flagEmoji(passportCode)} {passportName} → {flagEmoji(destCode)} {destName}
+              {flagEmoji(destCode)} {destName} entry requirements
             </span>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-              style={{ background: cfg.border, color: '#fff' }}>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
+              style={{ background: cfg.border }}>
               {cfg.label}
             </span>
-            {info.duration && (
-              <span className="text-xs text-gray-500">{info.duration}</span>
+            {best.info.duration && (
+              <span className="text-xs text-gray-500">{best.info.duration}</span>
             )}
           </div>
 
+          {/* Which passport is being used (dual passport case) */}
+          {showPassportBadge && (
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-xs text-gray-500">Using</span>
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
+                style={{ background: 'rgba(0,0,0,0.06)', color: '#374151' }}>
+                {flagEmoji(best.code)} {getCountryName(best.code)} passport
+              </span>
+              {results.length > 1 && (
+                <span className="text-xs text-gray-400">(best of your {passportCodes.length})</span>
+              )}
+            </div>
+          )}
+
           {/* Notes */}
-          {info.notes && (
-            <p className="text-xs text-gray-600 leading-relaxed mb-2">{info.notes}</p>
+          {best.info.notes && (
+            <p className="text-xs text-gray-600 leading-relaxed mb-2">{best.info.notes}</p>
           )}
 
           {/* Vaccination warnings */}
-          {info.vaccinations && info.vaccinations.length > 0 && (
+          {best.info.vaccinations && best.info.vaccinations.length > 0 && (
             <div className="mt-2 space-y-1.5">
-              {info.vaccinations.map(vax => {
+              {best.info.vaccinations.map(vax => {
                 const v = VACCINATION_INFO[vax];
                 if (!v) return null;
                 return (
@@ -112,7 +143,6 @@ export default function VisaBanner({ passportCode, city }: Props) {
             </div>
           )}
 
-          {/* Official link */}
           <div className="mt-2">
             <OfficialLink destCode={destCode} />
           </div>

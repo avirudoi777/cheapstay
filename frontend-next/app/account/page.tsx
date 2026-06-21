@@ -41,9 +41,9 @@ export default function AccountPage() {
   const [regions, setRegions]     = useState<string[]>([]);
   const [budget, setBudget]       = useState('mid');
   const [trips, setTrips]         = useState(2);
-  const [passport, setPassport]   = useState('');
-  const [passportQ, setPassportQ] = useState('');
-  const [passportOpen, setPassportOpen] = useState(false);
+  const [passports, setPassports]     = useState<string[]>([]);
+  const [addPassportQ, setAddQ]       = useState('');
+  const [addPassportOpen, setAddOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving]       = useState(false);
   const [saved, setSaved]         = useState(false);
@@ -69,10 +69,10 @@ export default function AccountPage() {
         setBudget(profile.budget_range || 'mid');
         setTrips(profile.trips_per_year || 2);
         setAvatarUrl(profile.avatar_url || meta?.avatar_url || '');
-        if (profile.passport_nationality) {
-          setPassport(profile.passport_nationality);
-          const c = COUNTRIES.find(x => x.code === profile.passport_nationality);
-          if (c) setPassportQ(c.name);
+        if (profile.passport_nationalities?.length) {
+          setPassports(profile.passport_nationalities);
+        } else if (profile.passport_nationality) {
+          setPassports([profile.passport_nationality]);
         }
       } else {
         setAvatarUrl(meta?.avatar_url || '');
@@ -116,7 +116,8 @@ export default function AccountPage() {
       preferred_regions: regions,
       budget_range: budget,
       trips_per_year: trips,
-      passport_nationality: passport || null,
+      passport_nationalities: passports.length ? passports : null,
+      passport_nationality: passports[0] || null,
       onboarding_done: true,
     });
     await supabase.auth.updateUser({ data: { full_name: displayName } });
@@ -194,43 +195,60 @@ export default function AccountPage() {
         {/* Passport */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
           <h3 className="text-sm font-bold text-navy mb-1 flex items-center gap-2">
-            <span>🛂</span> Passport nationality
+            <span>🛂</span> Passport{passports.length > 1 ? 's' : ' nationality'}
           </h3>
           <p className="text-xs text-gray-400 mb-3">Used to show visa and vaccination requirements when you search</p>
-          <div className="relative">
-            <div className="relative">
-              {passport && !passportOpen && (
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg pointer-events-none">
-                  {flagEmoji(passport)}
-                </span>
-              )}
-              <input type="text"
-                value={passportOpen ? passportQ : (passport ? (COUNTRIES.find(c => c.code === passport)?.name ?? passportQ) : passportQ)}
-                onFocus={() => { setPassportOpen(true); setPassportQ(''); }}
-                onBlur={() => setTimeout(() => setPassportOpen(false), 150)}
-                onChange={e => { setPassportQ(e.target.value); setPassportOpen(true); }}
-                placeholder="Search your country..."
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 transition-colors"
-                style={{ paddingLeft: passport && !passportOpen ? '2.5rem' : '1rem' }}
-              />
+
+          {/* Selected passport chips */}
+          {passports.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {passports.map(code => {
+                const country = COUNTRIES.find(c => c.code === code);
+                return (
+                  <div key={code} className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-semibold"
+                    style={{ background: '#F0FBF7', borderColor: '#1D9E75', color: '#0F6E56' }}>
+                    <span className="text-base">{flagEmoji(code)}</span>
+                    <span>{country?.name ?? code}</span>
+                    <button type="button" onClick={() => setPassports(p => p.filter(x => x !== code))}
+                      className="ml-1 text-xs leading-none hover:opacity-60 transition-opacity font-bold"
+                      aria-label={`Remove ${country?.name}`}>
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
             </div>
-            {passportOpen && (
-              <ul className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 max-h-48 overflow-y-auto">
-                {(passportQ.length >= 1
-                  ? COUNTRIES.filter(c => c.name.toLowerCase().includes(passportQ.toLowerCase())).slice(0, 8)
-                  : COUNTRIES.slice(0, 8)
-                ).map(c => (
-                  <li key={c.code}
-                    onMouseDown={() => { setPassport(c.code); setPassportQ(c.name); setPassportOpen(false); }}
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer list-none">
-                    <span className="text-lg">{flagEmoji(c.code)}</span>
-                    <span className="text-sm font-semibold text-gray-900">{c.name}</span>
-                    <span className="text-xs text-gray-400 ml-auto">{c.code}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          )}
+
+          {/* Add passport combobox — hidden once 2 are set */}
+          {passports.length < 2 && (
+            <div className="relative">
+              <input type="text"
+                value={addPassportOpen ? addPassportQ : ''}
+                onFocus={() => { setAddOpen(true); setAddQ(''); }}
+                onBlur={() => setTimeout(() => setAddOpen(false), 150)}
+                onChange={e => { setAddQ(e.target.value); setAddOpen(true); }}
+                placeholder={passports.length === 0 ? 'Search your country…' : '+ Add second passport'}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 transition-colors"
+              />
+              {addPassportOpen && (
+                <ul className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 max-h-48 overflow-y-auto">
+                  {(addPassportQ.length >= 1
+                    ? COUNTRIES.filter(c => c.name.toLowerCase().includes(addPassportQ.toLowerCase()) && !passports.includes(c.code)).slice(0, 8)
+                    : COUNTRIES.filter(c => !passports.includes(c.code)).slice(0, 8)
+                  ).map(c => (
+                    <li key={c.code}
+                      onMouseDown={() => { setPassports(p => [...p, c.code]); setAddQ(''); setAddOpen(false); }}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer list-none">
+                      <span className="text-lg">{flagEmoji(c.code)}</span>
+                      <span className="text-sm font-semibold text-gray-900">{c.name}</span>
+                      <span className="text-xs text-gray-400 ml-auto">{c.code}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Travel style */}
