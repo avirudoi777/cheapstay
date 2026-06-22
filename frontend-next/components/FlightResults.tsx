@@ -815,7 +815,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   )}
 
                   <div className="flex gap-3">
-                    <button onClick={() => setBookStep(offer.availableServices.length > 0 ? 'extras' : 'passenger')}
+                    <button onClick={() => setBookStep('passenger')}
                       className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">
                       ← Back
                     </button>
@@ -831,30 +831,135 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 </div>
               )}
 
+              {/* Extras inline — shown below passenger form before payment */}
+              {bookStep === 'passenger' && offer.availableServices.length > 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-base font-extrabold text-gray-900">Add extras (optional)</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Extra baggage or seat selection</p>
+                    </div>
+                    {extrasTotal > 0 && (
+                      <span className="text-sm font-bold px-3 py-1 rounded-full" style={{ background: '#E6F7F1', color: '#1D9E75' }}>
+                        +{fmtPrice(extrasTotal, offer.totalCurrency)}
+                      </span>
+                    )}
+                  </div>
+
+                  {baggageServices.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-sm font-bold text-gray-700 mb-3">🧳 Extra baggage</p>
+                      <div className="space-y-2">
+                        {baggageServices.map(svc => {
+                          const qty = getQty(svc.id);
+                          return (
+                            <div key={svc.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                              <div className="flex-1 min-w-0 mr-3">
+                                <p className="text-sm font-bold text-gray-800">{svc.metadata?.maximumWeightKg ? `${svc.metadata.maximumWeightKg}kg bag` : 'Checked bag'}</p>
+                                <p className="text-sm font-bold mt-0.5" style={{ color: '#1D9E75' }}>+{fmtPrice(svc.totalAmount, svc.totalCurrency)}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button onClick={() => setQty(svc.id, Math.max(0, qty - 1))}
+                                  className="w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center transition-colors"
+                                  style={{ background: qty > 0 ? '#E6F7F1' : '#F3F4F6', color: qty > 0 ? '#1D9E75' : '#9CA3AF' }}>−</button>
+                                <span className="w-4 text-center text-sm font-bold tabular-nums">{qty}</span>
+                                <button onClick={() => setQty(svc.id, qty + 1)}
+                                  className="w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center transition-colors"
+                                  style={{ background: '#E6F7F1', color: '#1D9E75' }}>+</button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {(seatServices.length > 0 || offer.segments.length > 0) && (
+                    <div>
+                      <p className="text-sm font-bold text-gray-700 mb-2">💺 Seat selection</p>
+                      <button onClick={loadSeatMaps} disabled={seatMapsLoading}
+                        className="w-full py-2.5 px-4 rounded-xl text-sm font-bold border-2 transition-colors flex items-center justify-center gap-2"
+                        style={{ borderColor: '#1D9E75', color: seatMapsOpen ? 'white' : '#1D9E75', background: seatMapsOpen ? '#1D9E75' : 'white' }}>
+                        {seatMapsLoading ? 'Loading…' : seatMapsOpen ? '▲ Hide seat map' : '💺 Choose your seats'}
+                      </button>
+                      {seatMapsOpen && seatMaps && (
+                        <div className="mt-3 space-y-4">
+                          {seatMaps.map(sm => {
+                            const seg = offer.segments.find(s => s.segmentId === sm.segmentId);
+                            const cabin = sm.cabins[0];
+                            if (!cabin) return null;
+                            return (
+                              <div key={sm.segmentId}>
+                                <p className="text-xs font-bold text-gray-500 mb-2">
+                                  {seg ? `${seg.depCode} → ${seg.arrCode}` : sm.segmentId}
+                                </p>
+                                {offer.passengerIds.map((paxId, pi) => (
+                                  <div key={paxId} className="mb-3">
+                                    {offer.passengerIds.length > 1 && <p className="text-xs text-gray-400 mb-1">Passenger {pi + 1}</p>}
+                                    <div className="overflow-x-auto">
+                                      <div className="inline-block">
+                                        {cabin.rows.map((row, ri) => (
+                                          <div key={ri} className="flex gap-1 mb-1">
+                                            {row.sections.map((sec, si) => (
+                                              <div key={si} className="flex gap-1">
+                                                {si > 0 && <div className="w-5" />}
+                                                {sec.elements.map((el, ei) => {
+                                                  if (el.type !== 'seat') return <div key={ei} className="w-8 h-8" />;
+                                                  const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
+                                                  const available = !!paxSvc;
+                                                  const key = `${sm.segmentId}_${paxId}`;
+                                                  const selected = seatSelections[key] === paxSvc?.id;
+                                                  return (
+                                                    <button key={ei} disabled={!available}
+                                                      onClick={() => paxSvc && selectSeat(sm.segmentId, paxId, paxSvc.id)}
+                                                      title={el.designator ?? ''}
+                                                      className="w-8 h-8 rounded text-[10px] font-bold flex items-center justify-center"
+                                                      style={{
+                                                        background: selected ? '#1D9E75' : available ? '#E6F7F1' : '#F3F4F6',
+                                                        color: selected ? 'white' : available ? '#1D9E75' : '#D1D5DB',
+                                                        border: selected ? '1.5px solid #1D9E75' : available ? '1px solid #A7F3D0' : '1px solid #E5E7EB',
+                                                        cursor: available ? 'pointer' : 'not-allowed',
+                                                      }}>
+                                                      {el.designator?.replace(/\d+/, '') ?? ''}
+                                                    </button>
+                                                  );
+                                                })}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Continue button on passenger step */}
               {bookStep === 'passenger' && (
-                <button onClick={() => { if (validateForms()) setBookStep(offer.availableServices.length > 0 ? 'extras' : 'payment'); }}
+                <button onClick={() => { if (validateForms()) setBookStep('payment'); }}
                   className="w-full py-4 rounded-2xl text-sm font-bold text-white"
                   style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
-                  Continue to extras →
+                  {extrasTotal > 0 ? `Continue with +${fmtPrice(extrasTotal, offer.totalCurrency)} →` : 'Continue to payment →'}
                 </button>
               )}
             </div>
 
-            {/* ── EXTRAS STEP ──────────────────────────────────────────── */}
+            {/* ── EXTRAS STEP (kept for type compat but never rendered) ── */}
             {bookStep === 'extras' && (
               <div className="space-y-4">
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                   <div className="flex items-center justify-between mb-5">
                     <div>
                       <p className="text-lg font-extrabold text-gray-900">Customize your trip</p>
-                      <p className="text-sm text-gray-400 mt-0.5">Add baggage or choose your seats</p>
                     </div>
-                    {extrasTotal > 0 && (
-                      <span className="text-sm font-bold px-3 py-1 rounded-full" style={{ background: '#E6F7F1', color: '#1D9E75' }}>
-                        +{fmtPrice(extrasTotal, offer.totalCurrency)} added
-                      </span>
-                    )}
                   </div>
 
                   {/* BAGGAGE */}
@@ -1153,119 +1258,6 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   <p className="text-[10px] text-amber-600 mt-2.5 leading-relaxed">💡 Tip: pre-purchasing baggage online is almost always cheaper than paying at the airport.</p>
                 )}
               </div>
-
-              {/* Airport lounges — premium redesign */}
-              {(() => {
-                const allCodes = Array.from(new Set([
-                  ...offer.segments.map(s => s.depCode),
-                  offer.segments[offer.segments.length - 1].arrCode,
-                ]));
-                const airportsWithLounges = allCodes
-                  .map(code => ({ code, guide: getLayoverGuide(code) }))
-                  .filter(({ guide }) => guide?.lounges);
-                if (airportsWithLounges.length === 0) return null;
-
-                function parseLounges(raw: string) {
-                  return raw.split(/;\s*(?=[A-Z])/).map(entry => {
-                    const name = entry.replace(/\s*\(.*/, '').trim();
-                    const detail = entry.match(/\(([^)]+)\)/)?.[1] ?? '';
-                    const price = detail.match(/~?\$\d+/)?.[0] ?? '';
-                    const is24h = detail.toLowerCase().includes('24h');
-                    const hasShower = detail.toLowerCase().includes('shower');
-                    const payAtDoor = detail.toLowerCase().includes('pay');
-                    const airlineOnly = /^[A-Z]/.test(detail) && !payAtDoor;
-                    const includesFood = detail.toLowerCase().includes('food') || detail.toLowerCase().includes('buffet') || detail.toLowerCase().includes('meal');
-                    return { name, detail, price, is24h, hasShower, payAtDoor, airlineOnly, includesFood };
-                  });
-                }
-
-                return (
-                  <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #1E3A5F' }}>
-                    {/* Header */}
-                    <div className="px-5 pt-5 pb-4" style={{ background: 'linear-gradient(135deg, #0F2942 0%, #1A3C5E 100%)' }}>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-base font-extrabold text-white mb-0.5">🛋️ Airport Lounges</p>
-                          <p className="text-[11px] leading-relaxed" style={{ color: '#93C5FD' }}>
-                            Rest, eat and freshen up between flights — on your route, no guessing
-                          </p>
-                        </div>
-                        <span className="text-[9px] font-bold px-2 py-1 rounded-full flex-shrink-0 ml-2 mt-0.5"
-                          style={{ background: '#1D4ED8', color: '#BFDBFE', border: '1px solid #2563EB' }}>
-                          ONLY ON CHEAPSTAY
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Airports */}
-                    <div className="p-4 space-y-4" style={{ background: '#F8FAFC' }}>
-                      {airportsWithLounges.map(({ code, guide }, ai) => {
-                        const isLayover = offer.segments.slice(0, -1).some(s => s.arrCode === code);
-                        const isArrival = offer.segments[offer.segments.length - 1].arrCode === code;
-                        const role = isArrival ? 'Arrival' : isLayover ? 'Layover' : 'Departure';
-                        const roleColor = isLayover
-                          ? { bg: '#FEF9C3', text: '#92400E' }
-                          : isArrival
-                          ? { bg: '#EFF6FF', text: '#1D4ED8' }
-                          : { bg: '#ECFDF5', text: '#15803D' };
-                        const lounges = parseLounges(guide!.lounges!);
-                        return (
-                          <div key={code} className={ai > 0 ? 'border-t border-gray-200 pt-4' : ''}>
-                            {/* Airport header */}
-                            <div className="flex items-center gap-2.5 mb-3">
-                              <span className="text-xl">{guide!.flag}</span>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <p className="text-sm font-extrabold text-gray-900">{code}</p>
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                                    style={{ background: roleColor.bg, color: roleColor.text }}>
-                                    {role}
-                                  </span>
-                                </div>
-                                <p className="text-[11px] text-gray-400 truncate">{guide!.airport}</p>
-                              </div>
-                            </div>
-
-                            {/* Lounge cards */}
-                            <div className="space-y-2">
-                              {lounges.map((lounge, li) => (
-                                <div key={li} className="rounded-xl p-3 bg-white" style={{ border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                                  <div className="flex items-start justify-between gap-2 mb-2">
-                                    <p className="text-sm font-bold text-gray-900 leading-tight flex-1">{lounge.name}</p>
-                                    {lounge.price && (
-                                      <div className="flex-shrink-0 text-right">
-                                        <span className="text-base font-extrabold" style={{ color: '#1D9E75' }}>{lounge.price}</span>
-                                        {lounge.payAtDoor && <p className="text-[9px] text-gray-400 leading-none mt-0.5">per person</p>}
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {lounge.payAtDoor && (
-                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#FEF9C3', color: '#92400E' }}>💳 Walk-in</span>
-                                    )}
-                                    {lounge.airlineOnly && (
-                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F3F4F6', color: '#6B7280' }}>✈️ Airline card</span>
-                                    )}
-                                    {lounge.is24h && (
-                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#EFF6FF', color: '#1D4ED8' }}>🕐 24h</span>
-                                    )}
-                                    {lounge.hasShower && (
-                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F0F9FF', color: '#0369A1' }}>🚿 Shower</span>
-                                    )}
-                                    {lounge.includesFood && (
-                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#FFF7ED', color: '#C2410C' }}>🍽️ Food included</span>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })()}
 
               {/* Booking conditions */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -1580,6 +1572,143 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         </div>
                       );
                     })}
+
+                    {/* ── Airport lounges in expanded card ──────────────── */}
+                    {(() => {
+                    const allCodes = Array.from(new Set([
+                      ...offer.segments.map(s => s.depCode),
+                      offer.segments[offer.segments.length - 1].arrCode,
+                    ]));
+                    const airports = allCodes
+                      .map(code => ({ code, guide: getLayoverGuide(code) }))
+                      .filter(({ guide }) => guide?.lounges);
+                    if (!airports.length) return null;
+
+                    const parseLoungesInline = (raw: string) =>
+                      raw.split(/;\s*(?=[A-Z])/).map(entry => {
+                        const name = entry.replace(/\s*\(.*/, '').trim();
+                        const detail = entry.match(/\(([^)]+)\)/)?.[1] ?? '';
+                        const price = detail.match(/~?\$\d+/)?.[0] ?? '';
+                        const is24h = detail.toLowerCase().includes('24h');
+                        const hasShower = detail.toLowerCase().includes('shower');
+                        const payAtDoor = detail.toLowerCase().includes('pay');
+                        const includesFood = /food|buffet|meal/i.test(detail);
+                        return { name, price, is24h, hasShower, payAtDoor, includesFood };
+                      });
+
+                    return (
+                      <div className="mt-4 rounded-2xl overflow-hidden" style={{ border: '1px solid #1E3A5F' }}>
+                        {/* Header */}
+                        <div className="relative overflow-hidden" style={{ minHeight: 90 }}>
+                          {/* City image backdrop (first airport with image) */}
+                          {(() => {
+                            const withImg = airports.find(a => a.guide?.cityImage);
+                            if (!withImg?.guide?.cityImage) return null;
+                            return (
+                              <img
+                                src={`https://images.unsplash.com/${withImg.guide.cityImage}?auto=format&fit=crop&w=700&q=80`}
+                                alt={withImg.guide.city}
+                                className="absolute inset-0 w-full h-full object-cover"
+                                style={{ opacity: 0.28 }}
+                              />
+                            );
+                          })()}
+                          <div className="relative px-4 pt-4 pb-3" style={{ background: 'linear-gradient(135deg, rgba(15,41,66,0.96) 0%, rgba(26,60,94,0.92) 100%)' }}>
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <p className="text-sm font-extrabold text-white">🛋️ Airport Lounges on this route</p>
+                                <p className="text-[11px] mt-0.5" style={{ color: '#93C5FD' }}>
+                                  Rest, eat and freshen up at your airports — no Priority Pass needed
+                                </p>
+                              </div>
+                              <span className="text-[9px] font-bold px-2 py-1 rounded-full flex-shrink-0 ml-2"
+                                style={{ background: '#1D4ED8', color: '#BFDBFE', border: '1px solid #2563EB' }}>
+                                ONLY ON CHEAPSTAY
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Per-airport lounge cards */}
+                        <div className="p-3 space-y-3" style={{ background: '#F8FAFC' }}>
+                          {airports.map(({ code, guide }, ai) => {
+                            const isLayover = offer.segments.slice(0, -1).some(s => s.arrCode === code);
+                            const isArrival = offer.segments[offer.segments.length - 1].arrCode === code;
+                            const role = isArrival ? 'Arrival' : isLayover ? 'Layover' : 'Departure';
+                            const roleColor = isLayover
+                              ? { bg: '#FEF9C3', text: '#92400E' }
+                              : isArrival
+                              ? { bg: '#EFF6FF', text: '#1D4ED8' }
+                              : { bg: '#ECFDF5', text: '#15803D' };
+                            const lounges = parseLoungesInline(guide!.lounges!);
+
+                            return (
+                              <div key={code} className="bg-white rounded-xl overflow-hidden" style={{ border: '1px solid #E2E8F0', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+                                {/* Airport row with optional city image strip */}
+                                {guide!.cityImage && (
+                                  <div className="relative h-20 overflow-hidden">
+                                    <img
+                                      src={`https://images.unsplash.com/${guide!.cityImage}?auto=format&fit=crop&w=600&h=120&q=80`}
+                                      alt={guide!.city}
+                                      className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.1) 100%)' }} />
+                                    <div className="absolute bottom-2 left-3 flex items-center gap-2">
+                                      <span className="text-lg">{guide!.flag}</span>
+                                      <div>
+                                        <p className="text-sm font-extrabold text-white leading-none">{guide!.city}</p>
+                                        <p className="text-[10px] text-white/70">{code} · {guide!.airport}</p>
+                                      </div>
+                                      <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                        style={{ background: roleColor.bg, color: roleColor.text }}>
+                                        {role}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                                {!guide!.cityImage && (
+                                  <div className="flex items-center gap-2 px-3 py-2.5" style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                    <span className="text-lg">{guide!.flag}</span>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-sm font-bold text-gray-900">{code}</p>
+                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                                          style={{ background: roleColor.bg, color: roleColor.text }}>{role}</span>
+                                      </div>
+                                      <p className="text-[10px] text-gray-400">{guide!.airport}</p>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Lounge list */}
+                                <div className="p-3 space-y-2">
+                                  {lounges.map((l, li) => (
+                                    <div key={li} className="flex items-start justify-between gap-3 py-2 px-3 rounded-lg" style={{ background: '#F8FAFC', border: '1px solid #EEF2F7' }}>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-gray-900 truncate">{l.name}</p>
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                          {l.payAtDoor && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF9C3', color: '#92400E' }}>💳 Walk-in</span>}
+                                          {l.is24h && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#EFF6FF', color: '#1D4ED8' }}>🕐 24h</span>}
+                                          {l.hasShower && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#F0F9FF', color: '#0369A1' }}>🚿 Shower</span>}
+                                          {l.includesFood && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#FFF7ED', color: '#C2410C' }}>🍽️ Food</span>}
+                                        </div>
+                                      </div>
+                                      {l.price && (
+                                        <div className="text-right flex-shrink-0">
+                                          <span className="text-base font-extrabold" style={{ color: '#1D9E75' }}>{l.price}</span>
+                                          <p className="text-[9px] text-gray-400">per person</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
                   </div>
                 )}
               </div>

@@ -5,6 +5,7 @@ export interface LayoverGuide {
   tips: { icon: string; title: string; desc: string }[];
   lounges?: string;
   transitVisa?: string;
+  cityImage?: string; // Unsplash photo ID
 }
 
 const GUIDES: Record<string, LayoverGuide> = {
@@ -34,6 +35,7 @@ const GUIDES: Record<string, LayoverGuide> = {
     airport: 'John F. Kennedy International Airport',
     city: 'New York',
     flag: '🇺🇸',
+    cityImage: 'photo-1496442226666-8d4d0e62e6e9',
     lounges: 'The Centurion Lounge T4 (Amex Platinum/pay ~$50); Delta Sky Club T4 (Delta card/SkyMiles); TWA Hotel rooftop (non-lounge, pay)',
     tips: [
       { icon: '🗽', title: 'NYC in 60 min', desc: 'AirTrain to Jamaica, then LIRR or subway to Manhattan — ~$12 total. Uber is $60–90.' },
@@ -56,6 +58,7 @@ const GUIDES: Record<string, LayoverGuide> = {
     airport: 'Rio de Janeiro–Galeão International Airport',
     city: 'Rio de Janeiro',
     flag: '🇧🇷',
+    cityImage: 'photo-1483729558449-99ef09a8c325',
     lounges: 'Gol Smiles Lounge T1 (Gol members/pay ~$30); VIP Lounge T2 (pay ~$30, includes buffet)',
     tips: [
       { icon: '🏖️', title: 'Copacabana is 45 min', desc: 'Taxi or app (99/Uber) to Zona Sul is R$80–120. BRT bus from airport is cheap but slow.' },
@@ -118,6 +121,7 @@ const GUIDES: Record<string, LayoverGuide> = {
     airport: 'Suvarnabhumi Airport',
     city: 'Bangkok',
     flag: '🇹🇭',
+    cityImage: 'photo-1528360983277-13d401cdc186',
     lounges: 'Coral Executive Lounge (airside, pay at door ~$35)',
     transitVisa: 'Transit visa-free up to 24h for most passports',
     tips: [
@@ -143,6 +147,7 @@ const GUIDES: Record<string, LayoverGuide> = {
     airport: 'Dubai International',
     city: 'Dubai',
     flag: '🇦🇪',
+    cityImage: 'photo-1512453979798-5ea266f8880c',
     lounges: 'Marhaba Lounge (pay ~$50); free if flying Emirates Business+',
     transitVisa: 'Free 48h transit visa for most nationalities if connecting via Emirates',
     tips: [
@@ -157,6 +162,7 @@ const GUIDES: Record<string, LayoverGuide> = {
     airport: 'Changi Airport',
     city: 'Singapore',
     flag: '🇸🇬',
+    cityImage: 'photo-1525625293386-3f8f99389edd',
     lounges: 'Ambassador Transit Lounge (24h, pay ~$35, includes food and shower)',
     transitVisa: 'Most passports get free 96h transit without a visa',
     tips: [
@@ -199,6 +205,7 @@ const GUIDES: Record<string, LayoverGuide> = {
     airport: 'London Heathrow',
     city: 'London',
     flag: '🇬🇧',
+    cityImage: 'photo-1513635269975-59663e0ac1ad',
     lounges: 'No1 Lounge T2/T3 (pay ~$60); Plaza Premium (T2/T3/T4, pay)',
     transitVisa: 'UK Transit Visa required for some nationalities — check before you fly',
     tips: [
@@ -239,6 +246,7 @@ const GUIDES: Record<string, LayoverGuide> = {
     airport: 'Paris Charles de Gaulle',
     city: 'Paris',
     flag: '🇫🇷',
+    cityImage: 'photo-1502602898657-3e91760cbb34',
     lounges: 'Air France Salon (pay for non-AF pax); Club CDG (pay)',
     tips: [
       { icon: '🥐', title: 'Croissant & espresso', desc: 'Multiple proper French café/bakeries airside. Get a proper café crème and croissant. Non-negotiable.' },
@@ -251,6 +259,7 @@ const GUIDES: Record<string, LayoverGuide> = {
     airport: 'Tokyo Narita',
     city: 'Tokyo',
     flag: '🇯🇵',
+    cityImage: 'photo-1540959733332-eab4deabeeaf',
     lounges: 'IASS Executive Lounge (pay ~$30 with shower)',
     transitVisa: 'Most nationalities can transit without visa for 24–72h',
     tips: [
