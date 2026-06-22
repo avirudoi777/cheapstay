@@ -679,10 +679,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         </div>
                       </div>
 
-                      {/* Nationality — single field: dropdown if saved passports, otherwise text input */}
+                      {/* Nationality — passport dropdown only when a saved passport is selected; text input otherwise */}
                       <div className="mb-3">
                         <Field label="Nationality *">
-                          {savedProfile && savedProfile.passports.length > 0 ? (
+                          {savedProfile && savedProfile.passports.length > 0 && selectedPassportIds[idx] !== '' && selectedPassportIds[idx] !== '__manual__' ? (
                             <select
                               value={selectedPassportIds[idx] ?? ''}
                               onChange={e => {
@@ -705,11 +705,6 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           ) : (
                             <input value={paxForm.passportCountry} onChange={e => updatePassenger(idx, 'passportCountry', e.target.value.toUpperCase())}
                               placeholder="e.g. US, TH, GB" maxLength={2} className={inputCls} />
-                          )}
-                          {/* Manual override text input shown when user chose "Enter manually" */}
-                          {selectedPassportIds[idx] === '__manual__' && (
-                            <input value={paxForm.passportCountry} onChange={e => updatePassenger(idx, 'passportCountry', e.target.value.toUpperCase())}
-                              placeholder="e.g. US, TH, GB" maxLength={2} className={inputCls + ' mt-2'} />
                           )}
                           {paxErrors.passportCountry && <p className="text-xs text-red-500 mt-0.5">{paxErrors.passportCountry}</p>}
                         </Field>
