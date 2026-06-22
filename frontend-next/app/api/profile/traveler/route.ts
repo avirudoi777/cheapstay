@@ -87,7 +87,13 @@ export async function POST(req: NextRequest) {
   const { error } = await supabase
     .from('user_profiles')
     .upsert({ id: user.id, traveler_profile: travelerProfile });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    // Column likely not created yet — tell the user exactly what SQL to run
+    const msg = error.message.includes('traveler_profile') || error.message.includes('column')
+      ? 'traveler_profile column missing — run migration: ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS traveler_profile JSONB;'
+      : error.message;
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

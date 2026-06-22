@@ -90,30 +90,33 @@ export default function AccountPage() {
         setAvatarUrl(meta?.avatar_url || '');
       }
 
-      // Load traveler profile (sensitive fields decrypted server-side)
-      const tpRes = await fetch('/api/profile/traveler');
-      if (tpRes.ok) {
-        const tp = await tpRes.json();
-        if (tp.givenName)  setGivenName(tp.givenName);
-        if (tp.familyName) setFamilyName(tp.familyName);
-        if (tp.title)      setTravTitle(tp.title);
-        if (tp.gender)     setTravGender(tp.gender);
-        if (tp.bornOn)     setBornOn(tp.bornOn);
-        if (tp.phone)      setPhoneNumber(tp.phone);
+      // Build legacy passport list from existing nationality data
+      const legacyCodes: string[] = profile?.passport_nationalities?.length
+        ? profile.passport_nationalities
+        : profile?.passport_nationality ? [profile.passport_nationality] : [];
+      const legacyPassports = legacyCodes.slice(0, 3).map((code: string) => ({
+        id: code + '_legacy', country: code, label: code, passportNumber: '', passportExpiry: '',
+      }));
 
-        if (tp.passports?.length) {
-          setTravPassports(tp.passports);
+      // Load traveler profile (sensitive fields decrypted server-side)
+      try {
+        const tpRes = await fetch('/api/profile/traveler');
+        if (tpRes.ok) {
+          const tp = await tpRes.json();
+          if (tp.givenName)  setGivenName(tp.givenName);
+          if (tp.familyName) setFamilyName(tp.familyName);
+          if (tp.title)      setTravTitle(tp.title);
+          if (tp.gender)     setTravGender(tp.gender);
+          if (tp.bornOn)     setBornOn(tp.bornOn);
+          if (tp.phone)      setPhoneNumber(tp.phone);
+          // Use saved passports if available, otherwise fall back to legacy nationality chips
+          setTravPassports(tp.passports?.length ? tp.passports : legacyPassports);
         } else {
-          // Migrate legacy passport_nationalities → empty passport entries
-          const legacyCodes: string[] = profile?.passport_nationalities?.length
-            ? profile.passport_nationalities
-            : profile?.passport_nationality ? [profile.passport_nationality] : [];
-          if (legacyCodes.length) {
-            setTravPassports(legacyCodes.slice(0, 3).map((code: string) => ({
-              id: code + '_legacy', country: code, label: code, passportNumber: '', passportExpiry: '',
-            })));
-          }
+          // API unavailable (traveler_profile column may not exist yet) — load legacy
+          if (legacyPassports.length) setTravPassports(legacyPassports);
         }
+      } catch {
+        if (legacyPassports.length) setTravPassports(legacyPassports);
       }
     });
   }, [router]);
@@ -157,10 +160,13 @@ export default function AccountPage() {
       preferred_regions: regions,
       budget_range: budget,
       trips_per_year: trips,
-      passport_nationality: nationalities[0] || null,
-      passport_nationalities: nationalities.length ? nationalities : null,
       onboarding_done: true,
     };
+    // Only write nationality fields if we actually have passport data — never null out existing data
+    if (nationalities.length) {
+      payload.passport_nationality = nationalities[0];
+      payload.passport_nationalities = nationalities;
+    }
 
     const { error: upsertError } = await supabase.from('user_profiles').upsert(payload);
 
@@ -178,14 +184,27 @@ export default function AccountPage() {
     }
 
     // Save traveler profile (encrypted fields handled server-side)
-    await fetch('/api/profile/traveler', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: travTitle, givenName, familyName, gender: travGender,
-        bornOn, phone: phoneNumber, passports: travPassports,
-      }),
-    });
+    try {
+      const tpSaveRes = await fetch('/api/profile/traveler', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: travTitle, givenName, familyName, gender: travGender,
+          bornOn, phone: phoneNumber, passports: travPassports,
+        }),
+      });
+      if (!tpSaveRes.ok) {
+        const tpErr = await tpSaveRes.json().catch(() => ({}));
+        // If column doesn't exist yet, show a helpful reminder
+        if (tpErr.error?.includes('traveler_profile') || tpErr.error?.includes('column')) {
+          setError('Run the Supabase migration first: ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS traveler_profile JSONB;');
+          setSaving(false); return;
+        }
+        if (tpErr.error) { setError('Flight profile: ' + tpErr.error); setSaving(false); return; }
+      }
+    } catch {
+      // Silently ignore network errors for the secondary save — main profile already saved
+    }
 
     await supabase.auth.updateUser({ data: { full_name: displayName } });
     setSaving(false);
