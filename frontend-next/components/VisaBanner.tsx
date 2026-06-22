@@ -32,7 +32,7 @@ const VACCINATION_INFO: Record<string, { label: string; detail: string }> = {
 function OfficialLink({ destCode }: { destCode: string }) {
   const links: Record<string, string> = {
     TH: 'https://www.thaiembassy.com/thailand-visa/thai-visa-exemption',
-    ID: 'https://molina.imigrasi.go.id/',
+    ID: 'https://evoa.imigrasi.go.id/',
     JP: 'https://www.mofa.go.jp/j_info/visit/visa/index.html',
     SG: 'https://www.ica.gov.sg/enter-transit-depart/entering-singapore',
     MY: 'https://www.imi.gov.my/',
