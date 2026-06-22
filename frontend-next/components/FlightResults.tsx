@@ -103,6 +103,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [scope, setScope] = useState<'exact' | 'month' | 'open' | ''>('');
+  const [expanded, setExpanded] = useState<number | null>(null);
 
   const fallbackUrl = (() => {
     const p = new URLSearchParams({ origin: fromCode, destination: toCode, depart_date: depart, adults: '1', marker: '537802' });
@@ -271,7 +272,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     <span>★</span> Cheapest option
                   </div>
                 )}
-                <div className="p-5">
+                <div className="p-5 pb-0">
                   <div className="flex items-center gap-3 sm:gap-5">
                     {/* Departure */}
                     <div className="text-center min-w-[52px]">
@@ -293,9 +294,16 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         }
                         <div className="h-px flex-1 bg-gray-200" />
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {offer.transfers === 0 ? 'Direct' : `${offer.transfers} stop${offer.transfers > 1 ? 's' : ''}`}
-                      </p>
+                      {offer.transfers === 0 ? (
+                        <p className="text-xs text-gray-400 mt-1">Direct</p>
+                      ) : (
+                        <button
+                          onClick={() => setExpanded(expanded === i ? null : i)}
+                          className="text-xs mt-1 font-semibold hover:underline transition-colors"
+                          style={{ color: expanded === i ? '#1D9E75' : '#6b7280' }}>
+                          {offer.transfers} stop{offer.transfers > 1 ? 's' : ''} {expanded === i ? '▲' : '▼'}
+                        </button>
+                      )}
                     </div>
 
                     {/* Arrival */}
@@ -320,6 +328,21 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     </div>
                   </div>
                 </div>
+
+                {/* Expanded layover details */}
+                {expanded === i && offer.transfers > 0 && (
+                  <div className="px-5 pb-4 pt-3 border-t border-gray-100 flex items-center gap-2">
+                    <span className="text-sm">🔄</span>
+                    <p className="text-xs text-gray-500 flex-1">
+                      Layover airports are not available in the price preview.
+                    </p>
+                    <a href={bookUrl} target="_blank" rel="noopener noreferrer"
+                      className="text-xs font-bold whitespace-nowrap hover:underline flex-shrink-0"
+                      style={{ color: '#1D9E75' }}>
+                      See full itinerary on Aviasales →
+                    </a>
+                  </div>
+                )}
               </div>
             );
           })}

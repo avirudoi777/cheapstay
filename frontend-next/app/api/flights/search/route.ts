@@ -8,9 +8,11 @@ async function get(url: string) {
   return res.json();
 }
 
-function normalize(f: Record<string, unknown>, from: string, to: string): Record<string, unknown> {
+type Offer = Record<string, unknown>;
+
+function normalize(f: Offer, from: string, to: string): Offer {
   // departure_at from v2 can be "YYYY-MM" (month only) — append -01 to make it parseable
-  let depAt = typeof f.departure_at === 'string' ? f.departure_at : undefined;
+  let depAt = typeof f.departure_at === 'string' && f.departure_at ? f.departure_at : undefined;
   if (depAt && /^\d{4}-\d{2}$/.test(depAt)) depAt = depAt + '-01';
   return {
     ...f,
@@ -20,6 +22,11 @@ function normalize(f: Record<string, unknown>, from: string, to: string): Record
     transfers: typeof f.transfers === 'number' ? f.transfers : (typeof f.number_of_changes === 'number' ? f.number_of_changes : 0),
     duration: typeof f.duration === 'number' ? f.duration : 0,
   };
+}
+
+// Drop entries with missing or zero price — these are partial cache placeholders
+function hasPrice(f: Offer): boolean {
+  return typeof f.price === 'number' && f.price > 0;
 }
 
 export async function GET(req: NextRequest) {
@@ -46,8 +53,8 @@ export async function GET(req: NextRequest) {
     if (ret) q1.set('return_at', ret);
     const r1 = await get(`${TP_BASE}/aviasales/v3/prices_for_dates?${q1}`);
     if (r1?.data?.length) {
-      const data = (r1.data as Record<string, unknown>[]).map(f => normalize(f, from, to));
-      return NextResponse.json({ success: true, data, scope: 'exact' });
+      const data = (r1.data as Offer[]).map(f => normalize(f, from, to)).filter(hasPrice);
+      if (data.length) return NextResponse.json({ success: true, data, scope: 'exact' });
     }
 
     // 2. prices_for_dates — whole month
@@ -55,43 +62,49 @@ export async function GET(req: NextRequest) {
     if (retMonth) q2.set('return_at', retMonth);
     const r2 = await get(`${TP_BASE}/aviasales/v3/prices_for_dates?${q2}`);
     if (r2?.data?.length) {
-      const data = (r2.data as Record<string, unknown>[]).map(f => normalize(f, from, to));
-      return NextResponse.json({ success: true, data, scope: 'month' });
+      const data = (r2.data as Offer[]).map(f => normalize(f, from, to)).filter(hasPrice);
+      if (data.length) return NextResponse.json({ success: true, data, scope: 'month' });
     }
 
     // 3. v2/prices/latest — recent cached prices, no date filter
     // Response: { data: { "GIG-BOG": { price, airline, number_of_changes, departure_at "YYYY-MM", ... } } }
     const q3 = new URLSearchParams({ origin: from, destination: to, period_type: 'year', one_way: ret ? 'false' : 'true', currency: 'usd', limit: '20', sorting: 'price', token });
     const r3 = await get(`${TP_BASE}/v2/prices/latest?${q3}`);
-    const latest: unknown[] = [];
     if (r3?.data && typeof r3.data === 'object') {
-      for (const flight of Object.values(r3.data as Record<string, unknown>)) {
-        if (flight && typeof flight === 'object') {
-          latest.push(normalize(flight as Record<string, unknown>, from, to));
-        }
-      }
+      const data = Object.values(r3.data as Record<string, Offer>)
+        .filter(f => f && typeof f === 'object')
+        .map(f => normalize(f, from, to))
+        .filter(hasPrice);
+      if (data.length) return NextResponse.json({ success: true, data, scope: 'latest' });
     }
-    if (latest.length) return NextResponse.json({ success: true, data: latest, scope: 'latest' });
 
     // 4. v1/prices/cheap — cheapest tickets for the month
-    // Response: { data: { "BOG": { "YYYY-MM-DD": { price, airline, number_of_changes, ... } } } }
+    // Response: { data: { "BOG": { "0": {...}, "1": {...} } } }  — keys are transfer counts, NOT dates
+    // (Some routes also use YYYY-MM-DD date keys)
     const q4 = new URLSearchParams({ origin: from, destination: to, depart_date: month, currency: 'usd', token });
     if (retMonth) q4.set('return_date', retMonth);
     const r4 = await get(`${TP_BASE}/v1/prices/cheap?${q4}`);
-    const cheap: unknown[] = [];
+    const cheap: Offer[] = [];
     if (r4?.data && typeof r4.data === 'object') {
       for (const destObj of Object.values(r4.data as Record<string, unknown>)) {
-        if (destObj && typeof destObj === 'object') {
-          for (const [dateKey, flight] of Object.entries(destObj as Record<string, unknown>)) {
-            if (/^\d{4}-\d{2}-\d{2}/.test(dateKey) && flight && typeof flight === 'object') {
-              const f = { ...(flight as Record<string, unknown>), departure_at: dateKey };
-              cheap.push(normalize(f, from, to));
-            }
+        if (!destObj || typeof destObj !== 'object') continue;
+        for (const [key, flight] of Object.entries(destObj as Record<string, unknown>)) {
+          if (!flight || typeof flight !== 'object') continue;
+          const f = { ...(flight as Offer) };
+          if (/^\d{4}-\d{2}-\d{2}/.test(key)) {
+            // Date key — set departure_at from key if not already in object
+            if (!f.departure_at) f.departure_at = key;
+          } else if (/^\d+$/.test(key)) {
+            // Numeric key = transfer count; departure_at is inside the flight object
+          } else {
+            continue;
           }
+          cheap.push(normalize(f, from, to));
         }
       }
     }
-    if (cheap.length) return NextResponse.json({ success: true, data: cheap, scope: 'cheap' });
+    const validCheap = cheap.filter(hasPrice);
+    if (validCheap.length) return NextResponse.json({ success: true, data: validCheap, scope: 'cheap' });
 
     return NextResponse.json({ success: true, data: [], scope: 'none' });
   } catch (err) {
