@@ -511,6 +511,7 @@ export default function HomePage() {
             depart={flightSearch.depart}
             ret={flightSearch.ret}
             onClear={() => setFlightSearch(null)}
+            passportCodes={passportCodes}
           />
         </div>
       )}
@@ -837,8 +838,8 @@ export default function HomePage() {
 
           {/* Author bar */}
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-gray-50 rounded-2xl p-5 mb-8">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>AV</div>
+            <Image src="/avi-profile.jpg" alt="Avi" width={48} height={48}
+              className="w-12 h-12 rounded-full object-cover flex-shrink-0 ring-2 ring-white shadow-sm" />
             <div className="flex-1 text-center sm:text-left">
               <p className="font-bold text-navy text-sm">Avi — Founder &amp; full-time traveler</p>
               <p className="text-xs text-gray-400 mt-0.5 max-w-lg">Been living in hotels across Asia, Middle East &amp; Europe for years. CheapStay started because I got tired of paying too much.</p>

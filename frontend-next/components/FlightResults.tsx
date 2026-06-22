@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import VisaBanner from '@/components/VisaBanner';
 
 interface FlightOffer {
   origin: string;
@@ -22,6 +23,7 @@ interface Props {
   depart: string;
   ret: string;
   onClear: () => void;
+  passportCodes: string[];
 }
 
 const AIRLINES: Record<string, string> = {
@@ -84,7 +86,7 @@ function SkeletonCard() {
   );
 }
 
-export default function FlightResults({ fromCode, toCode, fromName, toName, depart, ret, onClear }: Props) {
+export default function FlightResults({ fromCode, toCode, fromName, toName, depart, ret, onClear, passportCodes }: Props) {
   const [offers, setOffers] = useState<FlightOffer[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -145,6 +147,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           </button>
         </div>
       </div>
+
+      {/* Visa requirements for destination — uses saved passport */}
+      {passportCodes.length > 0 && (
+        <VisaBanner passportCodes={passportCodes} city={toName} />
+      )}
 
       {/* Scope notice — shown when results are not for the exact date */}
       {!loading && offers && scope !== 'exact' && (
@@ -221,6 +228,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             );
             const airlineName = AIRLINES[offer.airline] ?? offer.airline;
             const bookUrl = buildBookUrl(offer);
+            const showDate = scope !== 'exact';
+            const offerDate = showDate
+              ? new Date(offer.departure_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+              : null;
 
             return (
               <div key={i}
@@ -236,6 +247,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     {/* Departure */}
                     <div className="text-center min-w-[52px]">
                       <p className="text-2xl font-extrabold text-gray-900 leading-none tabular-nums">{depTime}</p>
+                      {offerDate && <p className="text-[10px] font-bold mt-0.5" style={{ color: '#F59E0B' }}>{offerDate}</p>}
                       <p className="text-xs font-semibold text-gray-400 mt-0.5">{offer.origin}</p>
                     </div>
 
