@@ -70,6 +70,11 @@ function formatOffer(offer: any) {
       const layover = nextSeg
         ? layoverMin(seg.arriving_at as string, (nextSeg as Record<string, string>).departing_at)
         : '';
+      // Baggage from first passenger (all adults share same allowance)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const paxBaggages = ((seg.passengers as any[])?.[0]?.baggages ?? []) as { type: string; quantity: number }[];
+      const checkedBags = paxBaggages.filter(b => b.type === 'checked').reduce((s, b) => s + b.quantity, 0);
+      const carryOn = paxBaggages.filter(b => b.type === 'carry_on').reduce((s, b) => s + b.quantity, 0);
       return {
         depCode: origin.iata_code,
         depCity: origin.city_name || origin.name,
@@ -83,6 +88,7 @@ function formatOffer(offer: any) {
         duration: parseISODur(seg.duration as string),
         aircraft: aircraft?.name || '',
         layoverAfter: layover,
+        baggage: { checkedBags, carryOn },
       };
     }),
   };

@@ -10,6 +10,7 @@ interface Segment {
   arrCode: string; arrCity: string; arrAt: string;
   airline: string; airlineCode: string; flightNumber: string;
   duration: string; aircraft: string; layoverAfter: string;
+  baggage?: { checkedBags: number; carryOn: number };
 }
 export interface DuffelOffer {
   id: string; expiresAt: string;
@@ -762,6 +763,43 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   className="text-xs font-semibold flex items-center gap-1" style={{ color: '#1A73E8' }}>
                   View flight details &amp; policies ›
                 </a>
+              </div>
+
+              {/* Baggage */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <p className="text-sm font-extrabold text-gray-900 mb-3">🧳 Baggage allowance</p>
+                {offer.segments.map((seg, i) => {
+                  const b = seg.baggage;
+                  const segLabel = offer.segments.length > 1 ? `Segment ${i + 1}: ${seg.depCode}→${seg.arrCode}` : `${seg.depCode} → ${seg.arrCode}`;
+                  return (
+                    <div key={i} className={i > 0 ? 'border-t border-gray-100 pt-2 mt-2' : ''}>
+                      {offer.segments.length > 1 && (
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">{segLabel}</p>
+                      )}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className={b && b.carryOn > 0 ? 'text-emerald-600' : 'text-gray-400'}>
+                            {b && b.carryOn > 0 ? '✓' : '✗'}
+                          </span>
+                          <span className={b && b.carryOn > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}>
+                            {b && b.carryOn > 0 ? `${b.carryOn} carry-on bag included` : 'No carry-on included'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className={b && b.checkedBags > 0 ? 'text-emerald-600' : 'text-gray-400'}>
+                            {b && b.checkedBags > 0 ? '✓' : '✗'}
+                          </span>
+                          <span className={b && b.checkedBags > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}>
+                            {b && b.checkedBags > 0 ? `${b.checkedBags} checked bag${b.checkedBags > 1 ? 's' : ''} included` : 'No checked bag — pay at airport'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {offer.segments.every(s => !s.baggage?.checkedBags) && (
+                  <p className="text-[10px] text-gray-400 mt-2">Tip: buying checked baggage at the airport costs more than pre-purchasing online.</p>
+                )}
               </div>
 
               {/* Price breakdown */}
