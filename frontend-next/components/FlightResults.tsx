@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import VisaBanner from '@/components/VisaBanner';
+import { getLayoverGuide, parseLayoverMinutes, LAYOVER_GUIDE_THRESHOLD_MIN } from '@/lib/layover-guides';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 interface Segment {
@@ -322,13 +323,60 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   <p className="text-xs font-bold text-gray-500">{seg.arrCode}</p>
                 </div>
               </div>
-              {seg.layoverAfter && (
-                <div className="flex justify-center my-2">
-                  <span className="text-[11px] font-semibold px-3 py-1 rounded-lg" style={{ background: '#FEF9C3', color: '#92400E' }}>
-                    🚶 Layover in {offer.segments[i + 1]?.depCode} · {seg.layoverAfter}
-                  </span>
-                </div>
-              )}
+              {seg.layoverAfter && (() => {
+                const nextCode = offer.segments[i + 1]?.depCode ?? '';
+                const mins = parseLayoverMinutes(seg.layoverAfter);
+                const guide = mins >= LAYOVER_GUIDE_THRESHOLD_MIN ? getLayoverGuide(nextCode) : null;
+                return (
+                  <div className="my-3">
+                    <div className="flex justify-center mb-3">
+                      <span className="text-[11px] font-semibold px-3 py-1 rounded-lg" style={{ background: '#FEF9C3', color: '#92400E' }}>
+                        🚶 Layover in {nextCode} · {seg.layoverAfter}
+                      </span>
+                    </div>
+                    {guide && (
+                      <div className="rounded-xl p-4 space-y-3" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                        <div className="flex items-center gap-2">
+                          <span>{guide.flag}</span>
+                          <p className="text-xs font-bold text-gray-700">{guide.airport} · {seg.layoverAfter} to explore</p>
+                        </div>
+                        {guide.transitVisa && (
+                          <p className="text-[11px] text-blue-600 font-semibold">🛂 {guide.transitVisa}</p>
+                        )}
+                        <div className="grid grid-cols-1 gap-1.5">
+                          {guide.tips.slice(0, 3).map((tip, ti) => (
+                            <div key={ti} className="flex items-start gap-2">
+                              <span className="text-sm flex-shrink-0">{tip.icon}</span>
+                              <div>
+                                <p className="text-xs font-bold text-gray-700">{tip.title}</p>
+                                <p className="text-[11px] text-gray-500">{tip.desc}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Revenue: lounge access + eSIM */}
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <a href="https://www.prioritypass.com/en/single-visit"
+                            target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold text-white text-center justify-center"
+                            style={{ background: '#1A3C5E' }}>
+                            🛋️ Lounge access
+                          </a>
+                          <a href="https://saily.com/"
+                            target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold border justify-center"
+                            style={{ color: '#1D9E75', borderColor: '#1D9E75' }}>
+                            📶 Get local eSIM
+                          </a>
+                        </div>
+                        {guide.lounges && (
+                          <p className="text-[10px] text-gray-400">Lounges: {guide.lounges}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           ))}
           <div className="border-t border-gray-100 mt-3 pt-3 flex items-center justify-between">
@@ -663,13 +711,40 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             <p className="text-[11px] font-bold text-gray-500">{seg.arrCode}</p>
                           </div>
                         </div>
-                        {seg.layoverAfter && (
-                          <div className="flex justify-center mt-2 mb-1">
-                            <span className="text-[11px] font-semibold px-3 py-1 rounded-lg" style={{ background: '#FEF9C3', color: '#92400E' }}>
-                              🚶 Layover in {offer.segments[i + 1]?.depCode} · {seg.layoverAfter}
-                            </span>
-                          </div>
-                        )}
+                        {seg.layoverAfter && (() => {
+                          const nextCode = offer.segments[i + 1]?.depCode ?? '';
+                          const mins = parseLayoverMinutes(seg.layoverAfter);
+                          const guide = mins >= LAYOVER_GUIDE_THRESHOLD_MIN ? getLayoverGuide(nextCode) : null;
+                          return (
+                            <div className="mt-2 mb-1">
+                              <div className="flex justify-center mb-2">
+                                <span className="text-[11px] font-semibold px-3 py-1 rounded-lg" style={{ background: '#FEF9C3', color: '#92400E' }}>
+                                  🚶 Layover in {nextCode} · {seg.layoverAfter}
+                                </span>
+                              </div>
+                              {guide && (
+                                <div className="rounded-xl p-3 mx-1 space-y-2" style={{ background: 'white', border: '1px solid #E2E8F0' }}>
+                                  <p className="text-[11px] font-bold text-gray-600">{guide.flag} {guide.airport} layover tips</p>
+                                  <div className="space-y-1">
+                                    {guide.tips.slice(0, 2).map((tip, ti) => (
+                                      <p key={ti} className="text-[10px] text-gray-500">{tip.icon} <span className="font-semibold">{tip.title}</span> — {tip.desc.slice(0, 60)}…</p>
+                                    ))}
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <a href="https://www.prioritypass.com/en/single-visit" target="_blank" rel="noopener noreferrer"
+                                      className="flex-1 text-center text-[10px] font-bold py-1.5 rounded-lg text-white" style={{ background: '#1A3C5E' }}>
+                                      🛋️ Lounge access
+                                    </a>
+                                    <a href="https://saily.com/" target="_blank" rel="noopener noreferrer"
+                                      className="flex-1 text-center text-[10px] font-bold py-1.5 rounded-lg border" style={{ color: '#1D9E75', borderColor: '#1D9E75' }}>
+                                      📶 eSIM
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
