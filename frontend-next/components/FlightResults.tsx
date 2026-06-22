@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import VisaBanner from '@/components/VisaBanner';
 import { getLayoverGuide, parseLayoverMinutes, LAYOVER_GUIDE_THRESHOLD_MIN } from '@/lib/layover-guides';
+import { flagEmoji } from '@/lib/visa-data';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 interface Segment {
@@ -22,6 +23,13 @@ interface PassengerForm {
 }
 interface CardForm {
   name: string; number: string; expiry: string; cvc: string;
+}
+interface SavedPassport {
+  id: string; country: string; label: string; passportNumber: string; passportExpiry: string;
+}
+interface TravelerProfile {
+  title: string; givenName: string; familyName: string; gender: string;
+  bornOn: string; phone: string; passports: SavedPassport[]; email: string;
 }
 
 interface Props {
@@ -73,20 +81,15 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /* ─── Route map SVG ──────────────────────────────────────────────────────── */
-function RouteMap({ offer, fromName, toName }: { offer: DuffelOffer; fromName: string; toName: string }) {
-  const stops = offer.segments.length > 1
-    ? offer.segments.slice(1).map(s => s.depCode)
-    : [];
-  const first = offer.segments[0];
-  const last = offer.segments[offer.segments.length - 1];
-
-  // SVG layout: departure left, arrival right, arc above
+function RouteMap({ fromCode, toCode, fromName, toName, stops = [], duration }: {
+  fromCode: string; toCode: string; fromName: string; toName: string;
+  stops?: string[]; duration?: string;
+}) {
   const W = 500, H = 130;
   const depX = 70, arrX = 430, baseY = 95, arcY = 28;
 
   const stopPoints = stops.map((code, i) => {
     const t = (i + 1) / (stops.length + 1);
-    // Point on the bezier curve at parameter t
     const cx = depX + (arrX - depX) * t;
     const cy = baseY - (baseY - arcY) * Math.sin(Math.PI * t);
     return { code, cx, cy };
@@ -95,37 +98,24 @@ function RouteMap({ offer, fromName, toName }: { offer: DuffelOffer; fromName: s
   return (
     <div className="rounded-2xl overflow-hidden mb-5" style={{ background: 'linear-gradient(135deg, #0a1628, #0f2547)' }}>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
-        {/* Dashed arc */}
-        <path d={`M ${depX} ${baseY} Q 250 ${arcY} ${arrX} ${baseY}`}
-          stroke="rgba(29,158,117,0.5)" strokeWidth="2" fill="none" strokeDasharray="6 4" />
-
-        {/* Solid arc overlay (animated feel) */}
         <path d={`M ${depX} ${baseY} Q 250 ${arcY} ${arrX} ${baseY}`}
           stroke="rgba(29,158,117,0.15)" strokeWidth="8" fill="none" />
-
-        {/* Airplane at midpoint */}
+        <path d={`M ${depX} ${baseY} Q 250 ${arcY} ${arrX} ${baseY}`}
+          stroke="rgba(29,158,117,0.6)" strokeWidth="2" fill="none" strokeDasharray="6 4" />
         <text x="245" y="52" textAnchor="middle" fontSize="18">✈️</text>
-
-        {/* Layover stops */}
         {stopPoints.map(({ code, cx, cy }) => (
           <g key={code}>
             <circle cx={cx} cy={cy} r="4" fill="rgba(255,200,50,0.8)" />
             <text x={cx} y={cy - 8} textAnchor="middle" fontSize="9" fill="rgba(255,200,50,0.9)" fontWeight="bold">{code}</text>
           </g>
         ))}
-
-        {/* Departure */}
         <circle cx={depX} cy={baseY} r="6" fill="#1D9E75" />
         <circle cx={depX} cy={baseY} r="10" fill="none" stroke="#1D9E75" strokeWidth="1.5" strokeOpacity="0.4" />
-        <text x={depX} y={baseY + 18} textAnchor="middle" fontSize="13" fill="white" fontWeight="bold">{first.depCode}</text>
-
-        {/* Arrival */}
+        <text x={depX} y={baseY + 18} textAnchor="middle" fontSize="13" fill="white" fontWeight="bold">{fromCode}</text>
         <circle cx={arrX} cy={baseY} r="6" fill="#1A73E8" />
         <circle cx={arrX} cy={baseY} r="10" fill="none" stroke="#1A73E8" strokeWidth="1.5" strokeOpacity="0.4" />
-        <text x={arrX} y={baseY + 18} textAnchor="middle" fontSize="13" fill="white" fontWeight="bold">{last.arrCode}</text>
-
-        {/* Duration label */}
-        <text x="250" y={arcY - 6} textAnchor="middle" fontSize="10" fill="rgba(255,255,255,0.5)">{offer.totalDuration}</text>
+        <text x={arrX} y={baseY + 18} textAnchor="middle" fontSize="13" fill="white" fontWeight="bold">{toCode}</text>
+        {duration && <text x="250" y={arcY - 6} textAnchor="middle" fontSize="10" fill="rgba(255,255,255,0.5)">{duration}</text>}
       </svg>
       <div className="px-5 pb-4 flex justify-between -mt-2">
         <p className="text-xs text-gray-400">{fromName}</p>
@@ -133,6 +123,24 @@ function RouteMap({ offer, fromName, toName }: { offer: DuffelOffer; fromName: s
         <p className="text-xs text-gray-400">{toName}</p>
       </div>
     </div>
+  );
+}
+
+/* ─── Airline logo ───────────────────────────────────────────────────────── */
+function AirlineLogo({ code, name }: { code: string; name: string }) {
+  return (
+    <img
+      src={`https://images.kiwi.com/airlines/64/${code}.png`}
+      alt={name}
+      width={32} height={32}
+      className="rounded-lg object-contain flex-shrink-0"
+      style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: 3 }}
+      onError={(e) => {
+        const img = e.target as HTMLImageElement;
+        img.style.display = 'none';
+        img.nextElementSibling?.classList.remove('hidden');
+      }}
+    />
   );
 }
 
@@ -168,6 +176,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [searchError, setSearchError] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  // ── Saved traveler profile
+  const [savedProfile, setSavedProfile] = useState<TravelerProfile | null>(null);
+  const [selectedPassportId, setSelectedPassportId] = useState('');
+
   // ── Booking state
   const [selectedOffer, setSelectedOffer] = useState<DuffelOffer | null>(null);
   const [bookStep, setBookStep] = useState<'passenger' | 'payment' | 'confirmed'>('passenger');
@@ -178,6 +190,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [booking, setBooking] = useState(false);
   const [bookingError, setBookingError] = useState('');
   const [confirmation, setConfirmation] = useState<{ reference: string; amount: number; currency: string } | null>(null);
+
+  // Load saved traveler profile for form pre-fill
+  useEffect(() => {
+    fetch('/api/profile/traveler')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data && !data.error) setSavedProfile(data); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setLoading(true); setSearchError(''); setOffers([]);
@@ -199,9 +219,30 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   function startBooking(offer: DuffelOffer) {
     setSelectedOffer(offer);
     setBookStep('passenger');
-    setForm(EMPTY_FORM); setFormErrors({});
+    setFormErrors({});
     setCardForm(EMPTY_CARD); setCardErrors({});
     setBookingError(''); setConfirmation(null);
+
+    if (savedProfile) {
+      const firstPassport = savedProfile.passports[0];
+      setForm({
+        title:           savedProfile.title || 'mr',
+        givenName:       savedProfile.givenName || '',
+        familyName:      savedProfile.familyName || '',
+        gender:          savedProfile.gender || 'm',
+        bornOn:          savedProfile.bornOn || '',
+        email:           savedProfile.email || '',
+        phoneNumber:     savedProfile.phone || '',
+        passportNumber:  firstPassport?.passportNumber || '',
+        passportExpiry:  firstPassport?.passportExpiry || '',
+        passportCountry: firstPassport?.country || '',
+      });
+      setSelectedPassportId(firstPassport?.id || '');
+    } else {
+      setForm(EMPTY_FORM);
+      setSelectedPassportId('');
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -212,6 +253,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   function updateCard(key: keyof CardForm, val: string) {
     setCardForm(f => ({ ...f, [key]: val }));
     setCardErrors(e => ({ ...e, [key]: '' }));
+  }
+
+  function selectPassport(p: SavedPassport) {
+    setSelectedPassportId(p.id);
+    setForm(f => ({ ...f, passportNumber: p.passportNumber, passportExpiry: p.passportExpiry, passportCountry: p.country }));
+    setFormErrors(e => ({ ...e, passportNumber: '', passportExpiry: '', passportCountry: '' }));
   }
 
   function validateForm(): boolean {
@@ -301,7 +348,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         </button>
 
         {/* Route map */}
-        <RouteMap offer={offer} fromName={fromName} toName={toName} />
+        <RouteMap
+          fromCode={offer.segments[0].depCode}
+          toCode={offer.segments[offer.segments.length - 1].arrCode}
+          fromName={fromName} toName={toName}
+          stops={offer.segments.slice(1).map(s => s.depCode)}
+          duration={offer.totalDuration}
+        />
 
         {/* Flight summary */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
@@ -407,6 +460,28 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         {bookStep === 'passenger' && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
             <p className="text-xs text-gray-500">Details must match your passport exactly.</p>
+
+            {/* Passport selector — shown when user has 2+ passports saved */}
+            {savedProfile && savedProfile.passports.length > 1 && (
+              <div className="rounded-xl p-4" style={{ background: '#F0FBF7', border: '1px solid #1D9E75' }}>
+                <p className="text-xs font-bold text-gray-700 mb-2.5">Which passport are you traveling with?</p>
+                <div className="flex flex-col gap-2">
+                  {savedProfile.passports.map(p => (
+                    <button key={p.id} type="button" onClick={() => selectPassport(p)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all ${selectedPassportId === p.id ? 'border-teal bg-white shadow-sm' : 'border-gray-200 bg-white/60 hover:border-teal/50'}`}>
+                      <span className="text-2xl">{flagEmoji(p.country)}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-gray-900">{p.label || p.country}</p>
+                        <p className="text-[11px] text-gray-400">Expires {p.passportExpiry || 'N/A'}</p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedPassportId === p.id ? 'border-teal' : 'border-gray-300'}`}>
+                        {selectedPassportId === p.id && <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#1D9E75' }} />}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="Title">
@@ -563,7 +638,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   if (bookStep === 'confirmed' && confirmation && selectedOffer) {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-6 mb-12">
-        <RouteMap offer={selectedOffer} fromName={fromName} toName={toName} />
+        <RouteMap
+          fromCode={selectedOffer.segments[0].depCode}
+          toCode={selectedOffer.segments[selectedOffer.segments.length - 1].arrCode}
+          fromName={fromName} toName={toName}
+          stops={selectedOffer.segments.slice(1).map(s => s.depCode)}
+          duration={selectedOffer.totalDuration}
+        />
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
           <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4" style={{ background: '#F0FBF7' }}>✅</div>
@@ -694,6 +775,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 {/* Expanded itinerary */}
                 {isExpanded && (
                   <div className="border-t border-gray-100 px-5 py-4 bg-gray-50 space-y-3">
+                    <RouteMap
+                      fromCode={firstSeg.depCode}
+                      toCode={lastSeg.arrCode}
+                      fromName={fromName} toName={toName}
+                      stops={offer.segments.slice(1).map(s => s.depCode)}
+                      duration={offer.totalDuration}
+                    />
                     {offer.segments.map((seg, i) => (
                       <div key={i}>
                         <div className="flex items-center gap-3 text-sm">

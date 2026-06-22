@@ -6,6 +6,14 @@ import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import { COUNTRIES, flagEmoji } from '@/lib/visa-data';
 
+interface TravPassport {
+  id: string;
+  country: string;
+  label: string;
+  passportNumber: string;
+  passportExpiry: string;
+}
+
 const STYLES = [
   { id: 'beach',     label: 'Beach & Islands',   icon: '🏖️' },
   { id: 'city',      label: 'City Breaks',        icon: '🏙️' },
@@ -48,6 +56,15 @@ export default function AccountPage() {
   const [saving, setSaving]       = useState(false);
   const [saved, setSaved]         = useState(false);
   const [error, setError]         = useState('');
+  // Traveler profile — personal info
+  const [givenName, setGivenName]     = useState('');
+  const [familyName, setFamilyName]   = useState('');
+  const [travTitle, setTravTitle]     = useState('mr');
+  const [travGender, setTravGender]   = useState('m');
+  const [bornOn, setBornOn]           = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  // Traveler profile — passports (up to 3)
+  const [travPassports, setTravPassports] = useState<TravPassport[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -76,6 +93,19 @@ export default function AccountPage() {
         }
       } else {
         setAvatarUrl(meta?.avatar_url || '');
+      }
+
+      // Load traveler profile (sensitive fields decrypted server-side)
+      const tpRes = await fetch('/api/profile/traveler');
+      if (tpRes.ok) {
+        const tp = await tpRes.json();
+        if (tp.givenName)  setGivenName(tp.givenName);
+        if (tp.familyName) setFamilyName(tp.familyName);
+        if (tp.title)      setTravTitle(tp.title);
+        if (tp.gender)     setTravGender(tp.gender);
+        if (tp.bornOn)     setBornOn(tp.bornOn);
+        if (tp.phone)      setPhoneNumber(tp.phone);
+        if (tp.passports?.length) setTravPassports(tp.passports);
       }
     });
   }, [router]);
@@ -139,6 +169,16 @@ export default function AccountPage() {
         return;
       }
     }
+
+    // Save traveler profile (encrypted fields handled server-side)
+    await fetch('/api/profile/traveler', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: travTitle, givenName, familyName, gender: travGender,
+        bornOn, phone: phoneNumber, passports: travPassports,
+      }),
+    });
 
     await supabase.auth.updateUser({ data: { full_name: displayName } });
     setSaving(false);
@@ -269,6 +309,116 @@ export default function AccountPage() {
               )}
             </div>
           )}
+        </div>
+
+        {/* Flight profile */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
+          <h3 className="text-sm font-bold text-navy mb-1 flex items-center gap-2">
+            <span>🪪</span> Flight profile
+          </h3>
+          <p className="text-xs text-gray-400 mb-4">Fill once — auto-fills the booking form when you search for flights</p>
+
+          {/* Personal info */}
+          <div className="space-y-3 mb-5">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Title</label>
+                <select value={travTitle} onChange={e => setTravTitle(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 appearance-none">
+                  <option value="mr">Mr</option><option value="ms">Ms</option>
+                  <option value="mrs">Mrs</option><option value="miss">Miss</option><option value="dr">Dr</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Gender</label>
+                <select value={travGender} onChange={e => setTravGender(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 appearance-none">
+                  <option value="m">Male</option><option value="f">Female</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">First name</label>
+                <input value={givenName} onChange={e => setGivenName(e.target.value)}
+                  placeholder="As on passport"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Last name</label>
+                <input value={familyName} onChange={e => setFamilyName(e.target.value)}
+                  placeholder="As on passport"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Date of birth</label>
+              <input type="date" value={bornOn} onChange={e => setBornOn(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Phone (with country code)</label>
+              <input type="tel" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)}
+                placeholder="+1 555 000 0000"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+            </div>
+          </div>
+
+          {/* Passports (up to 3) */}
+          <div>
+            <p className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5">
+              🛂 Passports
+              <span className="text-[10px] font-normal text-gray-400 ml-1">Up to 3 · number &amp; date of birth stored encrypted</span>
+            </p>
+            <div className="space-y-3">
+              {travPassports.map((p, i) => (
+                <div key={p.id} className="rounded-xl p-3 space-y-2.5" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{p.country ? flagEmoji(p.country) : '🛂'}</span>
+                      <p className="text-xs font-bold text-gray-700">Passport {i + 1}</p>
+                    </div>
+                    <button type="button"
+                      onClick={() => setTravPassports(ps => ps.filter(x => x.id !== p.id))}
+                      className="text-xs text-gray-400 hover:text-red-500 transition-colors font-bold px-2 py-0.5 rounded-lg hover:bg-red-50">
+                      Remove
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-gray-500 mb-1">Country (2-letter)</label>
+                      <input value={p.country} onChange={e => setTravPassports(ps => ps.map(x => x.id === p.id ? { ...x, country: e.target.value.toUpperCase().slice(0, 2), label: e.target.value.toUpperCase().slice(0, 2) } : x))}
+                        placeholder="US" maxLength={2}
+                        className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 font-mono uppercase" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-gray-500 mb-1">Expiry date</label>
+                      <input type="date" value={p.passportExpiry}
+                        onChange={e => setTravPassports(ps => ps.map(x => x.id === p.id ? { ...x, passportExpiry: e.target.value } : x))}
+                        className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-gray-500 mb-1">Passport number</label>
+                    <input value={p.passportNumber}
+                      onChange={e => setTravPassports(ps => ps.map(x => x.id === p.id ? { ...x, passportNumber: e.target.value.toUpperCase() } : x))}
+                      placeholder="AB1234567"
+                      className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 font-mono uppercase" />
+                    <p className="text-[10px] text-gray-400 mt-0.5">🔒 Encrypted before saving</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {travPassports.length < 3 && (
+              <button type="button"
+                onClick={() => setTravPassports(ps => [...ps, { id: String(Date.now()), country: '', label: '', passportNumber: '', passportExpiry: '' }])}
+                className="mt-2 w-full py-2.5 rounded-xl border-2 border-dashed text-xs font-bold transition-colors"
+                style={{ borderColor: '#1D9E75', color: '#1D9E75' }}>
+                + Add{travPassports.length === 0 ? ' passport' : ' another passport'}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Travel style */}
