@@ -1,10 +1,17 @@
 export type VisaRequirement = 'visa_free' | 'visa_on_arrival' | 'e_visa' | 'embassy_visa' | 'entry_restricted';
 
+export interface PreEntryForm {
+  name: string;
+  deadline: string;
+  url: string;
+}
+
 export interface VisaEntry {
   requirement: VisaRequirement;
   duration?: string;
   notes?: string;
   vaccinations?: string[];
+  preEntryForms?: PreEntryForm[];
 }
 
 export interface Country {
@@ -276,7 +283,7 @@ export const CITY_TO_COUNTRY: Record<string, string> = {
 // Key: `${passportISO}-${destinationISO}`
 export const VISA_DATA: Record<string, VisaEntry> = {
   // ── US passport ──────────────────────────────────────────────────────
-  'US-TH': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival. Extension to 30 more days possible at immigration office.' },
+  'US-TH': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival. Extension to 30 more days possible at immigration office.', vaccinations: ['yellow_fever'], preEntryForms: [{ name: 'Thailand Digital Arrival Card (TDAC)', deadline: 'Within 72 hours before arrival', url: 'https://tdac.immigration.go.th' }] },
   'US-ID': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival (Bali, Jakarta). Extension to 60 days available at immigration.' },
   'US-JP': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required. Register for Visit Japan Web for faster clearance.' },
   'US-SG': { requirement: 'visa_free', duration: '30 days', notes: 'No visa required.' },
@@ -298,7 +305,7 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'US-TZ': { requirement: 'visa_on_arrival', duration: '90 days', notes: 'Visa on arrival ($50 single) or online e-visa.' },
   'US-MX': { requirement: 'visa_free', duration: '180 days', notes: 'No visa required. FMM tourist card issued on arrival (often included in airfare).' },
   'US-BR': { requirement: 'visa_free', duration: '90 days', notes: 'Visa-free since 2024.', vaccinations: ['yellow_fever'] },
-  'US-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
+  'US-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'], preEntryForms: [{ name: 'CheckMig', deadline: 'Within 72 hours before arrival', url: 'https://apps.migracioncolombia.gov.co/pre-registro' }] },
   'US-PE': { requirement: 'visa_free', duration: '183 days', notes: 'No visa required.' },
   'US-AR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.' },
   'US-FR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa for 90 days in any 180-day Schengen period.' },
@@ -321,7 +328,7 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'US-CA': { requirement: 'visa_free', duration: 'No limit', notes: 'No visa required for US citizens entering Canada.' },
 
   // ── UK passport ──────────────────────────────────────────────────────
-  'GB-TH': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival.' },
+  'GB-TH': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival.', vaccinations: ['yellow_fever'], preEntryForms: [{ name: 'Thailand Digital Arrival Card (TDAC)', deadline: 'Within 72 hours before arrival', url: 'https://tdac.immigration.go.th' }] },
   'GB-ID': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival.' },
   'GB-JP': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.' },
   'GB-SG': { requirement: 'visa_free', duration: '30 days', notes: 'No visa required.' },
@@ -335,7 +342,7 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'GB-US': { requirement: 'e_visa', duration: '90 days', notes: 'ESTA required ($21). Apply at esta.cbp.dhs.gov before travel.' },
   'GB-CN': { requirement: 'visa_free', duration: '15 days', notes: '15-day visa-free for UK passport holders (2024 policy).' },
   'GB-BR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
-  'GB-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
+  'GB-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'], preEntryForms: [{ name: 'CheckMig', deadline: 'Within 72 hours before arrival', url: 'https://apps.migracioncolombia.gov.co/pre-registro' }] },
   'GB-TR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.' },
   'GB-EG': { requirement: 'visa_on_arrival', duration: '30 days', notes: 'Visa on arrival $25 or e-visa.' },
   'GB-ZA': { requirement: 'visa_free', duration: '30 days', notes: 'No visa required.' },
@@ -353,7 +360,7 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'GB-NP': { requirement: 'visa_on_arrival', duration: '15–90 days', notes: 'Visa on arrival. 15 days $30, 30 days $50, 90 days $125.' },
 
   // ── Australian passport ───────────────────────────────────────────────
-  'AU-TH': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival.' },
+  'AU-TH': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival.', vaccinations: ['yellow_fever'], preEntryForms: [{ name: 'Thailand Digital Arrival Card (TDAC)', deadline: 'Within 72 hours before arrival', url: 'https://tdac.immigration.go.th' }] },
   'AU-ID': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival.' },
   'AU-JP': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.' },
   'AU-SG': { requirement: 'visa_free', duration: '30 days', notes: 'No visa required.' },
@@ -366,7 +373,7 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'AU-NZ': { requirement: 'visa_free', duration: 'Indefinite', notes: 'No visa required. NZ citizens have special travel rights.' },
   'AU-KH': { requirement: 'visa_on_arrival', duration: '30 days', notes: 'Visa on arrival $30 or e-visa $36.' },
   'AU-BR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
-  'AU-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
+  'AU-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'], preEntryForms: [{ name: 'CheckMig', deadline: 'Within 72 hours before arrival', url: 'https://apps.migracioncolombia.gov.co/pre-registro' }] },
   'AU-CN': { requirement: 'visa_free', duration: '15 days', notes: '15-day visa-free (2024 policy).' },
   'AU-ZA': { requirement: 'visa_free', duration: '30 days', notes: 'No visa required.' },
   'AU-MV': { requirement: 'visa_free', duration: '30 days', notes: 'Free on arrival.' },
@@ -383,7 +390,7 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'AU-KE': { requirement: 'e_visa', duration: '90 days', notes: 'e-Visa required at evisa.go.ke.' },
 
   // ── Canadian passport ─────────────────────────────────────────────────
-  'CA-TH': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival.' },
+  'CA-TH': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival.', vaccinations: ['yellow_fever'], preEntryForms: [{ name: 'Thailand Digital Arrival Card (TDAC)', deadline: 'Within 72 hours before arrival', url: 'https://tdac.immigration.go.th' }] },
   'CA-ID': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival.' },
   'CA-JP': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.' },
   'CA-SG': { requirement: 'visa_free', duration: '30 days', notes: 'No visa required.' },
@@ -396,7 +403,7 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'CA-AU': { requirement: 'e_visa', duration: '12 months', notes: 'eTA required (AUD$20).' },
   'CA-NZ': { requirement: 'visa_free', duration: '6 months', notes: 'No visa required.' },
   'CA-BR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
-  'CA-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
+  'CA-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'], preEntryForms: [{ name: 'CheckMig', deadline: 'Within 72 hours before arrival', url: 'https://apps.migracioncolombia.gov.co/pre-registro' }] },
   'CA-MX': { requirement: 'visa_free', duration: '180 days', notes: 'No visa required.' },
   'CA-KH': { requirement: 'visa_on_arrival', duration: '30 days', notes: 'Visa on arrival $30 or e-visa $36.' },
   'CA-CN': { requirement: 'visa_free', duration: '15 days', notes: '15-day visa-free (2024 policy).' },
@@ -413,7 +420,7 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'CA-KE': { requirement: 'e_visa', duration: '90 days', notes: 'e-Visa required at evisa.go.ke.' },
 
   // ── Israeli passport ──────────────────────────────────────────────────
-  'IL-TH': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival.' },
+  'IL-TH': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival.', vaccinations: ['yellow_fever'], preEntryForms: [{ name: 'Thailand Digital Arrival Card (TDAC)', deadline: 'Within 72 hours before arrival', url: 'https://tdac.immigration.go.th' }] },
   'IL-ID': { requirement: 'visa_free', duration: '30 days', notes: 'Visa-free on arrival.' },
   'IL-JP': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.' },
   'IL-SG': { requirement: 'visa_free', duration: '30 days', notes: 'No visa required.' },
@@ -429,7 +436,7 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'IL-GB': { requirement: 'visa_free', duration: '6 months', notes: 'No visa required.' },
   'IL-AU': { requirement: 'e_visa', duration: '12 months', notes: 'eTA required (AUD$20).' },
   'IL-BR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
-  'IL-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
+  'IL-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'], preEntryForms: [{ name: 'CheckMig', deadline: 'Within 72 hours before arrival', url: 'https://apps.migracioncolombia.gov.co/pre-registro' }] },
   'IL-FR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa for 90 days in Schengen area.' },
   'IL-DE': { requirement: 'visa_free', duration: '90 days', notes: 'No visa for 90 days in Schengen area.' },
   'IL-IT': { requirement: 'visa_free', duration: '90 days', notes: 'No visa for 90 days in Schengen area.' },

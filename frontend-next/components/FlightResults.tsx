@@ -128,6 +128,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     fetch(`/api/flights/search?${qs}`)
       .then(r => r.json())
       .then(json => {
+        if (json.data?.length) console.log('[flights] scope:', json.scope, 'sample:', JSON.stringify(json.data[0]));
         if (json.error === 'no_token')       setError('no_token');
         else if (json.error)                 setError('search_failed');
         else if (!json.data?.length)         setError('no_results');

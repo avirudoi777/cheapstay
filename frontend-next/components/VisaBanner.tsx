@@ -1,5 +1,5 @@
 'use client';
-import { getVisaInfo, getDestinationCountry, getCountryName, flagEmoji, type VisaEntry, type VisaRequirement } from '@/lib/visa-data';
+import { getVisaInfo, getDestinationCountry, getCountryName, flagEmoji, type VisaEntry, type VisaRequirement, type PreEntryForm } from '@/lib/visa-data';
 
 interface Props {
   passportCodes: string[];
@@ -140,6 +140,27 @@ export default function VisaBanner({ passportCodes, city }: Props) {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Pre-entry forms */}
+          {best.info.preEntryForms && best.info.preEntryForms.length > 0 && (
+            <div className="mt-2 space-y-1.5">
+              {best.info.preEntryForms.map((form: PreEntryForm) => (
+                <div key={form.name} className="flex items-start gap-2 px-3 py-2 rounded-xl"
+                  style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                  <span className="text-sm flex-shrink-0">📋</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-blue-700">{form.name} required</p>
+                    <p className="text-xs text-blue-600 mt-0.5">Complete online before departure · {form.deadline}</p>
+                    <a href={form.url} target="_blank" rel="noopener noreferrer"
+                      className="text-xs font-semibold underline underline-offset-2 hover:opacity-70 mt-1 inline-block"
+                      style={{ color: '#1D4ED8' }}>
+                      Fill out form →
+                    </a>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
