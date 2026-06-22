@@ -114,28 +114,36 @@ function RouteMap({ fromCode, toCode, fromName, toName, stops = [], duration }: 
   stops?: string[]; duration?: string;
 }) {
   const W = 500, H = 130;
-  const depX = 70, arrX = 430, baseY = 95, arcY = 28;
+  const depX = 70, arrX = 430, baseY = 95, cpY = 28; // cpY = Bezier control point Y
 
+  // Place dots ON the actual quadratic Bezier curve (not the control point apex)
   const stopPoints = stops.map((code, i) => {
     const t = (i + 1) / (stops.length + 1);
-    const cx = depX + (arrX - depX) * t;
-    const cy = baseY - (baseY - arcY) * Math.sin(Math.PI * t);
+    const cx = (1-t)*(1-t)*depX + 2*(1-t)*t*250 + t*t*arrX;
+    const cy = (1-t)*(1-t)*baseY + 2*(1-t)*t*cpY  + t*t*baseY;
     return { code, cx, cy };
   });
+
+  // Bezier midpoint for the plane icon (t=0.5 → y≈62)
+  const planeY = 0.25*baseY + 0.5*cpY + 0.25*baseY;
 
   return (
     <div className="rounded-2xl overflow-hidden mb-5" style={{ background: 'linear-gradient(135deg, #0a1628, #0f2547)' }}>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
-        <path d={`M ${depX} ${baseY} Q 250 ${arcY} ${arrX} ${baseY}`}
+        <path d={`M ${depX} ${baseY} Q 250 ${cpY} ${arrX} ${baseY}`}
           stroke="rgba(29,158,117,0.15)" strokeWidth="8" fill="none" />
-        <path d={`M ${depX} ${baseY} Q 250 ${arcY} ${arrX} ${baseY}`}
+        <path d={`M ${depX} ${baseY} Q 250 ${cpY} ${arrX} ${baseY}`}
           stroke="rgba(29,158,117,0.6)" strokeWidth="2" fill="none" strokeDasharray="6 4" />
-        <text x="245" y="52" textAnchor="middle" fontSize="18">✈️</text>
+        {/* Plane only on direct flights — stop dots replace it on connecting flights */}
+        {stops.length === 0 && (
+          <text x="250" y={planeY - 4} textAnchor="middle" fontSize="18">✈️</text>
+        )}
         {stopPoints.map(({ code, cx, cy }) => (
           <g key={code}>
-            <circle cx={cx} cy={cy} r="5" fill="rgba(255,200,50,0.9)" />
-            {/* Label goes BELOW the dot — avoids collision with plane/duration */}
-            <text x={cx} y={cy + 16} textAnchor="middle" fontSize="9" fill="rgba(255,200,50,0.95)" fontWeight="bold">{code}</text>
+            <circle cx={cx} cy={cy} r="6" fill="rgba(255,200,50,0.9)" />
+            <circle cx={cx} cy={cy} r="10" fill="none" stroke="rgba(255,200,50,0.3)" strokeWidth="1.5" />
+            {/* Label above the dot — dot is on the arc so label sits in clear space */}
+            <text x={cx} y={cy - 13} textAnchor="middle" fontSize="10" fill="rgba(255,220,60,1)" fontWeight="bold">{code}</text>
           </g>
         ))}
         <circle cx={depX} cy={baseY} r="6" fill="#1D9E75" />
