@@ -46,13 +46,23 @@ export async function GET(req: NextRequest) {
     if (latest.length) return NextResponse.json({ success: true, data: latest, scope: 'latest' });
 
     // 4. v1/prices/cheap — cheapest tickets for the month
+    // Response: { data: { "DEST": { "YYYY-MM-DD": { price, airline, ... } } } }
     const q4 = new URLSearchParams({ origin: from, destination: to, depart_date: month, currency: 'usd', token });
     if (retMonth) q4.set('return_date', retMonth);
     const r4 = await get(`${TP_BASE}/v1/prices/cheap?${q4}`);
-    const cheap = r4?.data ? Object.values(r4.data as Record<string, unknown>).map((v: unknown) => {
-      const entry = v as Record<string, unknown>;
-      return Object.entries(entry).map(([date, d]) => ({ ...(d as object), departure_at: date, origin: from, destination: to }));
-    }).flat() : [];
+    const cheap: unknown[] = [];
+    if (r4?.data && typeof r4.data === 'object') {
+      for (const destObj of Object.values(r4.data as Record<string, unknown>)) {
+        if (destObj && typeof destObj === 'object') {
+          for (const [dateKey, flight] of Object.entries(destObj as Record<string, unknown>)) {
+            // Only include entries where the key looks like a real date
+            if (/^\d{4}-\d{2}-\d{2}/.test(dateKey) && flight && typeof flight === 'object') {
+              cheap.push({ ...(flight as object), departure_at: dateKey, origin: from, destination: to });
+            }
+          }
+        }
+      }
+    }
     if (cheap.length) return NextResponse.json({ success: true, data: cheap, scope: 'cheap' });
 
     return NextResponse.json({ success: true, data: [], scope: 'none' });

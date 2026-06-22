@@ -42,8 +42,16 @@ const AIRLINES: Record<string, string> = {
   OS: 'Austrian',        SK: 'SAS',                AZ: 'ITA Airways',
 };
 
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
+function validDate(iso: string | undefined | null): Date | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function fmtTime(iso: string | undefined | null): string {
+  const d = validDate(iso);
+  if (!d) return '—';
+  return d.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 function fmtDur(mins: number) {
@@ -241,14 +249,16 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         <div className="space-y-3">
           {offers.map((offer, i) => {
             const depTime = fmtTime(offer.departure_at);
-            const arrTime = fmtTime(
-              new Date(new Date(offer.departure_at).getTime() + offer.duration * 60000).toISOString()
-            );
+            const depD = validDate(offer.departure_at);
+            const arrTime = depD && offer.duration
+              ? fmtTime(new Date(depD.getTime() + offer.duration * 60000).toISOString())
+              : '—';
             const airlineName = AIRLINES[offer.airline] ?? offer.airline;
             const bookUrl = buildBookUrl(offer);
             const showDate = scope !== 'exact';
-            const offerDate = showDate
-              ? new Date(offer.departure_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+            const offerD = validDate(offer.departure_at);
+            const offerDate = showDate && offerD
+              ? offerD.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
               : null;
 
             return (
