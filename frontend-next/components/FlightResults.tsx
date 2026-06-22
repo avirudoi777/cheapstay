@@ -942,6 +942,129 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 </div>
               )}
 
+              {/* Airport lounges — inline below extras on passenger step */}
+              {bookStep === 'passenger' && (() => {
+                const allCodes = Array.from(new Set([
+                  ...offer.segments.map(s => s.depCode),
+                  offer.segments[offer.segments.length - 1].arrCode,
+                ]));
+                const airports = allCodes
+                  .map(code => ({ code, guide: getLayoverGuide(code) }))
+                  .filter(({ guide }) => guide?.lounges);
+                if (!airports.length) return null;
+
+                const parseLounges = (raw: string) =>
+                  raw.split(/;\s*(?=[A-Z])/).map(entry => {
+                    const name = entry.replace(/\s*\(.*/, '').trim();
+                    const detail = entry.match(/\(([^)]+)\)/)?.[1] ?? '';
+                    const price = detail.match(/~?\$\d+/)?.[0] ?? '';
+                    const is24h = detail.toLowerCase().includes('24h');
+                    const hasShower = detail.toLowerCase().includes('shower');
+                    const payAtDoor = detail.toLowerCase().includes('pay');
+                    const includesFood = /food|buffet|meal/i.test(detail);
+                    return { name, price, is24h, hasShower, payAtDoor, includesFood };
+                  });
+
+                return (
+                  <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #1E3A5F' }}>
+                    {/* Header */}
+                    <div className="relative overflow-hidden" style={{ minHeight: 80 }}>
+                      {(() => {
+                        const withImg = airports.find(a => a.guide?.cityImage);
+                        if (!withImg?.guide?.cityImage) return null;
+                        return (
+                          <img
+                            src={`https://images.unsplash.com/${withImg.guide.cityImage}?auto=format&fit=crop&w=700&q=80`}
+                            alt={withImg.guide.city}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            style={{ opacity: 0.22 }}
+                          />
+                        );
+                      })()}
+                      <div className="relative px-5 pt-4 pb-4" style={{ background: 'linear-gradient(135deg, rgba(15,41,66,0.97) 0%, rgba(26,60,94,0.93) 100%)' }}>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-sm font-extrabold text-white">🛋️ Airport Lounges on your route</p>
+                            <p className="text-[11px] mt-0.5" style={{ color: '#93C5FD' }}>
+                              Rest, eat and freshen up at your airports — no Priority Pass needed
+                            </p>
+                          </div>
+                          <span className="text-[9px] font-bold px-2 py-1 rounded-full flex-shrink-0 ml-3"
+                            style={{ background: '#1D4ED8', color: '#BFDBFE', border: '1px solid #2563EB' }}>
+                            ONLY ON CHEAPSTAY
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Per-airport cards */}
+                    <div className="p-4 space-y-4" style={{ background: '#F8FAFC' }}>
+                      {airports.map(({ code, guide }) => {
+                        const isLayover = offer.segments.slice(0, -1).some(s => s.arrCode === code);
+                        const isArrival = offer.segments[offer.segments.length - 1].arrCode === code;
+                        const role = isArrival ? 'Arrival' : isLayover ? 'Layover' : 'Departure';
+                        const roleColor = isLayover ? { bg: '#FEF9C3', text: '#92400E' } : isArrival ? { bg: '#EFF6FF', text: '#1D4ED8' } : { bg: '#ECFDF5', text: '#15803D' };
+                        const lounges = parseLounges(guide!.lounges!);
+                        return (
+                          <div key={code} className="bg-white rounded-xl overflow-hidden" style={{ border: '1px solid #E2E8F0', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+                            {guide!.cityImage ? (
+                              <div className="relative h-24 overflow-hidden">
+                                <img
+                                  src={`https://images.unsplash.com/${guide!.cityImage}?auto=format&fit=crop&w=700&h=150&q=80`}
+                                  alt={guide!.city}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.1) 60%)' }} />
+                                <div className="absolute bottom-2 left-3 flex items-center gap-2">
+                                  <span className="text-xl">{guide!.flag}</span>
+                                  <div>
+                                    <p className="text-base font-extrabold text-white leading-none">{guide!.city}</p>
+                                    <p className="text-[10px] text-white/60">{code} · {role}</p>
+                                  </div>
+                                  <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: roleColor.bg, color: roleColor.text }}>{role}</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                <span className="text-xl">{guide!.flag}</span>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-bold text-gray-900">{guide!.city} <span className="text-gray-400 font-normal text-xs">({code})</span></p>
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: roleColor.bg, color: roleColor.text }}>{role}</span>
+                                  </div>
+                                  <p className="text-[10px] text-gray-400 truncate">{guide!.airport}</p>
+                                </div>
+                              </div>
+                            )}
+                            <div className="p-3 space-y-2">
+                              {lounges.map((l, li) => (
+                                <div key={li} className="flex items-start justify-between gap-3 py-2 px-3 rounded-lg" style={{ background: '#F8FAFC', border: '1px solid #EEF2F7' }}>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-gray-900">{l.name}</p>
+                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                      {l.payAtDoor && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF9C3', color: '#92400E' }}>💳 Walk-in</span>}
+                                      {l.is24h && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#EFF6FF', color: '#1D4ED8' }}>🕐 24h</span>}
+                                      {l.hasShower && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#F0F9FF', color: '#0369A1' }}>🚿 Shower</span>}
+                                      {l.includesFood && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#FFF7ED', color: '#C2410C' }}>🍽️ Food</span>}
+                                    </div>
+                                  </div>
+                                  {l.price && (
+                                    <div className="text-right flex-shrink-0">
+                                      <span className="text-lg font-extrabold" style={{ color: '#1D9E75' }}>{l.price}</span>
+                                      <p className="text-[9px] text-gray-400 leading-none mt-0.5">per person</p>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Continue button on passenger step */}
               {bookStep === 'passenger' && (
                 <button onClick={() => { if (validateForms()) setBookStep('payment'); }}
@@ -1219,44 +1342,6 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   <span className="font-bold text-gray-900">Total</span>
                   <span className="text-xl font-extrabold" style={{ color: '#DC2626' }}>{fmtPrice(gross, offer.totalCurrency)}</span>
                 </div>
-              </div>
-
-              {/* Baggage */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <p className="text-sm font-extrabold text-gray-900 mb-3">🧳 Baggage allowance</p>
-                {offer.segments.map((seg, i) => {
-                  const b = seg.baggage;
-                  return (
-                    <div key={i} className={i > 0 ? 'border-t border-gray-100 pt-3 mt-3' : ''}>
-                      {offer.segments.length > 1 && (
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">
-                          Segment {i + 1}: {seg.depCode}→{seg.arrCode}
-                        </p>
-                      )}
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className={b && b.carryOn > 0 ? 'text-emerald-600 font-bold' : 'text-gray-300'}>
-                            {b && b.carryOn > 0 ? '✓' : '✗'}
-                          </span>
-                          <span className={b && b.carryOn > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}>
-                            {b && b.carryOn > 0 ? `${b.carryOn} carry-on bag included` : 'No carry-on included'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className={b && b.checkedBags > 0 ? 'text-emerald-600 font-bold' : 'text-gray-300'}>
-                            {b && b.checkedBags > 0 ? '✓' : '✗'}
-                          </span>
-                          <span className={b && b.checkedBags > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}>
-                            {b && b.checkedBags > 0 ? `${b.checkedBags} checked bag${b.checkedBags > 1 ? 's' : ''} included` : 'No checked bag — pay at airport'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {offer.segments.every(s => !s.baggage?.checkedBags) && (
-                  <p className="text-[10px] text-amber-600 mt-2.5 leading-relaxed">💡 Tip: pre-purchasing baggage online is almost always cheaper than paying at the airport.</p>
-                )}
               </div>
 
               {/* Booking conditions */}
