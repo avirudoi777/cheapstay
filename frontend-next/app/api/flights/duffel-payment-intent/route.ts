@@ -16,9 +16,9 @@ export function calcGross(base: number): number {
 export async function POST(req: NextRequest) {
   const { amount, currency } = await req.json() as { amount: string; currency: string };
 
-  const key = process.env.NODE_ENV === 'production'
-    ? process.env.DUFFEL_LIVE_API_KEY
-    : process.env.DUFFEL_TEST_API_KEY ?? process.env.DUFFEL_API_KEY;
+  const key = process.env.DUFFEL_LIVE_API_KEY
+    ?? process.env.DUFFEL_TEST_API_KEY
+    ?? process.env.DUFFEL_API_KEY;
 
   if (!key) return NextResponse.json({ error: 'no_credentials' }, { status: 503 });
 

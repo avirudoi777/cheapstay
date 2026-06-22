@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 const DUFFEL = 'https://api.duffel.com';
 
 function getDuffelKey() {
-  return process.env.NODE_ENV === 'production'
-    ? process.env.DUFFEL_LIVE_API_KEY
-    : process.env.DUFFEL_TEST_API_KEY ?? process.env.DUFFEL_API_KEY;
+  return process.env.DUFFEL_LIVE_API_KEY
+    ?? process.env.DUFFEL_TEST_API_KEY
+    ?? process.env.DUFFEL_API_KEY;
 }
 
 async function duffelPost(path: string, body: unknown) {
