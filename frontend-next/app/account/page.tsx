@@ -107,8 +107,10 @@ export default function AccountPage() {
   async function handleSave() {
     if (!user) return;
     setSaving(true);
+    setError('');
     const supabase = createClient();
-    await supabase.from('user_profiles').upsert({
+
+    const payload: Record<string, unknown> = {
       id: user.id,
       display_name: displayName,
       avatar_url: avatarUrl.split('?')[0] || null,
@@ -116,10 +118,28 @@ export default function AccountPage() {
       preferred_regions: regions,
       budget_range: budget,
       trips_per_year: trips,
-      passport_nationalities: passports.length ? passports : null,
       passport_nationality: passports[0] || null,
+      passport_nationalities: passports.length ? passports : null,
       onboarding_done: true,
-    });
+    };
+
+    const { error: upsertError } = await supabase.from('user_profiles').upsert(payload);
+
+    if (upsertError) {
+      // passport_nationalities column may not exist yet — retry without it
+      if (upsertError.message.includes('passport_nationalities')) {
+        const { error: fallbackError } = await supabase.from('user_profiles').upsert({
+          ...payload,
+          passport_nationalities: undefined,
+        });
+        if (fallbackError) { setError(fallbackError.message); setSaving(false); return; }
+      } else {
+        setError(upsertError.message);
+        setSaving(false);
+        return;
+      }
+    }
+
     await supabase.auth.updateUser({ data: { full_name: displayName } });
     setSaving(false);
     setSaved(true);
