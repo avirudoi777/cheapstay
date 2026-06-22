@@ -23,10 +23,16 @@ export interface DuffelService {
   segmentIds: string[];
   metadata: Record<string, unknown>;
 }
+export interface DuffelPassenger {
+  id: string;
+  type: 'adult' | 'child' | 'infant_without_seat';
+}
 export interface DuffelOffer {
   id: string; expiresAt: string;
   totalAmount: number; totalCurrency: string; totalDuration: string;
-  passengerIds: string[]; segments: Segment[];
+  passengerIds: string[];
+  passengers: DuffelPassenger[];
+  segments: Segment[];
   availableServices: DuffelService[];
 }
 interface SelectedService { serviceId: string; quantity: number; }
@@ -59,6 +65,8 @@ interface Props {
   fromName: string; toName: string;
   depart: string; ret: string;
   adults?: number;
+  children?: number;
+  infants?: number;
   onClear: () => void;
   passportCodes: string[];
 }
@@ -232,7 +240,7 @@ const EMPTY_FORM: PassengerForm = {
 };
 const EMPTY_CARD: CardForm = { name: '', number: '', expiry: '', cvc: '' };
 
-export default function FlightResults({ fromCode, toCode, fromName, toName, depart, ret, adults = 1, onClear, passportCodes }: Props) {
+export default function FlightResults({ fromCode, toCode, fromName, toName, depart, ret, adults = 1, children = 0, infants = 0, onClear, passportCodes }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // ── Search state
@@ -280,7 +288,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     fetch('/api/flights/duffel-search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ origin: fromCode, destination: toCode, departureDate: depart, returnDate: ret || undefined, adults }),
+      body: JSON.stringify({ origin: fromCode, destination: toCode, departureDate: depart, returnDate: ret || undefined, adults, children, infants }),
     })
       .then(r => r.json())
       .then(json => {
@@ -530,11 +538,28 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 {forms.map((paxForm, idx) => {
                   const paxErrors = formErrors[idx] ?? {};
                   const destCountry = AIRPORT_COUNTRY[toCode.toUpperCase()] ?? '';
+                  const paxType = offer.passengers?.[idx]?.type ?? 'adult';
+                  const isInfant = paxType === 'infant_without_seat';
+                  const isChild = paxType === 'child';
+                  const paxTypeLabel = isInfant ? '👶 Infant (under 2)' : isChild ? '🧒 Child (2–11)' : '🧑 Adult (12+)';
                   return (
                     <div key={idx} className={idx > 0 ? 'border-t border-gray-100 pt-5 mt-5' : ''}>
-                      <p className="text-lg font-extrabold text-gray-900 mb-0.5">
-                        Passenger {idx + 1}: (Adult, 18 years or older)
-                      </p>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className="text-lg font-extrabold text-gray-900">Passenger {idx + 1}</p>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                          style={{ background: isInfant ? '#FEF3C7' : isChild ? '#EFF6FF' : '#F0FDF4', color: isInfant ? '#92400E' : isChild ? '#1D4ED8' : '#15803D' }}>
+                          {paxTypeLabel}
+                        </span>
+                      </div>
+                      {isInfant && (
+                        <div className="flex items-start gap-2 rounded-xl p-3 mb-3" style={{ background: '#FEF9C3', border: '1px solid #FDE68A' }}>
+                          <span className="text-base">👶</span>
+                          <div>
+                            <p className="text-xs font-bold text-amber-800">Infant travels on an adult&apos;s lap</p>
+                            <p className="text-[11px] text-amber-700">No separate seat is included. Infant must be under 2 years old for the entire journey. A birth certificate may be required at check-in.</p>
+                          </div>
+                        </div>
+                      )}
                       <p className="text-sm text-gray-500 mb-1">Passenger details must match your passport or photo ID</p>
                       <p className="text-xs font-semibold mb-4" style={{ color: '#DC2626' }}>*Required field</p>
 
@@ -609,27 +634,38 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         </div>
                       </div>
 
-                      {/* Nationality / passport */}
+                      {/* Nationality — single field: dropdown if saved passports, otherwise text input */}
                       <div className="mb-3">
                         <Field label="Nationality *">
-                          {savedProfile && savedProfile.passports.length > 1 && (
+                          {savedProfile && savedProfile.passports.length > 0 ? (
                             <select
                               value={selectedPassportIds[idx] ?? ''}
                               onChange={e => {
-                                const p = savedProfile.passports.find(p => p.id === e.target.value);
-                                if (p) selectPassportForPax(idx, p);
+                                if (e.target.value === '__manual__') {
+                                  setSelectedPassportIds(ids => ids.map((id, i) => i === idx ? '__manual__' : id));
+                                  setForms(fs => fs.map((f, i) => i === idx ? { ...f, passportCountry: '', passportNumber: '', passportExpiry: '' } : f));
+                                } else {
+                                  const p = savedProfile.passports.find(p => p.id === e.target.value);
+                                  if (p) selectPassportForPax(idx, p);
+                                }
                               }}
-                              className={selectCls + ' w-full mb-2'}>
-                              <option value="">Select nationality</option>
+                              className={selectCls + ' w-full'}>
                               {savedProfile.passports.map(p => (
                                 <option key={p.id} value={p.id}>
                                   {flagEmoji(p.country)} {p.country}{p.country === destCountry ? ' ★ Best for this route' : ''}
                                 </option>
                               ))}
+                              <option value="__manual__">Enter manually…</option>
                             </select>
+                          ) : (
+                            <input value={paxForm.passportCountry} onChange={e => updatePassenger(idx, 'passportCountry', e.target.value.toUpperCase())}
+                              placeholder="e.g. US, TH, GB" maxLength={2} className={inputCls} />
                           )}
-                          <input value={paxForm.passportCountry} onChange={e => updatePassenger(idx, 'passportCountry', e.target.value.toUpperCase())}
-                            placeholder="e.g. US, TH, GB" maxLength={2} className={inputCls} />
+                          {/* Manual override text input shown when user chose "Enter manually" */}
+                          {selectedPassportIds[idx] === '__manual__' && (
+                            <input value={paxForm.passportCountry} onChange={e => updatePassenger(idx, 'passportCountry', e.target.value.toUpperCase())}
+                              placeholder="e.g. US, TH, GB" maxLength={2} className={inputCls + ' mt-2'} />
+                          )}
                           {paxErrors.passportCountry && <p className="text-xs text-red-500 mt-0.5">{paxErrors.passportCountry}</p>}
                         </Field>
                       </div>
@@ -770,7 +806,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
               {/* Flight card */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <p className="text-sm font-extrabold text-gray-900 mb-0.5">{fromCode} to {toCode}</p>
-                <p className="text-xs text-gray-400 mb-3">✈️ FLIGHT · {offer.passengerIds.length} adult{offer.passengerIds.length > 1 ? 's' : ''}</p>
+                <p className="text-xs text-gray-400 mb-3">✈️ FLIGHT · {[
+                  offer.passengers.filter(p => p.type === 'adult').length > 0 && `${offer.passengers.filter(p => p.type === 'adult').length} adult${offer.passengers.filter(p => p.type === 'adult').length > 1 ? 's' : ''}`,
+                  offer.passengers.filter(p => p.type === 'child').length > 0 && `${offer.passengers.filter(p => p.type === 'child').length} child${offer.passengers.filter(p => p.type === 'child').length > 1 ? 'ren' : ''}`,
+                  offer.passengers.filter(p => p.type === 'infant_without_seat').length > 0 && `${offer.passengers.filter(p => p.type === 'infant_without_seat').length} infant${offer.passengers.filter(p => p.type === 'infant_without_seat').length > 1 ? 's' : ''}`,
+                ].filter(Boolean).join(' · ')}</p>
                 <div className="space-y-3 mb-3">
                   {offer.segments.map((seg, i) => (
                     <div key={i}>
@@ -1140,39 +1180,90 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 </div>
               </div>
 
-              {/* Airport lounges in layover airports */}
-              {offer.segments.some(seg => seg.layoverAfter) && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                  <p className="text-sm font-extrabold text-gray-900 mb-3">🛋️ Airport Lounges</p>
-                  {offer.segments.map((seg, i) => {
-                    if (!seg.layoverAfter) return null;
-                    const nextCode = offer.segments[i + 1]?.depCode ?? '';
-                    const guide = getLayoverGuide(nextCode);
-                    if (!guide?.lounges) return null;
-                    return (
-                      <div key={i} className="mb-3">
-                        <p className="text-xs font-bold text-gray-700 mb-1">{guide.flag} {nextCode} — {guide.airport}</p>
-                        <p className="text-xs text-gray-500 mb-2">{guide.lounges}</p>
-                        <a href="https://www.prioritypass.com/en/single-visit" target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white"
-                          style={{ background: '#1A3C5E' }}>
-                          🛋️ Get lounge access
-                        </a>
-                      </div>
-                    );
-                  })}
-                  {offer.segments.every(seg => !seg.layoverAfter || !getLayoverGuide(offer.segments[offer.segments.indexOf(seg) + 1]?.depCode ?? '')?.lounges) && (
-                    <div>
-                      <p className="text-xs text-gray-500 mb-2">Access 1,600+ airport lounges worldwide with Priority Pass.</p>
-                      <a href="https://www.prioritypass.com/en/single-visit" target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white"
-                        style={{ background: '#1A3C5E' }}>
-                        🛋️ Browse lounges
-                      </a>
+              {/* Airport lounges — all airports in the itinerary */}
+              {(() => {
+                // Collect unique airport codes: all dep + final arr
+                const allCodes = Array.from(new Set([
+                  ...offer.segments.map(s => s.depCode),
+                  offer.segments[offer.segments.length - 1].arrCode,
+                ]));
+                const airportsWithLounges = allCodes
+                  .map(code => ({ code, guide: getLayoverGuide(code) }))
+                  .filter(({ guide }) => guide?.lounges);
+                if (airportsWithLounges.length === 0) return null;
+
+                function parseLounges(raw: string) {
+                  return raw.split(/;\s*(?=[A-Z])/).map(entry => {
+                    const name = entry.replace(/\s*\(.*/, '').trim();
+                    const detail = entry.match(/\(([^)]+)\)/)?.[1] ?? '';
+                    const price = detail.match(/~?\$\d+/)?.[0] ?? '';
+                    const is24h = detail.toLowerCase().includes('24h');
+                    const hasShower = detail.toLowerCase().includes('shower');
+                    const payAtDoor = detail.toLowerCase().includes('pay');
+                    const airlineOnly = /^[A-Z]/.test(detail) && !payAtDoor;
+                    return { name, detail, price, is24h, hasShower, payAtDoor, airlineOnly };
+                  });
+                }
+
+                return (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <p className="text-sm font-extrabold text-gray-900 mb-1">🛋️ Airport Lounges</p>
+                    <p className="text-[10px] text-gray-400 mb-3">Lounges available at airports on your route</p>
+                    <div className="space-y-4">
+                      {airportsWithLounges.map(({ code, guide }) => {
+                        const isLayover = offer.segments.slice(0, -1).some(s => s.arrCode === code);
+                        const isArrival = offer.segments[offer.segments.length - 1].arrCode === code;
+                        const role = isArrival ? 'Arrival' : isLayover ? 'Layover' : 'Departure';
+                        const lounges = parseLounges(guide!.lounges!);
+                        return (
+                          <div key={code}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-base">{guide!.flag}</span>
+                              <div>
+                                <p className="text-xs font-bold text-gray-800">{code} — {guide!.airport}</p>
+                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                                  style={{ background: '#F1F5F9', color: '#64748B' }}>{role}</span>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              {lounges.map((lounge, li) => (
+                                <div key={li} className="rounded-xl p-3" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                                  <div className="flex items-start justify-between gap-2">
+                                    <p className="text-xs font-bold text-gray-800 flex-1">{lounge.name}</p>
+                                    {lounge.price && (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                                        style={{ background: '#E6F7F1', color: '#1D9E75' }}>
+                                        {lounge.price}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                    {lounge.payAtDoor && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#FEF9C3', color: '#92400E' }}>💳 Pay at door</span>
+                                    )}
+                                    {lounge.is24h && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#EFF6FF', color: '#1D4ED8' }}>🕐 Open 24h</span>
+                                    )}
+                                    {lounge.hasShower && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F0F9FF', color: '#0369A1' }}>🚿 Shower</span>
+                                    )}
+                                    {lounge.airlineOnly && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F3F4F6', color: '#6B7280' }}>✈️ Airline members</span>
+                                    )}
+                                  </div>
+                                  {lounge.detail && !lounge.payAtDoor && !lounge.airlineOnly && (
+                                    <p className="text-[10px] text-gray-400 mt-1">{lounge.detail}</p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -1225,7 +1316,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           </h2>
           <p className="text-sm text-gray-400 mt-0.5">
             {departLabel}{ret && ` · Return ${new Date(ret + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
-            {!ret && ' · One way'} · {adults} adult{adults !== 1 ? 's' : ''}
+            {!ret && ' · One way'} · {[
+              adults > 0 && `${adults} adult${adults !== 1 ? 's' : ''}`,
+              children > 0 && `${children} child${children !== 1 ? 'ren' : ''}`,
+              infants > 0 && `${infants} infant${infants !== 1 ? 's' : ''}`,
+            ].filter(Boolean).join(' · ')}
           </p>
         </div>
         <button onClick={onClear}

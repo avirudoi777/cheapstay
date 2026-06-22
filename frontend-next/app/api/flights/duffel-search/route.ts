@@ -65,13 +65,15 @@ function formatOffer(offer: any) {
     segmentIds: svc.segment_ids ?? [],
     metadata: svc.metadata ?? {},
   }));
+  const offerPassengers = (offer.passengers as { id: string; type: string }[]);
   return {
     id: offer.id,
     expiresAt: offer.expires_at,
     totalAmount: parseFloat(offer.total_amount),
     totalCurrency: offer.total_currency,
     totalDuration: totalDur(segs),
-    passengerIds: (offer.passengers as { id: string }[]).map(p => p.id),
+    passengerIds: offerPassengers.map(p => p.id),
+    passengers: offerPassengers.map(p => ({ id: p.id, type: p.type as 'adult' | 'child' | 'infant_without_seat' })),
     availableServices,
     segments: segs.map((seg: Record<string, unknown>, si: number) => {
       const origin = seg.origin as Record<string, string>;
@@ -107,7 +109,7 @@ function formatOffer(offer: any) {
 }
 
 export async function POST(req: NextRequest) {
-  const { origin, destination, departureDate, returnDate, adults = 1 } = await req.json();
+  const { origin, destination, departureDate, returnDate, adults = 1, children = 0, infants = 0 } = await req.json();
 
   if (!getDuffelKey()) {
     return NextResponse.json({ error: 'no_credentials' }, { status: 503 });
@@ -121,10 +123,16 @@ export async function POST(req: NextRequest) {
     const slices: any[] = [{ origin, destination, departure_date: departureDate }];
     if (returnDate) slices.push({ origin: destination, destination: origin, departure_date: returnDate });
 
+    const passengers = [
+      ...Array.from({ length: Math.max(1, adults) }, () => ({ type: 'adult' })),
+      ...Array.from({ length: Math.max(0, children) }, () => ({ type: 'child' })),
+      ...Array.from({ length: Math.max(0, infants) }, () => ({ type: 'infant_without_seat' })),
+    ];
+
     const result = await duffelPost('/air/offer_requests', {
       data: {
         slices,
-        passengers: Array.from({ length: Math.max(1, adults) }, () => ({ type: 'adult' })),
+        passengers,
         cabin_class: 'economy',
         return_offers: true,
       },

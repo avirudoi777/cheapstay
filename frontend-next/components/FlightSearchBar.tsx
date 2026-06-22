@@ -429,7 +429,7 @@ function AirportInput({ label, value, onChange }: { label: string; value: string
 
 // ── Main component ─────────────────────────────────────────────────────────────
 interface FlightSearchBarProps {
-  onSearch: (from: string, to: string, depart: string, ret: string, adults: number) => void;
+  onSearch: (from: string, to: string, depart: string, ret: string, adults: number, children: number, infants: number) => void;
 }
 
 export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
@@ -439,10 +439,20 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
   const [ret, setRet] = useState('');
   const [tripType, setTripType] = useState<'round' | 'oneway'>('round');
   const [adults, setAdults] = useState(1);
+  const [children, setChildren] = useState(0);
+  const [infants, setInfants] = useState(0);
+  const [paxOpen, setPaxOpen] = useState(false);
 
   function handleSearch() {
-    onSearch(from, to, depart, tripType === 'round' ? ret : '', adults);
+    onSearch(from, to, depart, tripType === 'round' ? ret : '', adults, children, infants);
   }
+
+  const totalPax = adults + children + infants;
+  const paxLabel = [
+    `${adults} ${adults === 1 ? 'Adult' : 'Adults'}`,
+    children > 0 ? `${children} ${children === 1 ? 'Child' : 'Children'}` : null,
+    infants > 0 ? `${infants} ${infants === 1 ? 'Infant' : 'Infants'}` : null,
+  ].filter(Boolean).join(' · ');
 
   return (
     <div className="space-y-4">
@@ -459,21 +469,52 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
             </button>
           ))}
         </div>
-        {/* Passenger counter */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: '#f1f5f9' }}>
-          <button type="button" onClick={() => setAdults(Math.max(1, adults - 1))}
-            className="w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
-            style={{ color: adults > 1 ? '#1D9E75' : '#9ca3af', background: adults > 1 ? '#e6f7f1' : 'transparent' }}>
-            −
+        {/* Passenger selector */}
+        <div className="relative">
+          <button type="button" onClick={() => setPaxOpen(o => !o)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700"
+            style={{ background: '#f1f5f9' }}>
+            👤 {paxLabel}
+            <span className="text-gray-400">{paxOpen ? '▲' : '▼'}</span>
           </button>
-          <span className="text-xs font-bold text-gray-700 whitespace-nowrap">
-            👤 {adults} {adults === 1 ? 'Adult' : 'Adults'}
-          </span>
-          <button type="button" onClick={() => setAdults(Math.min(6, adults + 1))}
-            className="w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
-            style={{ color: adults < 6 ? '#1D9E75' : '#9ca3af', background: adults < 6 ? '#e6f7f1' : 'transparent' }}>
-            +
-          </button>
+          {paxOpen && (
+            <div className="absolute right-0 top-full mt-1 z-50 rounded-2xl shadow-lg p-4 w-64"
+              style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+              {([
+                { label: 'Adults', sub: 'Age 12+', val: adults, set: (n: number) => { setAdults(n); if (infants > n) setInfants(n); }, min: 1, max: 6 },
+                { label: 'Children', sub: 'Age 2–11', val: children, set: setChildren, min: 0, max: 6 },
+                { label: 'Infants', sub: 'Under 2, on lap', val: infants, set: (n: number) => setInfants(Math.min(n, adults)), min: 0, max: adults },
+              ] as const).map(row => (
+                <div key={row.label} className="flex items-center justify-between py-2" style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <div>
+                    <p className="text-sm font-bold text-gray-800">{row.label}</p>
+                    <p className="text-[10px] text-gray-400">{row.sub}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={() => row.set(Math.max(row.min, row.val - 1))}
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+                      style={{ color: row.val > row.min ? '#1D9E75' : '#9ca3af', background: row.val > row.min ? '#e6f7f1' : '#f9fafb' }}>
+                      −
+                    </button>
+                    <span className="text-sm font-bold text-gray-800 w-4 text-center">{row.val}</span>
+                    <button type="button" onClick={() => row.set(Math.min(row.max, row.val + 1))}
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+                      style={{ color: row.val < row.max ? '#1D9E75' : '#9ca3af', background: row.val < row.max ? '#e6f7f1' : '#f9fafb' }}>
+                      +
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {infants > 0 && (
+                <p className="text-[10px] text-amber-600 mt-2">👶 Infants travel on an adult&apos;s lap — no seat included. Max 1 infant per adult.</p>
+              )}
+              <button type="button" onClick={() => setPaxOpen(false)}
+                className="w-full mt-3 py-2 rounded-xl text-xs font-bold text-white"
+                style={{ background: '#1D9E75' }}>
+                Done · {totalPax} passenger{totalPax !== 1 ? 's' : ''}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
