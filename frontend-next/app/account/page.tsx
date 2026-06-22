@@ -49,9 +49,9 @@ export default function AccountPage() {
   const [regions, setRegions]     = useState<string[]>([]);
   const [budget, setBudget]       = useState('mid');
   const [trips, setTrips]         = useState(2);
-  const [passports, setPassports]     = useState<string[]>([]);
-  const [addPassportQ, setAddQ]       = useState('');
-  const [addPassportOpen, setAddOpen] = useState(false);
+  const [addPassportQ, setAddQ]         = useState('');
+  const [addPassportOpen, setAddOpen]   = useState(false);
+  const [expandedPassportId, setExpandedId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving]       = useState(false);
   const [saved, setSaved]         = useState(false);
@@ -86,11 +86,6 @@ export default function AccountPage() {
         setBudget(profile.budget_range || 'mid');
         setTrips(profile.trips_per_year || 2);
         setAvatarUrl(profile.avatar_url || meta?.avatar_url || '');
-        if (profile.passport_nationalities?.length) {
-          setPassports(profile.passport_nationalities);
-        } else if (profile.passport_nationality) {
-          setPassports([profile.passport_nationality]);
-        }
       } else {
         setAvatarUrl(meta?.avatar_url || '');
       }
@@ -105,7 +100,20 @@ export default function AccountPage() {
         if (tp.gender)     setTravGender(tp.gender);
         if (tp.bornOn)     setBornOn(tp.bornOn);
         if (tp.phone)      setPhoneNumber(tp.phone);
-        if (tp.passports?.length) setTravPassports(tp.passports);
+
+        if (tp.passports?.length) {
+          setTravPassports(tp.passports);
+        } else {
+          // Migrate legacy passport_nationalities → empty passport entries
+          const legacyCodes: string[] = profile?.passport_nationalities?.length
+            ? profile.passport_nationalities
+            : profile?.passport_nationality ? [profile.passport_nationality] : [];
+          if (legacyCodes.length) {
+            setTravPassports(legacyCodes.slice(0, 3).map((code: string) => ({
+              id: code + '_legacy', country: code, label: code, passportNumber: '', passportExpiry: '',
+            })));
+          }
+        }
       }
     });
   }, [router]);
@@ -140,6 +148,7 @@ export default function AccountPage() {
     setError('');
     const supabase = createClient();
 
+    const nationalities = travPassports.filter(p => p.country).map(p => p.country);
     const payload: Record<string, unknown> = {
       id: user.id,
       display_name: displayName,
@@ -148,19 +157,17 @@ export default function AccountPage() {
       preferred_regions: regions,
       budget_range: budget,
       trips_per_year: trips,
-      passport_nationality: passports[0] || null,
-      passport_nationalities: passports.length ? passports : null,
+      passport_nationality: nationalities[0] || null,
+      passport_nationalities: nationalities.length ? nationalities : null,
       onboarding_done: true,
     };
 
     const { error: upsertError } = await supabase.from('user_profiles').upsert(payload);
 
     if (upsertError) {
-      // passport_nationalities column may not exist yet — retry without it
       if (upsertError.message.includes('passport_nationalities')) {
         const { error: fallbackError } = await supabase.from('user_profiles').upsert({
-          ...payload,
-          passport_nationalities: undefined,
+          ...payload, passport_nationalities: undefined,
         });
         if (fallbackError) { setError(fallbackError.message); setSaving(false); return; }
       } else {
@@ -252,53 +259,90 @@ export default function AccountPage() {
           </div>
         </div>
 
-        {/* Passport */}
+        {/* Passports — combined nationality + flight details */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
           <h3 className="text-sm font-bold text-navy mb-1 flex items-center gap-2">
-            <span>🛂</span> Passport{passports.length > 1 ? 's' : ' nationality'}
+            <span>🛂</span> Passports
           </h3>
-          <p className="text-xs text-gray-400 mb-3">Used to show visa and vaccination requirements when you search</p>
+          <p className="text-xs text-gray-400 mb-4">Click a passport to add your number — used for visa checks and auto-fills booking forms</p>
 
-          {/* Selected passport chips */}
-          {passports.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
-              {passports.map(code => {
-                const country = COUNTRIES.find(c => c.code === code);
-                return (
-                  <div key={code} className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-semibold"
-                    style={{ background: '#F0FBF7', borderColor: '#1D9E75', color: '#0F6E56' }}>
-                    <span className="text-base">{flagEmoji(code)}</span>
-                    <span>{country?.name ?? code}</span>
-                    <button type="button" onClick={() => setPassports(p => p.filter(x => x !== code))}
-                      className="ml-1 text-xs leading-none hover:opacity-60 transition-opacity font-bold"
-                      aria-label={`Remove ${country?.name}`}>
+          {/* Passport cards */}
+          <div className="space-y-2 mb-3">
+            {travPassports.map(p => {
+              const country = COUNTRIES.find(c => c.code === p.country);
+              const isOpen = expandedPassportId === p.id;
+              return (
+                <div key={p.id} className="rounded-2xl border overflow-hidden transition-all"
+                  style={{ borderColor: isOpen ? '#1D9E75' : '#E5E7EB' }}>
+                  {/* Header row — always visible */}
+                  <div className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none"
+                    style={{ background: isOpen ? '#F0FBF7' : '#FAFAFA' }}
+                    onClick={() => setExpandedId(isOpen ? null : p.id)}>
+                    <span className="text-2xl flex-shrink-0">{flagEmoji(p.country)}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-900">{country?.name ?? p.country}</p>
+                      {p.passportNumber
+                        ? <p className="text-[11px] text-gray-400">···{p.passportNumber.slice(-4)} · Exp {p.passportExpiry || 'N/A'}</p>
+                        : <p className="text-[11px] text-teal-600 font-medium">Tap to add passport number →</p>
+                      }
+                    </div>
+                    <span className="text-xs text-gray-400">{isOpen ? '▲' : '▼'}</span>
+                    <button type="button"
+                      onClick={e => { e.stopPropagation(); setTravPassports(ps => ps.filter(x => x.id !== p.id)); if (isOpen) setExpandedId(null); }}
+                      className="text-gray-300 hover:text-red-400 transition-colors font-bold text-base leading-none ml-1">
                       ×
                     </button>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  {/* Expandable detail */}
+                  {isOpen && (
+                    <div className="px-4 pb-4 pt-3 border-t space-y-3" style={{ borderColor: '#D1FAE5' }}>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-gray-500 mb-1">Passport number</label>
+                          <input value={p.passportNumber}
+                            onChange={e => setTravPassports(ps => ps.map(x => x.id === p.id ? { ...x, passportNumber: e.target.value.toUpperCase() } : x))}
+                            placeholder="AB1234567"
+                            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 font-mono uppercase" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-gray-500 mb-1">Expiry date</label>
+                          <input type="date" value={p.passportExpiry}
+                            onChange={e => setTravPassports(ps => ps.map(x => x.id === p.id ? { ...x, passportExpiry: e.target.value } : x))}
+                            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-gray-400">🔒 Passport number stored encrypted · saved when you click Save changes below</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
-          {/* Add passport combobox — hidden once 2 are set */}
-          {passports.length < 2 && (
+          {/* Add passport country search */}
+          {travPassports.length < 3 && (
             <div className="relative">
               <input type="text"
                 value={addPassportOpen ? addPassportQ : ''}
                 onFocus={() => { setAddOpen(true); setAddQ(''); }}
                 onBlur={() => setTimeout(() => setAddOpen(false), 150)}
                 onChange={e => { setAddQ(e.target.value); setAddOpen(true); }}
-                placeholder={passports.length === 0 ? 'Search your country…' : '+ Add second passport'}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 transition-colors"
+                placeholder={travPassports.length === 0 ? '+ Add your passport country…' : '+ Add another passport'}
+                className="w-full border border-dashed border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 transition-colors text-gray-500 bg-gray-50"
               />
               {addPassportOpen && (
                 <ul className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 max-h-48 overflow-y-auto">
                   {(addPassportQ.length >= 1
-                    ? COUNTRIES.filter(c => c.name.toLowerCase().includes(addPassportQ.toLowerCase()) && !passports.includes(c.code)).slice(0, 8)
-                    : COUNTRIES.filter(c => !passports.includes(c.code)).slice(0, 8)
+                    ? COUNTRIES.filter(c => c.name.toLowerCase().includes(addPassportQ.toLowerCase()) && !travPassports.find(p => p.country === c.code)).slice(0, 8)
+                    : COUNTRIES.filter(c => !travPassports.find(p => p.country === c.code)).slice(0, 8)
                   ).map(c => (
                     <li key={c.code}
-                      onMouseDown={() => { setPassports(p => [...p, c.code]); setAddQ(''); setAddOpen(false); }}
+                      onMouseDown={() => {
+                        const newId = c.code + '_' + Date.now();
+                        setTravPassports(ps => [...ps, { id: newId, country: c.code, label: c.name, passportNumber: '', passportExpiry: '' }]);
+                        setExpandedId(newId);
+                        setAddQ(''); setAddOpen(false);
+                      }}
                       className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer list-none">
                       <span className="text-lg">{flagEmoji(c.code)}</span>
                       <span className="text-sm font-semibold text-gray-900">{c.name}</span>
@@ -364,61 +408,6 @@ export default function AccountPage() {
             </div>
           </div>
 
-          {/* Passports (up to 3) */}
-          <div>
-            <p className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5">
-              🛂 Passports
-              <span className="text-[10px] font-normal text-gray-400 ml-1">Up to 3 · number &amp; date of birth stored encrypted</span>
-            </p>
-            <div className="space-y-3">
-              {travPassports.map((p, i) => (
-                <div key={p.id} className="rounded-xl p-3 space-y-2.5" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{p.country ? flagEmoji(p.country) : '🛂'}</span>
-                      <p className="text-xs font-bold text-gray-700">Passport {i + 1}</p>
-                    </div>
-                    <button type="button"
-                      onClick={() => setTravPassports(ps => ps.filter(x => x.id !== p.id))}
-                      className="text-xs text-gray-400 hover:text-red-500 transition-colors font-bold px-2 py-0.5 rounded-lg hover:bg-red-50">
-                      Remove
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] font-semibold text-gray-500 mb-1">Country (2-letter)</label>
-                      <input value={p.country} onChange={e => setTravPassports(ps => ps.map(x => x.id === p.id ? { ...x, country: e.target.value.toUpperCase().slice(0, 2), label: e.target.value.toUpperCase().slice(0, 2) } : x))}
-                        placeholder="US" maxLength={2}
-                        className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 font-mono uppercase" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-gray-500 mb-1">Expiry date</label>
-                      <input type="date" value={p.passportExpiry}
-                        onChange={e => setTravPassports(ps => ps.map(x => x.id === p.id ? { ...x, passportExpiry: e.target.value } : x))}
-                        className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-semibold text-gray-500 mb-1">Passport number</label>
-                    <input value={p.passportNumber}
-                      onChange={e => setTravPassports(ps => ps.map(x => x.id === p.id ? { ...x, passportNumber: e.target.value.toUpperCase() } : x))}
-                      placeholder="AB1234567"
-                      className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 font-mono uppercase" />
-                    <p className="text-[10px] text-gray-400 mt-0.5">🔒 Encrypted before saving</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {travPassports.length < 3 && (
-              <button type="button"
-                onClick={() => setTravPassports(ps => [...ps, { id: String(Date.now()), country: '', label: '', passportNumber: '', passportExpiry: '' }])}
-                className="mt-2 w-full py-2.5 rounded-xl border-2 border-dashed text-xs font-bold transition-colors"
-                style={{ borderColor: '#1D9E75', color: '#1D9E75' }}>
-                + Add{travPassports.length === 0 ? ' passport' : ' another passport'}
-              </button>
-            )}
-          </div>
         </div>
 
         {/* Travel style */}
