@@ -68,7 +68,7 @@ const VPN_CARDS = [
     label: 'Top pick',
     featured: true,
     features: ['Thailand server', 'Fast & reliable', 'All devices', '30-day money back'],
-    url: 'https://go.nordvpn.net/aff_c?offer_id=15&aff_id=112618',
+    url: 'https://go.nordvpn.net/aff_c?offer_id=15&aff_id=151019&url_id=902',
   },
   {
     name: 'ExpressVPN',

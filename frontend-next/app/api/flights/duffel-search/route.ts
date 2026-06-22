@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const DUFFEL = 'https://api.duffel.com';
 
+function getDuffelKey() {
+  return process.env.NODE_ENV === 'production'
+    ? process.env.DUFFEL_LIVE_API_KEY
+    : process.env.DUFFEL_TEST_API_KEY ?? process.env.DUFFEL_API_KEY;
+}
+
 async function duffelPost(path: string, body: unknown) {
   const res = await fetch(`${DUFFEL}${path}`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.DUFFEL_API_KEY}`,
+      Authorization: `Bearer ${getDuffelKey()}`,
       'Content-Type': 'application/json',
       'Duffel-Version': 'v2',
     },
@@ -85,7 +91,7 @@ function formatOffer(offer: any) {
 export async function POST(req: NextRequest) {
   const { origin, destination, departureDate, returnDate } = await req.json();
 
-  if (!process.env.DUFFEL_API_KEY) {
+  if (!getDuffelKey()) {
     return NextResponse.json({ error: 'no_credentials' }, { status: 503 });
   }
   if (!origin || !destination || !departureDate) {

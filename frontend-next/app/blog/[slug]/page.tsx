@@ -55,7 +55,7 @@ Not always. Some hotels have rate parity agreements. Some OTAs are getting bette
 
 ## What VPN I use
 
-I've used NordVPN for 3 years. It's fast, has reliable Thai servers, and hasn't been blocked by Agoda in my experience. [Get NordVPN here](https://nordvpn.com/) — they usually have a deal running.
+I've used NordVPN for 3 years. It's fast, has reliable Thai servers, and hasn't been blocked by Agoda in my experience. [Get NordVPN here](https://go.nordvpn.net/aff_c?offer_id=15&aff_id=151019&url_id=902) — they usually have a deal running.
 
 ## Try it yourself
 

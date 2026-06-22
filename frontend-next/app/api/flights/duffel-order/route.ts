@@ -17,22 +17,23 @@ interface PassengerInput {
 }
 
 export async function POST(req: NextRequest) {
-  const { offerId, offerAmount, offerCurrency, passenger } = await req.json() as {
+  const { offerId, paymentIntentId, passenger } = await req.json() as {
     offerId: string;
-    offerAmount: string;
-    offerCurrency: string;
+    paymentIntentId: string;
     passenger: PassengerInput;
   };
 
-  if (!process.env.DUFFEL_API_KEY) {
-    return NextResponse.json({ error: 'no_credentials' }, { status: 503 });
-  }
+  const key = process.env.NODE_ENV === 'production'
+    ? process.env.DUFFEL_LIVE_API_KEY
+    : process.env.DUFFEL_TEST_API_KEY ?? process.env.DUFFEL_API_KEY;
+
+  if (!key) return NextResponse.json({ error: 'no_credentials' }, { status: 503 });
 
   try {
     const res = await fetch(`${DUFFEL}/air/orders`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${process.env.DUFFEL_API_KEY}`,
+        Authorization: `Bearer ${key}`,
         'Content-Type': 'application/json',
         'Duffel-Version': 'v2',
       },
@@ -56,9 +57,8 @@ export async function POST(req: NextRequest) {
             }],
           }],
           payments: [{
-            type: 'balance',
-            amount: offerAmount,
-            currency: offerCurrency,
+            type: 'payment_intent',
+            id: paymentIntentId,
           }],
         },
       }),
