@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import VisaBanner from '@/components/VisaBanner';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 interface Segment {
@@ -24,6 +25,7 @@ interface Props {
   origin: string; destination: string;
   departureDate: string; returnDate?: string;
   fromName: string; toName: string;
+  passportCodes?: string[];
 }
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
@@ -102,7 +104,7 @@ const inputCls = 'w-full px-3 py-2 text-sm rounded-xl border border-gray-200 foc
 const selectCls = inputCls + ' appearance-none';
 
 /* ─── Main modal ─────────────────────────────────────────────────────────── */
-export default function FlightBookingModal({ isOpen, onClose, origin, destination, departureDate, returnDate, fromName, toName }: Props) {
+export default function FlightBookingModal({ isOpen, onClose, origin, destination, departureDate, returnDate, fromName, toName, passportCodes = [] }: Props) {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [offers, setOffers] = useState<DuffelOffer[]>([]);
   const [loadingOffers, setLoadingOffers] = useState(false);
@@ -224,6 +226,23 @@ export default function FlightBookingModal({ isOpen, onClose, origin, destinatio
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4">
+
+          {/* Visa requirements — always visible */}
+          {step === 0 && passportCodes.length > 0 && (
+            <div className="mb-4">
+              <VisaBanner passportCodes={passportCodes} city={toName} />
+            </div>
+          )}
+          {step === 0 && passportCodes.length === 0 && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl mb-4"
+              style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+              <span className="text-xl flex-shrink-0">🛂</span>
+              <p className="text-xs text-gray-500 flex-1">
+                <span className="font-semibold text-gray-700">Need a visa for {toName}?</span>{' '}
+                <a href="/account" className="underline" style={{ color: '#1D9E75' }}>Add your passport</a> to see entry requirements.
+              </p>
+            </div>
+          )}
 
           {/* ── STEP 0: Select flight ── */}
           {step === 0 && (
