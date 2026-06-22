@@ -11,12 +11,33 @@ interface Segment {
   airline: string; airlineCode: string; flightNumber: string;
   duration: string; aircraft: string; layoverAfter: string;
   baggage?: { checkedBags: number; carryOn: number };
+  segmentId?: string;
+}
+export interface DuffelService {
+  id: string;
+  type: 'baggage' | 'seat' | string;
+  maximumQuantity: number;
+  totalAmount: number;
+  totalCurrency: string;
+  passengerIds: string[];
+  segmentIds: string[];
+  metadata: Record<string, unknown>;
 }
 export interface DuffelOffer {
   id: string; expiresAt: string;
   totalAmount: number; totalCurrency: string; totalDuration: string;
   passengerIds: string[]; segments: Segment[];
+  availableServices: DuffelService[];
 }
+interface SelectedService { serviceId: string; quantity: number; }
+interface SeatElement {
+  type: string; designator?: string;
+  available_services?: { id: string; passenger_id: string; total_amount: string; total_currency: string }[];
+  disclosures?: string[];
+}
+interface SeatRow { sections: { elements: SeatElement[] }[] }
+interface SeatCabin { cabinClass: string; cabinClassName?: string; rows: SeatRow[]; wings?: { first_row_index: number; last_row_index: number } }
+interface SeatMap { segmentId: string; cabins: SeatCabin[] }
 interface PassengerForm {
   title: string; givenName: string; familyName: string;
   gender: string; bornOn: string; email: string; phoneNumber: string;
@@ -73,8 +94,8 @@ const AIRPORT_COUNTRY: Record<string, string> = {
 /* ─── Pricing ────────────────────────────────────────────────────────────── */
 const SERVICE_FEE = 10;
 const DUFFEL_FEE_RATE = 0.029;
-function calcGross(base: number) {
-  return Math.round(((base + SERVICE_FEE) / (1 - DUFFEL_FEE_RATE)) * 100) / 100;
+function calcGross(base: number, extras = 0) {
+  return Math.round(((base + extras + SERVICE_FEE) / (1 - DUFFEL_FEE_RATE)) * 100) / 100;
 }
 
 /* ─── Formatters ─────────────────────────────────────────────────────────── */
@@ -238,6 +259,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [savePassenger, setSavePassenger] = useState(false);
   // Live countdown for offer expiry
   const [offerSecsLeft, setOfferSecsLeft] = useState<number | null>(null);
+  // Add-on services
+  const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
+  const [seatMaps, setSeatMaps] = useState<SeatMap[] | null>(null);
+  const [seatMapsLoading, setSeatMapsLoading] = useState(false);
+  const [seatMapsOpen, setSeatMapsOpen] = useState(false);
+  // Per-passenger seat selection: { [segmentId_passengerId]: serviceId }
+  const [seatSelections, setSeatSelections] = useState<Record<string, string>>({});
 
   // Load saved traveler profile for form pre-fill
   useEffect(() => {
@@ -281,6 +309,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     setBookStep('passenger');
     setCardForm(EMPTY_CARD); setCardErrors({});
     setBookingError(''); setConfirmation(null);
+    setSelectedServices([]); setSeatMaps(null); setSeatMapsOpen(false); setSeatSelections({});
 
     const numPax = offer.passengerIds.length;
     if (savedProfile) {
@@ -363,10 +392,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
     setBooking(true); setBookingError('');
     try {
+      const extrasTotal = selectedServices.reduce((sum, ss) => {
+        const svc = selectedOffer.availableServices.find(s => s.id === ss.serviceId);
+        return sum + (svc ? svc.totalAmount * ss.quantity : 0);
+      }, 0);
       const piRes = await fetch('/api/flights/duffel-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: selectedOffer.totalAmount.toFixed(2), currency: selectedOffer.totalCurrency }),
+        body: JSON.stringify({ amount: (selectedOffer.totalAmount + extrasTotal).toFixed(2), currency: selectedOffer.totalCurrency }),
       });
       const pi = await piRes.json();
       if (pi.error) {
@@ -399,6 +432,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           offerId: selectedOffer.id,
           paymentIntentId: pi.paymentIntentId,
           passengers: forms.map((f, i) => ({ ...f, passengerId: selectedOffer.passengerIds[i] })),
+          services: selectedServices,
         }),
       });
       const order = await orderRes.json();
@@ -425,8 +459,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   /* ── BOOKING VIEW ──────────────────────────────────────────────────────── */
   if (selectedOffer && bookStep !== 'confirmed') {
     const offer = selectedOffer;
-    const gross = calcGross(offer.totalAmount);
-    const processingFee = parseFloat((gross - offer.totalAmount - SERVICE_FEE).toFixed(2));
+    const extrasTotal = selectedServices.reduce((sum, ss) => {
+      const svc = offer.availableServices.find(s => s.id === ss.serviceId);
+      return sum + (svc ? svc.totalAmount * ss.quantity : 0);
+    }, 0);
+    const gross = calcGross(offer.totalAmount, extrasTotal);
+    const processingFee = parseFloat((gross - offer.totalAmount - extrasTotal - SERVICE_FEE).toFixed(2));
     const firstSeg = offer.segments[0];
     const lastSeg = offer.segments[offer.segments.length - 1];
     const secsLeft = offerSecsLeft;
@@ -802,6 +840,249 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 )}
               </div>
 
+              {/* ── Add-on Extras ─────────────────────────────────────── */}
+              {offer.availableServices.length > 0 && (() => {
+                const baggageServices = offer.availableServices.filter(s => s.type === 'baggage');
+                const seatServices = offer.availableServices.filter(s => s.type === 'seat');
+                const otherServices = offer.availableServices.filter(s => s.type !== 'baggage' && s.type !== 'seat');
+                const extrasTotal = selectedServices.reduce((sum, ss) => {
+                  const svc = offer.availableServices.find(s => s.id === ss.serviceId);
+                  return sum + (svc ? svc.totalAmount * ss.quantity : 0);
+                }, 0);
+
+                function setQty(serviceId: string, qty: number) {
+                  setSelectedServices(prev => {
+                    const without = prev.filter(s => s.serviceId !== serviceId);
+                    return qty > 0 ? [...without, { serviceId, quantity: qty }] : without;
+                  });
+                }
+                function getQty(serviceId: string) {
+                  return selectedServices.find(s => s.serviceId === serviceId)?.quantity ?? 0;
+                }
+                function toggleService(serviceId: string) {
+                  setSelectedServices(prev =>
+                    prev.find(s => s.serviceId === serviceId)
+                      ? prev.filter(s => s.serviceId !== serviceId)
+                      : [...prev, { serviceId, quantity: 1 }]
+                  );
+                }
+                function loadSeatMaps() {
+                  if (seatMaps) { setSeatMapsOpen(o => !o); return; }
+                  setSeatMapsLoading(true);
+                  fetch(`/api/flights/seat-map?offerId=${offer.id}`)
+                    .then(r => r.json())
+                    .then(d => { if (d.maps) setSeatMaps(d.maps); })
+                    .catch(() => {})
+                    .finally(() => { setSeatMapsLoading(false); setSeatMapsOpen(true); });
+                }
+                function selectSeat(segId: string, paxId: string, svcId: string) {
+                  const key = `${segId}_${paxId}`;
+                  setSeatSelections(prev => {
+                    const prev_svcId = prev[key];
+                    const newSel = { ...prev, [key]: prev_svcId === svcId ? '' : svcId };
+                    // Sync to selectedServices: remove old seat services, add new ones
+                    const allSeatServiceIds = offer.availableServices.filter(s => s.type === 'seat').map(s => s.id);
+                    const seatSvcIds = Object.values(newSel).filter(Boolean);
+                    setSelectedServices(prev2 => [
+                      ...prev2.filter(s => !allSeatServiceIds.includes(s.serviceId)),
+                      ...seatSvcIds.map(id => ({ serviceId: id, quantity: 1 })),
+                    ]);
+                    return newSel;
+                  });
+                }
+
+                return (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-extrabold text-gray-900">✨ Add extras</p>
+                      {extrasTotal > 0 && (
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#E6F7F1', color: '#1D9E75' }}>
+                          +{fmtPrice(extrasTotal, offer.totalCurrency)}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* BAGGAGE */}
+                    {baggageServices.length > 0 && (
+                      <div>
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">🧳 Extra baggage</p>
+                        <div className="space-y-2">
+                          {baggageServices.map(svc => {
+                            const meta = svc.metadata as { maximum_weight_kg?: number; bag_type?: string; maximum_height_cm?: number };
+                            const label = meta.bag_type === 'checked'
+                              ? `${meta.maximum_weight_kg ?? '?'}kg checked bag`
+                              : meta.bag_type === 'carry_on'
+                              ? `Carry-on bag${meta.maximum_weight_kg ? ` (${meta.maximum_weight_kg}kg)` : ''}`
+                              : `Extra bag`;
+                            const segLabel = svc.segmentIds.length === offer.segments.length
+                              ? 'All segments'
+                              : svc.segmentIds.map(id => offer.segments.find(s => s.segmentId === id)?.depCode ?? id).join(', ');
+                            const paxCount = svc.passengerIds.length;
+                            const qty = getQty(svc.id);
+                            return (
+                              <div key={svc.id} className="flex items-center justify-between py-2 px-3 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                                <div className="flex-1 min-w-0 mr-3">
+                                  <p className="text-xs font-semibold text-gray-800">{label}</p>
+                                  <p className="text-[10px] text-gray-400">{segLabel} · {paxCount} pax · {fmtPrice(svc.totalAmount, svc.totalCurrency)} each</p>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <button onClick={() => setQty(svc.id, Math.max(0, qty - 1))}
+                                    className="w-7 h-7 rounded-full border flex items-center justify-center text-sm font-bold transition-colors"
+                                    style={{ borderColor: qty > 0 ? '#1D9E75' : '#E2E8F0', color: qty > 0 ? '#1D9E75' : '#9CA3AF' }}>
+                                    −
+                                  </button>
+                                  <span className="w-4 text-center text-sm font-bold text-gray-800">{qty}</span>
+                                  <button onClick={() => setQty(svc.id, Math.min(svc.maximumQuantity, qty + 1))}
+                                    className="w-7 h-7 rounded-full border flex items-center justify-center text-sm font-bold transition-colors"
+                                    style={{ borderColor: qty < svc.maximumQuantity ? '#1D9E75' : '#E2E8F0', color: qty < svc.maximumQuantity ? '#1D9E75' : '#9CA3AF' }}>
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SEAT SELECTION */}
+                    {(seatServices.length > 0 || offer.segments.length > 0) && (
+                      <div>
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">💺 Seat selection</p>
+                        <button onClick={loadSeatMaps} disabled={seatMapsLoading}
+                          className="w-full py-2 px-3 rounded-xl text-xs font-bold border transition-colors flex items-center justify-center gap-2"
+                          style={{ borderColor: '#1D9E75', color: '#1D9E75', background: seatMapsOpen ? '#E6F7F1' : 'white' }}>
+                          {seatMapsLoading
+                            ? <><svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Loading seat map…</>
+                            : seatMapsOpen ? '▲ Hide seat map' : '▼ Choose your seats'}
+                        </button>
+
+                        {seatMapsOpen && seatMaps && (
+                          <div className="mt-3 space-y-4">
+                            {seatMaps.map(sm => {
+                              const seg = offer.segments.find(s => s.segmentId === sm.segmentId);
+                              const cabin = sm.cabins[0];
+                              if (!cabin) return null;
+                              return (
+                                <div key={sm.segmentId}>
+                                  <p className="text-[10px] font-bold text-gray-500 mb-2">
+                                    {seg ? `${seg.depCode} → ${seg.arrCode} · ${cabin.cabinClassName ?? cabin.cabinClass}` : sm.segmentId}
+                                  </p>
+                                  {offer.passengerIds.map((paxId, pi) => (
+                                    <div key={paxId} className="mb-3">
+                                      {offer.passengerIds.length > 1 && (
+                                        <p className="text-[10px] font-semibold text-gray-400 mb-1">Passenger {pi + 1}</p>
+                                      )}
+                                      {/* Seat grid */}
+                                      <div className="overflow-x-auto">
+                                        <div className="inline-block min-w-full">
+                                          {cabin.rows.map((row, ri) => (
+                                            <div key={ri} className="flex gap-0.5 mb-0.5">
+                                              {row.sections.map((sec, si) => (
+                                                <div key={si} className="flex gap-0.5">
+                                                  {si > 0 && <div className="w-4" />}
+                                                  {sec.elements.map((el, ei) => {
+                                                    if (el.type !== 'seat') {
+                                                      return <div key={ei} className="w-7 h-7" />;
+                                                    }
+                                                    const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
+                                                    const available = !!paxSvc;
+                                                    const key = `${sm.segmentId}_${paxId}`;
+                                                    const selected = seatSelections[key] === paxSvc?.id;
+                                                    const price = paxSvc ? parseFloat(paxSvc.total_amount) : 0;
+                                                    return (
+                                                      <button
+                                                        key={ei}
+                                                        disabled={!available}
+                                                        onClick={() => paxSvc && selectSeat(sm.segmentId, paxId, paxSvc.id)}
+                                                        title={el.designator + (el.disclosures?.length ? ` · ${el.disclosures[0]}` : '') + (price ? ` · ${fmtPrice(price, offer.totalCurrency)}` : '')}
+                                                        className="w-7 h-7 rounded text-[9px] font-bold flex items-center justify-center transition-colors"
+                                                        style={{
+                                                          background: selected ? '#1D9E75' : available ? '#E6F7F1' : '#F3F4F6',
+                                                          color: selected ? 'white' : available ? '#1D9E75' : '#D1D5DB',
+                                                          border: selected ? '1.5px solid #1D9E75' : available ? '1px solid #A7F3D0' : '1px solid #E5E7EB',
+                                                          cursor: available ? 'pointer' : 'not-allowed',
+                                                        }}>
+                                                        {el.designator?.replace(/\d+/, '') ?? ''}
+                                                      </button>
+                                                    );
+                                                  })}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      {/* Selected seat display */}
+                                      {(() => {
+                                        const key = `${sm.segmentId}_${paxId}`;
+                                        const selSvcId = seatSelections[key];
+                                        if (!selSvcId) return null;
+                                        // Find designator from seat map
+                                        let designator = '', price = 0, currency = offer.totalCurrency;
+                                        for (const row of cabin.rows) {
+                                          for (const sec of row.sections) {
+                                            for (const el of sec.elements) {
+                                              const svc = el.available_services?.find(a => a.id === selSvcId);
+                                              if (svc) { designator = el.designator ?? ''; price = parseFloat(svc.total_amount); currency = svc.total_currency; }
+                                            }
+                                          }
+                                        }
+                                        return (
+                                          <p className="text-xs font-semibold mt-1" style={{ color: '#1D9E75' }}>
+                                            ✓ Seat {designator} selected · +{fmtPrice(price, currency)}
+                                          </p>
+                                        );
+                                      })()}
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })}
+                            <div className="flex gap-3 text-[10px] text-gray-500">
+                              <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#E6F7F1', border: '1px solid #A7F3D0' }} /> Available</span>
+                              <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#1D9E75' }} /> Selected</span>
+                              <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#F3F4F6', border: '1px solid #E5E7EB' }} /> Taken</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {seatMapsOpen && !seatMaps && !seatMapsLoading && (
+                          <p className="text-xs text-gray-400 mt-2 text-center">Seat map not available for this flight.</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* OTHER SERVICES */}
+                    {otherServices.length > 0 && (
+                      <div>
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">🎁 Other add-ons</p>
+                        <div className="space-y-2">
+                          {otherServices.map(svc => {
+                            const added = !!selectedServices.find(s => s.serviceId === svc.id);
+                            return (
+                              <div key={svc.id} className="flex items-center justify-between py-2 px-3 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                                <div className="flex-1 min-w-0 mr-3">
+                                  <p className="text-xs font-semibold text-gray-800 capitalize">{svc.type.replace(/_/g, ' ')}</p>
+                                  <p className="text-[10px] text-gray-400">{fmtPrice(svc.totalAmount, svc.totalCurrency)}</p>
+                                </div>
+                                <button onClick={() => toggleService(svc.id)}
+                                  className="text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+                                  style={added
+                                    ? { background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA' }
+                                    : { background: '#E6F7F1', color: '#1D9E75', border: '1px solid #A7F3D0' }}>
+                                  {added ? '− Remove' : '+ Add'}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Price breakdown */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <p className="text-sm font-extrabold text-gray-900 mb-3">Price breakdown</p>
@@ -818,6 +1099,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     <span>Taxes and fees</span>
                     <span>{fmtPrice(offer.totalAmount * 0.2, offer.totalCurrency)}</span>
                   </div>
+                  {extrasTotal > 0 && (
+                    <div className="flex justify-between text-xs font-semibold" style={{ color: '#1D9E75' }}>
+                      <span>Add-ons</span>
+                      <span>+{fmtPrice(extrasTotal, offer.totalCurrency)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>Service fee</span>
                     <span>{fmtPrice(SERVICE_FEE, offer.totalCurrency)}</span>

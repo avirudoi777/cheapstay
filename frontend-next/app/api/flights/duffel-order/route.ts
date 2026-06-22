@@ -17,10 +17,11 @@ interface PassengerInput {
 }
 
 export async function POST(req: NextRequest) {
-  const { offerId, paymentIntentId, passengers } = await req.json() as {
+  const { offerId, paymentIntentId, passengers, services = [] } = await req.json() as {
     offerId: string;
     paymentIntentId: string;
     passengers: PassengerInput[];
+    services?: { serviceId: string; quantity: number }[];
   };
 
   const key = process.env.DUFFEL_LIVE_API_KEY
@@ -60,6 +61,9 @@ export async function POST(req: NextRequest) {
             type: 'payment_intent',
             id: paymentIntentId,
           }],
+          ...(services.length > 0 ? {
+            services: services.map(s => ({ id: s.serviceId, quantity: s.quantity })),
+          } : {}),
         },
       }),
       cache: 'no-store',

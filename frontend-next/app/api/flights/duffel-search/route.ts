@@ -54,6 +54,17 @@ function layoverMin(arrAt: string, depAt: string): string {
 function formatOffer(offer: any) {
   const slice = offer.slices[0];
   const segs = slice.segments;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const availableServices = (offer.available_services ?? []).map((svc: any) => ({
+    id: svc.id,
+    type: svc.type,
+    maximumQuantity: svc.maximum_quantity ?? 1,
+    totalAmount: parseFloat(svc.total_amount ?? '0'),
+    totalCurrency: svc.total_currency ?? offer.total_currency,
+    passengerIds: svc.passenger_ids ?? [],
+    segmentIds: svc.segment_ids ?? [],
+    metadata: svc.metadata ?? {},
+  }));
   return {
     id: offer.id,
     expiresAt: offer.expires_at,
@@ -61,6 +72,7 @@ function formatOffer(offer: any) {
     totalCurrency: offer.total_currency,
     totalDuration: totalDur(segs),
     passengerIds: (offer.passengers as { id: string }[]).map(p => p.id),
+    availableServices,
     segments: segs.map((seg: Record<string, unknown>, si: number) => {
       const origin = seg.origin as Record<string, string>;
       const dest = seg.destination as Record<string, string>;
@@ -70,12 +82,12 @@ function formatOffer(offer: any) {
       const layover = nextSeg
         ? layoverMin(seg.arriving_at as string, (nextSeg as Record<string, string>).departing_at)
         : '';
-      // Baggage from first passenger (all adults share same allowance)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const paxBaggages = ((seg.passengers as any[])?.[0]?.baggages ?? []) as { type: string; quantity: number }[];
       const checkedBags = paxBaggages.filter(b => b.type === 'checked').reduce((s, b) => s + b.quantity, 0);
       const carryOn = paxBaggages.filter(b => b.type === 'carry_on').reduce((s, b) => s + b.quantity, 0);
       return {
+        segmentId: seg.id as string,
         depCode: origin.iata_code,
         depCity: origin.city_name || origin.name,
         depAt: seg.departing_at,
