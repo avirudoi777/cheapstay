@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import VisaBanner from '@/components/VisaBanner';
 import type { ItineraryOption, FlightSegment } from '@/app/api/flights/itinerary/route';
+import FlightBookingModal from '@/components/FlightBookingModal';
 
 interface FlightOffer {
   origin: string;
@@ -209,6 +210,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [error, setError] = useState('');
   const [scope, setScope] = useState<'exact' | 'month' | 'open' | ''>('');
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [bookingOffer, setBookingOffer] = useState<{ date: string } | null>(null);
   const [itineraries, setItineraries] = useState<ItineraryOption[] | null>(null);
   const [itinLoading, setItinLoading] = useState(false);
   const [itinError, setItinError] = useState('');
@@ -451,11 +453,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           {airlineName} · {offer.airline}{offer.flight_number}
                         </p>
                       </div>
-                      <a href={bookUrl} target="_blank" rel="noopener noreferrer"
+                      <button
+                        onClick={() => setBookingOffer({ date: offer.departure_at?.slice(0, 10) || depart })}
                         className="flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
                         style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
                         Book
-                      </a>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -523,6 +526,17 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           </div>
         </div>
       )}
+
+      <FlightBookingModal
+        isOpen={!!bookingOffer}
+        onClose={() => setBookingOffer(null)}
+        origin={fromCode}
+        destination={toCode}
+        departureDate={bookingOffer?.date || depart}
+        returnDate={ret || undefined}
+        fromName={fromName}
+        toName={toName}
+      />
     </div>
   );
 }
