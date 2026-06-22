@@ -40,6 +40,34 @@ interface Props {
   passportCodes: string[];
 }
 
+/* ─── Airport → country mapping for smart passport pre-selection ────────── */
+const AIRPORT_COUNTRY: Record<string, string> = {
+  JFK:'US',LAX:'US',ORD:'US',MIA:'US',SFO:'US',DFW:'US',ATL:'US',BOS:'US',SEA:'US',IAH:'US',DEN:'US',LAS:'US',MCO:'US',
+  YYZ:'CA',YVR:'CA',YUL:'CA',YYC:'CA',
+  GRU:'BR',GIG:'BR',BSB:'BR',SSA:'BR',FOR:'BR',
+  BOG:'CO',MDE:'CO', EZE:'AR',AEP:'AR', LIM:'PE', SCL:'CL', UIO:'EC', ASU:'PY', MVD:'UY',
+  MEX:'MX',CUN:'MX',GDL:'MX',MTY:'MX',
+  LHR:'GB',LGW:'GB',MAN:'GB',EDI:'GB',STN:'GB',
+  CDG:'FR',ORY:'FR',NCE:'FR',LYS:'FR',
+  FRA:'DE',MUC:'DE',BER:'DE',DUS:'DE',HAM:'DE',
+  AMS:'NL', MAD:'ES',BCN:'ES',AGP:'ES',VLC:'ES',
+  FCO:'IT',MXP:'IT',NAP:'IT',VCE:'IT',
+  ZRH:'CH',GVA:'CH', VIE:'AT', BRU:'BE',
+  CPH:'DK', OSL:'NO', ARN:'SE', HEL:'FI',
+  WAW:'PL', PRG:'CZ', BUD:'HU', ATH:'GR', LIS:'PT',
+  IST:'TR',SAW:'TR',
+  DXB:'AE',AUH:'AE',SHJ:'AE', DOH:'QA', KWI:'KW', BAH:'BH', MCT:'OM', RUH:'SA',JED:'SA',
+  TLV:'IL',
+  BKK:'TH',DMK:'TH',HKT:'TH',CNX:'TH',
+  SIN:'SG', KUL:'MY',PEN:'MY', CGK:'ID',DPS:'ID', MNL:'PH',CEB:'PH',
+  HAN:'VN',SGN:'VN', REP:'KH',PNH:'KH',
+  NRT:'JP',HND:'JP',KIX:'JP',FUK:'JP', ICN:'KR',GMP:'KR',
+  PEK:'CN',PVG:'CN',CAN:'CN',SZX:'CN',CTU:'CN', HKG:'HK', TPE:'TW',
+  BOM:'IN',DEL:'IN',BLR:'IN',MAA:'IN',HYD:'IN', CMB:'LK',
+  JNB:'ZA',CPT:'ZA', NBO:'KE', ADD:'ET', LOS:'NG', CAI:'EG', CMN:'MA',
+  SYD:'AU',MEL:'AU',BNE:'AU',PER:'AU', AKL:'NZ',
+};
+
 /* ─── Pricing ────────────────────────────────────────────────────────────── */
 const SERVICE_FEE = 10;
 const DUFFEL_FEE_RATE = 0.029;
@@ -224,7 +252,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     setBookingError(''); setConfirmation(null);
 
     if (savedProfile) {
-      const firstPassport = savedProfile.passports[0];
+      // Pick best passport: prefer the one matching destination country
+      const destCountry = AIRPORT_COUNTRY[toCode.toUpperCase()] ?? '';
+      const best = savedProfile.passports.find(p => p.country === destCountry)
+        ?? savedProfile.passports[0];
       setForm({
         title:           savedProfile.title || 'mr',
         givenName:       savedProfile.givenName || '',
@@ -233,11 +264,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         bornOn:          savedProfile.bornOn || '',
         email:           savedProfile.email || '',
         phoneNumber:     savedProfile.phone || '',
-        passportNumber:  firstPassport?.passportNumber || '',
-        passportExpiry:  firstPassport?.passportExpiry || '',
-        passportCountry: firstPassport?.country || '',
+        passportNumber:  best?.passportNumber || '',
+        passportExpiry:  best?.passportExpiry || '',
+        passportCountry: best?.country || '',
       });
-      setSelectedPassportId(firstPassport?.id || '');
+      setSelectedPassportId(best?.id || '');
     } else {
       setForm(EMPTY_FORM);
       setSelectedPassportId('');
@@ -461,28 +492,6 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
             <p className="text-xs text-gray-500">Details must match your passport exactly.</p>
 
-            {/* Passport selector — shown when user has 2+ passports saved */}
-            {savedProfile && savedProfile.passports.length > 1 && (
-              <div className="rounded-xl p-4" style={{ background: '#F0FBF7', border: '1px solid #1D9E75' }}>
-                <p className="text-xs font-bold text-gray-700 mb-2.5">Which passport are you traveling with?</p>
-                <div className="flex flex-col gap-2">
-                  {savedProfile.passports.map(p => (
-                    <button key={p.id} type="button" onClick={() => selectPassport(p)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all ${selectedPassportId === p.id ? 'border-teal bg-white shadow-sm' : 'border-gray-200 bg-white/60 hover:border-teal/50'}`}>
-                      <span className="text-2xl">{flagEmoji(p.country)}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-gray-900">{p.label || p.country}</p>
-                        <p className="text-[11px] text-gray-400">Expires {p.passportExpiry || 'N/A'}</p>
-                      </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedPassportId === p.id ? 'border-teal' : 'border-gray-300'}`}>
-                        {selectedPassportId === p.id && <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#1D9E75' }} />}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <div className="grid grid-cols-2 gap-3">
               <Field label="Title">
                 <select value={form.title} onChange={e => update('title', e.target.value)} className={selectCls}>
@@ -524,22 +533,46 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             </Field>
 
             <div className="border-t border-gray-100 pt-4">
-              <p className="text-xs font-bold text-gray-700 mb-3">Passport</p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-bold text-gray-700">Passport</p>
+                {savedProfile && savedProfile.passports.length > 0 && (
+                  <select
+                    value={selectedPassportId}
+                    onChange={e => {
+                      const p = savedProfile.passports.find(p => p.id === e.target.value);
+                      if (p) selectPassport(p);
+                      else { setSelectedPassportId(''); setForm(f => ({ ...f, passportNumber: '', passportExpiry: '', passportCountry: '' })); }
+                    }}
+                    className="text-xs font-semibold border border-gray-200 rounded-xl px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal/30 appearance-none cursor-pointer"
+                    style={{ maxWidth: 220 }}>
+                    {savedProfile.passports.map(p => {
+                      const destCountry = AIRPORT_COUNTRY[toCode.toUpperCase()] ?? '';
+                      const isBest = p.country === destCountry;
+                      return (
+                        <option key={p.id} value={p.id}>
+                          {flagEmoji(p.country)} {p.country} ···{p.passportNumber.slice(-4) || '????'}{isBest ? ' ★' : ''}
+                        </option>
+                      );
+                    })}
+                    <option value="">Enter manually</option>
+                  </select>
+                )}
+              </div>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Passport number">
-                    <input value={form.passportNumber} onChange={e => update('passportNumber', e.target.value)}
+                    <input value={form.passportNumber} onChange={e => { update('passportNumber', e.target.value.toUpperCase()); setSelectedPassportId(''); }}
                       placeholder="AB1234567" className={inputCls} style={{ textTransform: 'uppercase' }} />
                     {formErrors.passportNumber && <p className="text-xs text-red-500 mt-0.5">{formErrors.passportNumber}</p>}
                   </Field>
                   <Field label="Country (2-letter)">
-                    <input value={form.passportCountry} onChange={e => update('passportCountry', e.target.value.toUpperCase())}
+                    <input value={form.passportCountry} onChange={e => { update('passportCountry', e.target.value.toUpperCase()); setSelectedPassportId(''); }}
                       placeholder="US" maxLength={2} className={inputCls} />
                     {formErrors.passportCountry && <p className="text-xs text-red-500 mt-0.5">{formErrors.passportCountry}</p>}
                   </Field>
                 </div>
                 <Field label="Passport expiry">
-                  <input type="date" value={form.passportExpiry} onChange={e => update('passportExpiry', e.target.value)} className={inputCls} />
+                  <input type="date" value={form.passportExpiry} onChange={e => { update('passportExpiry', e.target.value); setSelectedPassportId(''); }} className={inputCls} />
                   {formErrors.passportExpiry && <p className="text-xs text-red-500 mt-0.5">{formErrors.passportExpiry}</p>}
                 </Field>
               </div>
@@ -728,19 +761,25 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             return (
               <div key={offer.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                 <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-                  {/* Times */}
+                  {/* Times + airline logo */}
                   <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {/* Airline logo */}
+                    <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                      <AirlineLogo code={firstSeg.airlineCode} name={firstSeg.airline} />
+                      <span className="hidden" aria-hidden="true" />
+                    </div>
+
                     <div className="text-center flex-shrink-0">
                       <p className="text-xl font-extrabold text-gray-900 tabular-nums">{fmtTime(firstSeg.depAt)}</p>
                       <p className="text-xs font-bold text-gray-500">{firstSeg.depCode}</p>
                     </div>
 
-                    <div className="flex-1 flex flex-col items-center gap-0.5 px-2">
-                      <p className="text-[11px] text-gray-400">{offer.totalDuration}</p>
+                    <div className="flex-1 flex flex-col items-center gap-0.5 px-1">
+                      <p className="text-[11px] text-gray-400 font-medium">{offer.totalDuration}</p>
                       <div className="flex items-center w-full gap-1">
                         <div className="h-px flex-1 bg-gray-200" />
                         {stops === 0
-                          ? <span className="text-[10px] text-gray-400 whitespace-nowrap">Direct</span>
+                          ? <span className="text-[10px] font-semibold text-emerald-600 whitespace-nowrap px-1.5 py-0.5 rounded-full bg-emerald-50">Direct</span>
                           : <button onClick={() => setExpanded(isExpanded ? null : offer.id)}
                               className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap"
                               style={{ background: '#FEF9C3', color: '#92400E' }}>
@@ -785,6 +824,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     {offer.segments.map((seg, i) => (
                       <div key={i}>
                         <div className="flex items-center gap-3 text-sm">
+                          <AirlineLogo code={seg.airlineCode} name={seg.airline} />
                           <div className="text-center w-12 flex-shrink-0">
                             <p className="font-extrabold tabular-nums">{fmtTime(seg.depAt)}</p>
                             <p className="text-[11px] font-bold text-gray-500">{seg.depCode}</p>
