@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import SearchBar, { type SearchValues } from '@/components/SearchBar';
-import FlightSearchBar from '@/components/FlightSearchBar';
+import FlightSearchBar, { AIRPORTS } from '@/components/FlightSearchBar';
 import HotelGrid from '@/components/HotelGrid';
 import { searchCity, getSuggestions, getUserCountry } from '@/lib/api';
 import { analytics } from '@/lib/analytics';
@@ -253,16 +253,34 @@ export default function HomePage() {
   function handleFlightSearch(from: string, to: string, depart: string, ret: string) {
     const codeMatch = (s: string) => s.match(/\(([A-Z]{3})\)/)?.[1] ?? '';
     const nameOf    = (s: string) => s.replace(/\s*\([A-Z]{3}\).*/, '').trim();
-    const fromCode = codeMatch(from);
-    const toCode   = codeMatch(to);
-    if (!fromCode || !toCode) {
-      window.open('https://www.google.com/travel/flights/', '_blank', 'noopener');
+
+    // Try to resolve plain-text city names (e.g. "Beijing" with no code selected)
+    function resolveAirport(raw: string): { code: string; name: string } | null {
+      const code = codeMatch(raw);
+      if (code) return { code, name: nameOf(raw) || code };
+      const lq = raw.toLowerCase().trim();
+      if (!lq) return null;
+      const match = AIRPORTS.find(a =>
+        a.name.toLowerCase().includes(lq) ||
+        a.code.toLowerCase() === lq ||
+        a.country.toLowerCase() === lq
+      );
+      return match ? { code: match.code, name: match.name } : null;
+    }
+
+    const fromRes = resolveAirport(from);
+    const toRes   = resolveAirport(to);
+
+    if (!fromRes || !toRes) {
+      // Still unknown — open Aviasales with text search so user stays in the ecosystem
+      const url = `https://www.aviasales.com/?marker=537802`;
+      window.open(url, '_blank', 'noopener');
       return;
     }
+
     setFlightSearch({
-      fromCode, toCode,
-      fromName: nameOf(from) || fromCode,
-      toName:   nameOf(to)   || toCode,
+      fromCode: fromRes.code, toCode: toRes.code,
+      fromName: fromRes.name, toName: toRes.name,
       depart, ret,
     });
     setTimeout(() => flightResultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
