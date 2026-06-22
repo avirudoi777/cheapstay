@@ -56,44 +56,57 @@ export async function GET() {
 
 /* ── POST: encrypt & save traveler profile ───────────────────────────────── */
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const body = await req.json() as {
-    title: string; givenName: string; familyName: string; gender: string;
-    bornOn: string; phone: string;
-    passports: { id?: string; country: string; label: string; passportNumber: string; passportExpiry: string }[];
-  };
+    const body = await req.json() as {
+      title: string; givenName: string; familyName: string; gender: string;
+      bornOn: string; phone: string;
+      passports: { id?: string; country: string; label: string; passportNumber: string; passportExpiry: string }[];
+    };
 
-  const passports: PassportRaw[] = (body.passports ?? []).slice(0, 3).map(p => ({
-    id: p.id || randomUUID(),
-    country: (p.country ?? '').toUpperCase(),
-    label: p.label || (p.country ?? '').toUpperCase(),
-    number_enc: p.passportNumber ? encryptField(p.passportNumber) : '',
-    expiry: p.passportExpiry ?? '',
-  }));
+    // Encryption key check — give a clear error before attempting
+    const encKey = process.env.PROFILE_ENCRYPTION_KEY;
+    if (!encKey || encKey.length !== 64) {
+      return NextResponse.json(
+        { error: 'PROFILE_ENCRYPTION_KEY not set in environment. Add it to Vercel → Settings → Environment Variables.' },
+        { status: 500 }
+      );
+    }
 
-  const travelerProfile: TravelerProfileRaw = {
-    title:       body.title || 'mr',
-    given_name:  body.givenName || undefined,
-    family_name: body.familyName || undefined,
-    gender:      body.gender || 'm',
-    born_on_enc: body.bornOn ? encryptField(body.bornOn) : undefined,
-    phone:       body.phone || undefined,
-    passports,
-  };
+    const passports: PassportRaw[] = (body.passports ?? []).slice(0, 3).map(p => ({
+      id: p.id || randomUUID(),
+      country: (p.country ?? '').toUpperCase(),
+      label: p.label || (p.country ?? '').toUpperCase(),
+      number_enc: p.passportNumber ? encryptField(p.passportNumber) : '',
+      expiry: p.passportExpiry ?? '',
+    }));
 
-  const { error } = await supabase
-    .from('user_profiles')
-    .upsert({ id: user.id, traveler_profile: travelerProfile });
-  if (error) {
-    // Column likely not created yet — tell the user exactly what SQL to run
-    const msg = error.message.includes('traveler_profile') || error.message.includes('column')
-      ? 'traveler_profile column missing — run migration: ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS traveler_profile JSONB;'
-      : error.message;
+    const travelerProfile: TravelerProfileRaw = {
+      title:       body.title || 'mr',
+      given_name:  body.givenName || undefined,
+      family_name: body.familyName || undefined,
+      gender:      body.gender || 'm',
+      born_on_enc: body.bornOn ? encryptField(body.bornOn) : undefined,
+      phone:       body.phone || undefined,
+      passports,
+    };
+
+    const { error } = await supabase
+      .from('user_profiles')
+      .upsert({ id: user.id, traveler_profile: travelerProfile });
+    if (error) {
+      const msg = error.message.includes('traveler_profile') || error.message.includes('column')
+        ? 'traveler_profile column missing — run: ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS traveler_profile JSONB;'
+        : error.message;
+      return NextResponse.json({ error: msg }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
-
-  return NextResponse.json({ ok: true });
 }
