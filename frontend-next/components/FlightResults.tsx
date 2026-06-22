@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import VisaBanner from '@/components/VisaBanner';
 import { getLayoverGuide, parseLayoverMinutes, LAYOVER_GUIDE_THRESHOLD_MIN } from '@/lib/layover-guides';
 import { flagEmoji } from '@/lib/visa-data';
@@ -133,8 +133,9 @@ function RouteMap({ fromCode, toCode, fromName, toName, stops = [], duration }: 
         <text x="245" y="52" textAnchor="middle" fontSize="18">✈️</text>
         {stopPoints.map(({ code, cx, cy }) => (
           <g key={code}>
-            <circle cx={cx} cy={cy} r="4" fill="rgba(255,200,50,0.8)" />
-            <text x={cx} y={cy - 8} textAnchor="middle" fontSize="9" fill="rgba(255,200,50,0.9)" fontWeight="bold">{code}</text>
+            <circle cx={cx} cy={cy} r="5" fill="rgba(255,200,50,0.9)" />
+            {/* Label goes BELOW the dot — avoids collision with plane/duration */}
+            <text x={cx} y={cy + 16} textAnchor="middle" fontSize="9" fill="rgba(255,200,50,0.95)" fontWeight="bold">{code}</text>
           </g>
         ))}
         <circle cx={depX} cy={baseY} r="6" fill="#1D9E75" />
@@ -143,11 +144,14 @@ function RouteMap({ fromCode, toCode, fromName, toName, stops = [], duration }: 
         <circle cx={arrX} cy={baseY} r="6" fill="#1A73E8" />
         <circle cx={arrX} cy={baseY} r="10" fill="none" stroke="#1A73E8" strokeWidth="1.5" strokeOpacity="0.4" />
         <text x={arrX} y={baseY + 18} textAnchor="middle" fontSize="13" fill="white" fontWeight="bold">{toCode}</text>
-        {duration && <text x="250" y={arcY - 6} textAnchor="middle" fontSize="10" fill="rgba(255,255,255,0.5)">{duration}</text>}
       </svg>
-      <div className="px-5 pb-4 flex justify-between -mt-2">
+      {/* Caption bar — duration lives here, not in the SVG, so it never collides with stop codes */}
+      <div className="px-5 pb-4 flex items-center justify-between -mt-1">
         <p className="text-xs text-gray-400">{fromName}</p>
-        {stops.length > 0 && <p className="text-[10px] text-yellow-500 font-semibold">{stops.length} stop{stops.length > 1 ? 's' : ''}</p>}
+        <div className="text-center">
+          {duration && <p className="text-[11px] font-semibold text-gray-300">{duration}</p>}
+          {stops.length > 0 && <p className="text-[10px] text-yellow-400 font-semibold">{stops.length} stop{stops.length > 1 ? 's' : ''}</p>}
+        </div>
         <p className="text-xs text-gray-400">{toName}</p>
       </div>
     </div>
@@ -198,6 +202,8 @@ const EMPTY_FORM: PassengerForm = {
 const EMPTY_CARD: CardForm = { name: '', number: '', expiry: '', cvc: '' };
 
 export default function FlightResults({ fromCode, toCode, fromName, toName, depart, ret, onClear, passportCodes }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // ── Search state
   const [offers, setOffers] = useState<DuffelOffer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -274,7 +280,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       setSelectedPassportId('');
     }
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function update(key: keyof PassengerForm, val: string) {
@@ -371,7 +377,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     const lastSeg = offer.segments[offer.segments.length - 1];
 
     return (
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-6 mb-12">
+      <div ref={containerRef} className="max-w-2xl mx-auto px-4 sm:px-6 mt-6 mb-12">
         {/* Back link */}
         <button onClick={() => setSelectedOffer(null)}
           className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors mb-5">
@@ -703,7 +709,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
   /* ── RESULTS LIST VIEW ───────────────────────────────────────────────────── */
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 mt-6 mb-6">
+    <div ref={containerRef} className="max-w-4xl mx-auto px-4 sm:px-6 mt-6 mb-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
