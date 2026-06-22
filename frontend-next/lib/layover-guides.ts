@@ -8,6 +8,112 @@ export interface LayoverGuide {
 }
 
 const GUIDES: Record<string, LayoverGuide> = {
+  MIA: {
+    airport: 'Miami International Airport',
+    city: 'Miami',
+    flag: '🇺🇸',
+    lounges: 'The Club at MIA (pay ~$45, T2/D); American Airlines Admirals Club (AA members/first class)',
+    tips: [
+      { icon: '🌊', title: 'Wynwood or beach?', desc: 'Wynwood street art murals are 20 min by Uber. South Beach is 30 min.' },
+      { icon: '🍖', title: 'Cuban food airside', desc: 'Versailles Cuban Café in T2 (post-security) — ropa vieja and cortadito worth the stop.' },
+      { icon: '🚌', title: 'To downtown quick', desc: 'MIA Mover train (free) to Rental Car Center, then Miami-Dade transit bus.' },
+    ],
+  },
+  DFW: {
+    airport: 'Dallas/Fort Worth International Airport',
+    city: 'Dallas',
+    flag: '🇺🇸',
+    lounges: 'American Airlines Admirals Club (AA members/first class); The Club at DFW T2 (pay ~$45)',
+    tips: [
+      { icon: '🤠', title: 'World\'s 2nd busiest', desc: 'DFW is massive — allow 30+ min between gates in different terminals. Skylink train is fast.' },
+      { icon: '🥩', title: 'Texas BBQ', desc: 'Cousin\'s Bar-B-Q in T3 and T4. Get the brisket. It\'s legitimately good airport food.' },
+      { icon: '🚶', title: 'Skylink is free', desc: 'The automated train runs 24h between all terminals. Fast and reliable.' },
+    ],
+  },
+  JFK: {
+    airport: 'John F. Kennedy International Airport',
+    city: 'New York',
+    flag: '🇺🇸',
+    lounges: 'The Centurion Lounge T4 (Amex Platinum/pay ~$50); Delta Sky Club T4 (Delta card/SkyMiles); TWA Hotel rooftop (non-lounge, pay)',
+    tips: [
+      { icon: '🗽', title: 'NYC in 60 min', desc: 'AirTrain to Jamaica, then LIRR or subway to Manhattan — ~$12 total. Uber is $60–90.' },
+      { icon: '🕐', title: 'Terminal gaps are real', desc: 'Different terminals require going through security again. Budget extra time.' },
+      { icon: '🍕', title: 'NYC pizza pre-flight', desc: 'T4 has Shake Shack and Whitmans — solid compared to most airports.' },
+    ],
+  },
+  LAX: {
+    airport: 'Los Angeles International Airport',
+    city: 'Los Angeles',
+    flag: '🇺🇸',
+    lounges: 'The Centurion Lounge T4 (Amex Platinum/pay); Star Alliance Business Lounge T2 (Star Alliance Business+)',
+    tips: [
+      { icon: '🚗', title: 'Traffic is brutal', desc: 'Add 30–60 min buffer to any airport transfer. Fly by app (FlyAway) is the most reliable.' },
+      { icon: '🌴', title: 'Tom Bradley is nicest', desc: 'TBIT (international terminal) is the most modern and has the best food options.' },
+      { icon: '🍣', title: 'Sugarfish airside', desc: 'Sugarfish in TBIT — legit sushi before a long-haul.' },
+    ],
+  },
+  GIG: {
+    airport: 'Rio de Janeiro–Galeão International Airport',
+    city: 'Rio de Janeiro',
+    flag: '🇧🇷',
+    lounges: 'Gol Smiles Lounge T1 (Gol members/pay ~$30); VIP Lounge T2 (pay ~$30, includes buffet)',
+    tips: [
+      { icon: '🏖️', title: 'Copacabana is 45 min', desc: 'Taxi or app (99/Uber) to Zona Sul is R$80–120. BRT bus from airport is cheap but slow.' },
+      { icon: '🔒', title: 'Safety first', desc: 'Use ride-apps, not unmarked taxis. Don\'t display phones or cameras on arrival plaza.' },
+      { icon: '🥤', title: 'Coconut water airside', desc: 'Fresh coconut at the kiosks in T2 is genuinely good and cheaper than coffee.' },
+    ],
+  },
+  GRU: {
+    airport: 'São Paulo/Guarulhos International Airport',
+    city: 'São Paulo',
+    flag: '🇧🇷',
+    lounges: 'LATAM VIP Lounge T2 (LATAM Business+); GRU Airport VIP Lounge (pay ~$40); Smiles Lounge (pay)',
+    tips: [
+      { icon: '🏙️', title: 'São Paulo is 1h away', desc: 'CON shuttle or Uber (~R$100–140) to Paulista. Allow 1.5h in rush hour.' },
+      { icon: '☕', title: 'Best coffee in South America', desc: 'Brazil is the world\'s largest coffee producer — the espresso in T3 kiosks is exceptional.' },
+    ],
+  },
+  BOG: {
+    airport: 'El Dorado International Airport',
+    city: 'Bogotá',
+    flag: '🇨🇴',
+    lounges: 'Copa Airlines Business Lounge (Copa First/Business); El Dorado VIP Lounge (pay ~$35); Avianca VIP Lounge (Avianca LifeMiles Elite)',
+    tips: [
+      { icon: '☕', title: 'World\'s best coffee here', desc: 'Colombia is the home of single-origin specialty coffee. Get a tinto before your flight — it\'s exceptional.' },
+      { icon: '🌆', title: 'Bogotá at 2,600m altitude', desc: 'The city sits at high altitude — drink water, skip alcohol your first day.' },
+      { icon: '🚕', title: 'InDriver or Cabify', desc: 'Use ride apps. Official taxis from the booth are safe, avoid unmarked vehicles.' },
+    ],
+  },
+  MEX: {
+    airport: 'Mexico City International Airport',
+    city: 'Mexico City',
+    flag: '🇲🇽',
+    lounges: 'Aeromexico Salon Premier (Aeromexico Platinum/Business); TACA VIP Lounge (pay ~$30)',
+    tips: [
+      { icon: '🌮', title: 'Best tacos of your life', desc: 'Tacos de canasta in the departure hall. Sound questionable, taste unreal.' },
+      { icon: '🚇', title: 'Metro is $0.25', desc: 'Terminal 1 has a metro station — cheapest ride into the city (35 min to Zócalo).' },
+    ],
+  },
+  LIM: {
+    airport: 'Jorge Chávez International Airport',
+    city: 'Lima',
+    flag: '🇵🇪',
+    lounges: 'LATAM VIP Lounge (LATAM Business); VIP Lounge LIM (pay ~$35, airside)',
+    tips: [
+      { icon: '🍽️', title: 'Astrid y Gastón nearby', desc: 'Lima is the fine-dining capital of Latin America. Even airport food options are surprisingly good.' },
+      { icon: '🌫️', title: 'Lima is grey', desc: 'The city is covered in fog (garúa) June–November. Don\'t judge by the sky — it\'s one of South America\'s best cities.' },
+    ],
+  },
+  SCL: {
+    airport: 'Arturo Merino Benítez International Airport',
+    city: 'Santiago',
+    flag: '🇨🇱',
+    lounges: 'Sala VIP Sky (Sky Airline members); LATAM Lounge (LATAM Business/Elite); Sala VIP Lan Chile (pay ~$35)',
+    tips: [
+      { icon: '🏔️', title: 'Andes views from the plane', desc: 'Window seat on right side landing from north — Aconcagua (7000m) is stunning on clear days.' },
+      { icon: '🍷', title: 'Chilean wine in the lounge', desc: 'SCL lounges stock decent Carménère and Malbec — take advantage before a long haul.' },
+    ],
+  },
   BKK: {
     airport: 'Suvarnabhumi Airport',
     city: 'Bangkok',
