@@ -5,6 +5,7 @@ import { getLayoverGuide, parseLayoverMinutes, LAYOVER_GUIDE_THRESHOLD_MIN } fro
 import { flagEmoji } from '@/lib/visa-data';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
+interface SegmentAmenity { desc: string; cost: string }
 interface Segment {
   depCode: string; depCity: string; depAt: string;
   arrCode: string; arrCity: string; arrAt: string;
@@ -12,6 +13,14 @@ interface Segment {
   duration: string; aircraft: string; layoverAfter: string;
   baggage?: { checkedBags: number; carryOn: number };
   segmentId?: string;
+  amenities?: {
+    food?: SegmentAmenity | null;
+    drink?: SegmentAmenity | null;
+    entertainment?: SegmentAmenity | null;
+    wifi?: SegmentAmenity | null;
+    power?: SegmentAmenity | null;
+    seat?: { type: string; pitch: string | null } | null;
+  } | null;
 }
 export interface DuffelService {
   id: string;
@@ -750,6 +759,48 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   </label>
                 </div>
               </div>
+
+              {/* Baggage included — always visible on passenger step */}
+              {bookStep === 'passenger' && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <p className="text-sm font-extrabold text-gray-900 mb-3">🧳 What&apos;s included in this fare</p>
+                  <div className="space-y-3">
+                    {offer.segments.map((seg, i) => {
+                      const b = seg.baggage;
+                      return (
+                        <div key={i} className={i > 0 ? 'border-t border-gray-100 pt-3' : ''}>
+                          {offer.segments.length > 1 && (
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">
+                              {seg.depCode} → {seg.arrCode} · {seg.airline}
+                            </p>
+                          )}
+                          <div className="flex gap-4">
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <span className={b && b.carryOn > 0 ? 'text-emerald-500 font-bold text-sm' : 'text-gray-300 text-sm'}>
+                                {b && b.carryOn > 0 ? '✓' : '✗'}
+                              </span>
+                              <span className={b && b.carryOn > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}>
+                                {b && b.carryOn > 0 ? `${b.carryOn} carry-on` : 'No carry-on'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <span className={b && b.checkedBags > 0 ? 'text-emerald-500 font-bold text-sm' : 'text-gray-300 text-sm'}>
+                                {b && b.checkedBags > 0 ? '✓' : '✗'}
+                              </span>
+                              <span className={b && b.checkedBags > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}>
+                                {b && b.checkedBags > 0 ? `${b.checkedBags} checked bag${b.checkedBags > 1 ? 's' : ''}` : 'No checked bag'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {offer.segments.every(s => !s.baggage?.checkedBags) && (
+                    <p className="text-[10px] text-amber-600 mt-2.5">💡 Buying extra baggage online is cheaper than paying at the airport.</p>
+                  )}
+                </div>
+              )}
 
               {/* ── Payment form (shown after passenger step) */}
               {bookStep === 'payment' && (
@@ -1604,10 +1655,54 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                 </p>
                                 {seg.baggage && (seg.baggage.checkedBags > 0 || seg.baggage.carryOn > 0) && (
                                   <p className="text-[11px] text-gray-400 mt-0.5">
-                                    {seg.baggage.carryOn > 0 && `🎒 Carry-on included`}
+                                    {seg.baggage.carryOn > 0 && `🎒 Carry-on`}
                                     {seg.baggage.carryOn > 0 && seg.baggage.checkedBags > 0 && ' · '}
-                                    {seg.baggage.checkedBags > 0 && `🧳 ${seg.baggage.checkedBags} checked bag${seg.baggage.checkedBags > 1 ? 's' : ''} included`}
+                                    {seg.baggage.checkedBags > 0 && `🧳 ${seg.baggage.checkedBags} checked bag${seg.baggage.checkedBags > 1 ? 's' : ''}`}
                                   </p>
+                                )}
+                                {seg.amenities && (
+                                  <div className="flex flex-wrap gap-1.5 mt-2">
+                                    {seg.aircraft && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F1F5F9', color: '#475569' }}>
+                                        ✈️ {seg.aircraft}
+                                      </span>
+                                    )}
+                                    {seg.amenities.seat?.type && seg.amenities.seat.type !== 'standard' && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F1F5F9', color: '#475569' }}>
+                                        💺 {seg.amenities.seat.type.replace(/_/g, ' ')}
+                                        {seg.amenities.seat.pitch ? ` · ${seg.amenities.seat.pitch}"` : ''}
+                                      </span>
+                                    )}
+                                    {seg.amenities.wifi && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                        style={{ background: seg.amenities.wifi.cost === 'free' ? '#ECFDF5' : '#F8FAFC', color: seg.amenities.wifi.cost === 'free' ? '#15803D' : '#64748B' }}>
+                                        📶 {seg.amenities.wifi.desc} {seg.amenities.wifi.cost === 'free' ? '(Free)' : '(Paid)'}
+                                      </span>
+                                    )}
+                                    {seg.amenities.entertainment && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                        style={{ background: seg.amenities.entertainment.cost === 'free' ? '#ECFDF5' : '#F8FAFC', color: seg.amenities.entertainment.cost === 'free' ? '#15803D' : '#64748B' }}>
+                                        🎬 {seg.amenities.entertainment.desc} {seg.amenities.entertainment.cost === 'free' ? '(Free)' : '(Paid)'}
+                                      </span>
+                                    )}
+                                    {seg.amenities.food && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                        style={{ background: seg.amenities.food.cost === 'free' ? '#ECFDF5' : '#F8FAFC', color: seg.amenities.food.cost === 'free' ? '#15803D' : '#64748B' }}>
+                                        🍽️ {seg.amenities.food.desc} {seg.amenities.food.cost === 'free' ? '(Free)' : '(Paid)'}
+                                      </span>
+                                    )}
+                                    {seg.amenities.drink && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                        style={{ background: seg.amenities.drink.cost === 'free' ? '#ECFDF5' : '#F8FAFC', color: seg.amenities.drink.cost === 'free' ? '#15803D' : '#64748B' }}>
+                                        🍸 {seg.amenities.drink.desc} {seg.amenities.drink.cost === 'free' ? '(Free)' : '(Paid)'}
+                                      </span>
+                                    )}
+                                    {seg.amenities.power && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F8FAFC', color: '#64748B' }}>
+                                        🔌 {seg.amenities.power.desc} {seg.amenities.power.cost === 'free' ? '(Free)' : '(Paid)'}
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </div>
 

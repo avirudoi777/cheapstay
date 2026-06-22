@@ -88,6 +88,16 @@ function formatOffer(offer: any) {
       const paxBaggages = ((seg.passengers as any[])?.[0]?.baggages ?? []) as { type: string; quantity: number }[];
       const checkedBags = paxBaggages.filter(b => b.type === 'checked').reduce((s, b) => s + b.quantity, 0);
       const carryOn = paxBaggages.filter(b => b.type === 'carry_on').reduce((s, b) => s + b.quantity, 0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ca = ((seg.passengers as any[])?.[0]?.cabin_amenities) ?? null;
+      const amenities = ca ? {
+        food: ca.food?.cost !== 'not_provided' ? { desc: ca.food?.description || 'Meal', cost: ca.food?.cost as string } : null,
+        drink: ca.drink?.cost !== 'not_provided' ? { desc: ca.drink?.description || 'Drinks', cost: ca.drink?.cost as string } : null,
+        entertainment: ca.entertainment?.cost !== 'not_provided' ? { desc: ca.entertainment?.description || 'Entertainment', cost: ca.entertainment?.cost as string } : null,
+        wifi: ca.wifi?.cost !== 'not_provided' ? { desc: ca.wifi?.description || 'WiFi', cost: ca.wifi?.cost as string } : null,
+        power: ca.power?.cost !== 'not_provided' ? { desc: ca.power?.description || 'Power outlet', cost: ca.power?.cost as string } : null,
+        seat: ca.seat ? { type: ca.seat.type as string, pitch: ca.seat.pitch as string | null } : null,
+      } : null;
       return {
         segmentId: seg.id as string,
         depCode: origin.iata_code,
@@ -103,6 +113,7 @@ function formatOffer(offer: any) {
         aircraft: aircraft?.name || '',
         layoverAfter: layover,
         baggage: { checkedBags, carryOn },
+        amenities,
       };
     }),
   };
