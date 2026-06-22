@@ -1079,50 +1079,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 </a>
               </div>
 
-              {/* Baggage */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <p className="text-sm font-extrabold text-gray-900 mb-3">🧳 Baggage allowance</p>
-                {offer.segments.map((seg, i) => {
-                  const b = seg.baggage;
-                  const segLabel = offer.segments.length > 1 ? `Segment ${i + 1}: ${seg.depCode}→${seg.arrCode}` : `${seg.depCode} → ${seg.arrCode}`;
-                  return (
-                    <div key={i} className={i > 0 ? 'border-t border-gray-100 pt-2 mt-2' : ''}>
-                      {offer.segments.length > 1 && (
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">{segLabel}</p>
-                      )}
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className={b && b.carryOn > 0 ? 'text-emerald-600' : 'text-gray-400'}>
-                            {b && b.carryOn > 0 ? '✓' : '✗'}
-                          </span>
-                          <span className={b && b.carryOn > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}>
-                            {b && b.carryOn > 0 ? `${b.carryOn} carry-on bag included` : 'No carry-on included'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className={b && b.checkedBags > 0 ? 'text-emerald-600' : 'text-gray-400'}>
-                            {b && b.checkedBags > 0 ? '✓' : '✗'}
-                          </span>
-                          <span className={b && b.checkedBags > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}>
-                            {b && b.checkedBags > 0 ? `${b.checkedBags} checked bag${b.checkedBags > 1 ? 's' : ''} included` : 'No checked bag — pay at airport'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {offer.segments.every(s => !s.baggage?.checkedBags) && (
-                  <p className="text-[10px] text-gray-400 mt-2">Tip: buying checked baggage at the airport costs more than pre-purchasing online.</p>
-                )}
-              </div>
-
               {/* Price breakdown */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <p className="text-sm font-extrabold text-gray-900 mb-3">Price breakdown</p>
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex justify-between">
-                    <span>Adult</span>
-                    <span className="font-semibold">{fmtPrice(offer.totalAmount, offer.totalCurrency)} x {offer.passengerIds.length}</span>
+                    <span>{offer.passengers.length === 1 ? 'Fare' : `Fare (${offer.passengers.length} passengers)`}</span>
+                    <span className="font-semibold">{fmtPrice(offer.totalAmount, offer.totalCurrency)}</span>
                   </div>
                   <div className="flex justify-between text-xs text-gray-400">
                     <span>Base fare</span>
@@ -1153,6 +1116,157 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 </div>
               </div>
 
+              {/* Baggage */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <p className="text-sm font-extrabold text-gray-900 mb-3">🧳 Baggage allowance</p>
+                {offer.segments.map((seg, i) => {
+                  const b = seg.baggage;
+                  return (
+                    <div key={i} className={i > 0 ? 'border-t border-gray-100 pt-3 mt-3' : ''}>
+                      {offer.segments.length > 1 && (
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">
+                          Segment {i + 1}: {seg.depCode}→{seg.arrCode}
+                        </p>
+                      )}
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className={b && b.carryOn > 0 ? 'text-emerald-600 font-bold' : 'text-gray-300'}>
+                            {b && b.carryOn > 0 ? '✓' : '✗'}
+                          </span>
+                          <span className={b && b.carryOn > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}>
+                            {b && b.carryOn > 0 ? `${b.carryOn} carry-on bag included` : 'No carry-on included'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className={b && b.checkedBags > 0 ? 'text-emerald-600 font-bold' : 'text-gray-300'}>
+                            {b && b.checkedBags > 0 ? '✓' : '✗'}
+                          </span>
+                          <span className={b && b.checkedBags > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}>
+                            {b && b.checkedBags > 0 ? `${b.checkedBags} checked bag${b.checkedBags > 1 ? 's' : ''} included` : 'No checked bag — pay at airport'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {offer.segments.every(s => !s.baggage?.checkedBags) && (
+                  <p className="text-[10px] text-amber-600 mt-2.5 leading-relaxed">💡 Tip: pre-purchasing baggage online is almost always cheaper than paying at the airport.</p>
+                )}
+              </div>
+
+              {/* Airport lounges — premium redesign */}
+              {(() => {
+                const allCodes = Array.from(new Set([
+                  ...offer.segments.map(s => s.depCode),
+                  offer.segments[offer.segments.length - 1].arrCode,
+                ]));
+                const airportsWithLounges = allCodes
+                  .map(code => ({ code, guide: getLayoverGuide(code) }))
+                  .filter(({ guide }) => guide?.lounges);
+                if (airportsWithLounges.length === 0) return null;
+
+                function parseLounges(raw: string) {
+                  return raw.split(/;\s*(?=[A-Z])/).map(entry => {
+                    const name = entry.replace(/\s*\(.*/, '').trim();
+                    const detail = entry.match(/\(([^)]+)\)/)?.[1] ?? '';
+                    const price = detail.match(/~?\$\d+/)?.[0] ?? '';
+                    const is24h = detail.toLowerCase().includes('24h');
+                    const hasShower = detail.toLowerCase().includes('shower');
+                    const payAtDoor = detail.toLowerCase().includes('pay');
+                    const airlineOnly = /^[A-Z]/.test(detail) && !payAtDoor;
+                    const includesFood = detail.toLowerCase().includes('food') || detail.toLowerCase().includes('buffet') || detail.toLowerCase().includes('meal');
+                    return { name, detail, price, is24h, hasShower, payAtDoor, airlineOnly, includesFood };
+                  });
+                }
+
+                return (
+                  <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #1E3A5F' }}>
+                    {/* Header */}
+                    <div className="px-5 pt-5 pb-4" style={{ background: 'linear-gradient(135deg, #0F2942 0%, #1A3C5E 100%)' }}>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-base font-extrabold text-white mb-0.5">🛋️ Airport Lounges</p>
+                          <p className="text-[11px] leading-relaxed" style={{ color: '#93C5FD' }}>
+                            Rest, eat and freshen up between flights — on your route, no guessing
+                          </p>
+                        </div>
+                        <span className="text-[9px] font-bold px-2 py-1 rounded-full flex-shrink-0 ml-2 mt-0.5"
+                          style={{ background: '#1D4ED8', color: '#BFDBFE', border: '1px solid #2563EB' }}>
+                          ONLY ON CHEAPSTAY
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Airports */}
+                    <div className="p-4 space-y-4" style={{ background: '#F8FAFC' }}>
+                      {airportsWithLounges.map(({ code, guide }, ai) => {
+                        const isLayover = offer.segments.slice(0, -1).some(s => s.arrCode === code);
+                        const isArrival = offer.segments[offer.segments.length - 1].arrCode === code;
+                        const role = isArrival ? 'Arrival' : isLayover ? 'Layover' : 'Departure';
+                        const roleColor = isLayover
+                          ? { bg: '#FEF9C3', text: '#92400E' }
+                          : isArrival
+                          ? { bg: '#EFF6FF', text: '#1D4ED8' }
+                          : { bg: '#ECFDF5', text: '#15803D' };
+                        const lounges = parseLounges(guide!.lounges!);
+                        return (
+                          <div key={code} className={ai > 0 ? 'border-t border-gray-200 pt-4' : ''}>
+                            {/* Airport header */}
+                            <div className="flex items-center gap-2.5 mb-3">
+                              <span className="text-xl">{guide!.flag}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="text-sm font-extrabold text-gray-900">{code}</p>
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                    style={{ background: roleColor.bg, color: roleColor.text }}>
+                                    {role}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-gray-400 truncate">{guide!.airport}</p>
+                              </div>
+                            </div>
+
+                            {/* Lounge cards */}
+                            <div className="space-y-2">
+                              {lounges.map((lounge, li) => (
+                                <div key={li} className="rounded-xl p-3 bg-white" style={{ border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                  <div className="flex items-start justify-between gap-2 mb-2">
+                                    <p className="text-sm font-bold text-gray-900 leading-tight flex-1">{lounge.name}</p>
+                                    {lounge.price && (
+                                      <div className="flex-shrink-0 text-right">
+                                        <span className="text-base font-extrabold" style={{ color: '#1D9E75' }}>{lounge.price}</span>
+                                        {lounge.payAtDoor && <p className="text-[9px] text-gray-400 leading-none mt-0.5">per person</p>}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {lounge.payAtDoor && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#FEF9C3', color: '#92400E' }}>💳 Walk-in</span>
+                                    )}
+                                    {lounge.airlineOnly && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F3F4F6', color: '#6B7280' }}>✈️ Airline card</span>
+                                    )}
+                                    {lounge.is24h && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#EFF6FF', color: '#1D4ED8' }}>🕐 24h</span>
+                                    )}
+                                    {lounge.hasShower && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F0F9FF', color: '#0369A1' }}>🚿 Shower</span>
+                                    )}
+                                    {lounge.includesFood && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#FFF7ED', color: '#C2410C' }}>🍽️ Food included</span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Booking conditions */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <p className="text-sm font-extrabold text-gray-900 mb-3">Booking conditions</p>
@@ -1172,91 +1286,6 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   ))}
                 </div>
               </div>
-
-              {/* Airport lounges — all airports in the itinerary */}
-              {(() => {
-                // Collect unique airport codes: all dep + final arr
-                const allCodes = Array.from(new Set([
-                  ...offer.segments.map(s => s.depCode),
-                  offer.segments[offer.segments.length - 1].arrCode,
-                ]));
-                const airportsWithLounges = allCodes
-                  .map(code => ({ code, guide: getLayoverGuide(code) }))
-                  .filter(({ guide }) => guide?.lounges);
-                if (airportsWithLounges.length === 0) return null;
-
-                function parseLounges(raw: string) {
-                  return raw.split(/;\s*(?=[A-Z])/).map(entry => {
-                    const name = entry.replace(/\s*\(.*/, '').trim();
-                    const detail = entry.match(/\(([^)]+)\)/)?.[1] ?? '';
-                    const price = detail.match(/~?\$\d+/)?.[0] ?? '';
-                    const is24h = detail.toLowerCase().includes('24h');
-                    const hasShower = detail.toLowerCase().includes('shower');
-                    const payAtDoor = detail.toLowerCase().includes('pay');
-                    const airlineOnly = /^[A-Z]/.test(detail) && !payAtDoor;
-                    return { name, detail, price, is24h, hasShower, payAtDoor, airlineOnly };
-                  });
-                }
-
-                return (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                    <p className="text-sm font-extrabold text-gray-900 mb-1">🛋️ Airport Lounges</p>
-                    <p className="text-[10px] text-gray-400 mb-3">Lounges available at airports on your route</p>
-                    <div className="space-y-4">
-                      {airportsWithLounges.map(({ code, guide }) => {
-                        const isLayover = offer.segments.slice(0, -1).some(s => s.arrCode === code);
-                        const isArrival = offer.segments[offer.segments.length - 1].arrCode === code;
-                        const role = isArrival ? 'Arrival' : isLayover ? 'Layover' : 'Departure';
-                        const lounges = parseLounges(guide!.lounges!);
-                        return (
-                          <div key={code}>
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-base">{guide!.flag}</span>
-                              <div>
-                                <p className="text-xs font-bold text-gray-800">{code} — {guide!.airport}</p>
-                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                                  style={{ background: '#F1F5F9', color: '#64748B' }}>{role}</span>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              {lounges.map((lounge, li) => (
-                                <div key={li} className="rounded-xl p-3" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                                  <div className="flex items-start justify-between gap-2">
-                                    <p className="text-xs font-bold text-gray-800 flex-1">{lounge.name}</p>
-                                    {lounge.price && (
-                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                                        style={{ background: '#E6F7F1', color: '#1D9E75' }}>
-                                        {lounge.price}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                    {lounge.payAtDoor && (
-                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#FEF9C3', color: '#92400E' }}>💳 Pay at door</span>
-                                    )}
-                                    {lounge.is24h && (
-                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#EFF6FF', color: '#1D4ED8' }}>🕐 Open 24h</span>
-                                    )}
-                                    {lounge.hasShower && (
-                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F0F9FF', color: '#0369A1' }}>🚿 Shower</span>
-                                    )}
-                                    {lounge.airlineOnly && (
-                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#F3F4F6', color: '#6B7280' }}>✈️ Airline members</span>
-                                    )}
-                                  </div>
-                                  {lounge.detail && !lounge.payAtDoor && !lounge.airlineOnly && (
-                                    <p className="text-[10px] text-gray-400 mt-1">{lounge.detail}</p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
           </div>
         </div>
