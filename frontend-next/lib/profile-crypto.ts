@@ -1,8 +1,8 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
 function getKey(): Buffer {
-  const hex = process.env.PROFILE_ENCRYPTION_KEY;
-  if (!hex || hex.length !== 64) throw new Error('PROFILE_ENCRYPTION_KEY must be a 64-char hex string (32 bytes)');
+  const hex = (process.env.PROFILE_ENCRYPTION_KEY ?? '').trim();
+  if (!hex || hex.length !== 64) throw new Error(`PROFILE_ENCRYPTION_KEY must be 64 hex chars (got ${hex.length})`);
   return Buffer.from(hex, 'hex');
 }
 

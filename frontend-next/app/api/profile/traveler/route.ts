@@ -67,11 +67,14 @@ export async function POST(req: NextRequest) {
       passports: { id?: string; country: string; label: string; passportNumber: string; passportExpiry: string }[];
     };
 
-    // Encryption key check — give a clear error before attempting
-    const encKey = process.env.PROFILE_ENCRYPTION_KEY;
-    if (!encKey || encKey.length !== 64) {
+    // Encryption key check — trim whitespace in case of copy-paste issues
+    const encKey = (process.env.PROFILE_ENCRYPTION_KEY ?? '').trim();
+    if (!encKey) {
+      return NextResponse.json({ error: 'PROFILE_ENCRYPTION_KEY is empty in Vercel env vars.' }, { status: 500 });
+    }
+    if (encKey.length !== 64) {
       return NextResponse.json(
-        { error: 'PROFILE_ENCRYPTION_KEY not set in environment. Add it to Vercel → Settings → Environment Variables.' },
+        { error: `PROFILE_ENCRYPTION_KEY is ${encKey.length} chars — needs to be exactly 64. Check for extra spaces or missing characters in Vercel.` },
         { status: 500 }
       );
     }
