@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import VisaBanner from '@/components/VisaBanner';
+import type { ItineraryOption, FlightSegment } from '@/app/api/flights/itinerary/route';
 
 interface FlightOffer {
   origin: string;
@@ -26,21 +27,6 @@ interface Props {
   onClear: () => void;
   passportCodes: string[];
 }
-
-const AIRLINES: Record<string, string> = {
-  TG: 'Thai Airways',    FD: 'AirAsia',          DD: 'Nok Air',
-  SL: 'Thai Lion Air',   JL: 'Japan Airlines',    NH: 'ANA',
-  SQ: 'Singapore Air',   EK: 'Emirates',          QR: 'Qatar Airways',
-  CX: 'Cathay Pacific',  MH: 'Malaysia Airlines', GA: 'Garuda',
-  VN: 'Vietnam Airlines',KE: 'Korean Air',         OZ: 'Asiana',
-  CI: 'China Airlines',  BR: 'EVA Air',            TK: 'Turkish Airlines',
-  BA: 'British Airways', LH: 'Lufthansa',          AF: 'Air France',
-  KL: 'KLM',             AA: 'American',           DL: 'Delta',
-  UA: 'United',          AY: 'Finnair',            VS: 'Virgin Atlantic',
-  ET: 'Ethiopian',       EY: 'Etihad',             WY: 'Oman Air',
-  MS: 'EgyptAir',        IB: 'Iberia',             LX: 'Swiss',
-  OS: 'Austrian',        SK: 'SAS',                AZ: 'ITA Airways',
-};
 
 function validDate(iso: string | undefined | null): Date | null {
   if (!iso) return null;
@@ -98,12 +84,150 @@ function SkeletonCard() {
   );
 }
 
+const AIRLINES: Record<string, string> = {
+  TG: 'Thai Airways',    FD: 'AirAsia',          DD: 'Nok Air',
+  SL: 'Thai Lion Air',   JL: 'Japan Airlines',    NH: 'ANA',
+  SQ: 'Singapore Air',   EK: 'Emirates',          QR: 'Qatar Airways',
+  CX: 'Cathay Pacific',  MH: 'Malaysia Airlines', GA: 'Garuda',
+  VN: 'Vietnam Airlines',KE: 'Korean Air',         OZ: 'Asiana',
+  CI: 'China Airlines',  BR: 'EVA Air',            TK: 'Turkish Airlines',
+  BA: 'British Airways', LH: 'Lufthansa',          AF: 'Air France',
+  KL: 'KLM',             AA: 'American',           DL: 'Delta',
+  UA: 'United',          AY: 'Finnair',            VS: 'Virgin Atlantic',
+  ET: 'Ethiopian',       EY: 'Etihad',             WY: 'Oman Air',
+  MS: 'EgyptAir',        IB: 'Iberia',             LX: 'Swiss',
+  OS: 'Austrian',        SK: 'SAS',                AZ: 'ITA Airways',
+  TP: 'TAP Air Portugal',LA: 'LATAM',              G3: 'GOL',
+  CM: 'Copa Airlines',   AV: 'Avianca',            AM: 'Aeroméxico',
+};
+
+function fmtSegTime(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function fmtSegDate(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function layoverMins(arrAt: string, depAt: string): string {
+  const diff = new Date(depAt).getTime() - new Date(arrAt).getTime();
+  if (diff <= 0) return '';
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+function SegmentTimeline({ itinerary, bookUrl }: { itinerary: ItineraryOption; bookUrl: string }) {
+  return (
+    <div className="px-5 pt-4 pb-5">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+          Full itinerary · {itinerary.totalDuration}
+        </p>
+        {itinerary.price > 0 && (
+          <p className="text-xs text-gray-400">Live price: <span className="font-bold text-gray-700">${itinerary.price}</span></p>
+        )}
+      </div>
+
+      <div className="space-y-0">
+        {itinerary.segments.map((seg: FlightSegment, si: number) => {
+          const nextSeg = itinerary.segments[si + 1];
+          const layover = nextSeg ? layoverMins(seg.arrAt, nextSeg.depAt) : '';
+          const depDate = fmtSegDate(seg.depAt);
+          const arrDate = fmtSegDate(seg.arrAt);
+
+          return (
+            <div key={si}>
+              {/* Leg row */}
+              <div className="flex items-stretch gap-0">
+                {/* Left timeline dot + line */}
+                <div className="flex flex-col items-center mr-3 pt-0.5" style={{ width: 16 }}>
+                  <div className="w-3 h-3 rounded-full border-2 flex-shrink-0" style={{ borderColor: '#1D9E75', background: '#fff' }} />
+                  <div className="flex-1 w-px" style={{ background: '#E5E7EB', minHeight: 32 }} />
+                  <div className="w-3 h-3 rounded-full border-2 flex-shrink-0" style={{ borderColor: '#1D9E75', background: '#fff' }} />
+                </div>
+
+                {/* Leg content */}
+                <div className="flex-1 pb-2">
+                  {/* Departure row */}
+                  <div className="flex items-baseline gap-2 mb-auto">
+                    <span className="text-sm font-extrabold tabular-nums text-gray-900">{fmtSegTime(seg.depAt)}</span>
+                    <span className="text-sm font-bold text-gray-800">{seg.depCode}</span>
+                    <span className="text-xs text-gray-400 hidden sm:inline">{depDate}</span>
+                  </div>
+
+                  {/* Leg info (centered) */}
+                  <div className="my-1.5 flex items-center gap-2">
+                    <span className="text-xs text-gray-400">{seg.duration}</span>
+                    <span className="text-gray-200">·</span>
+                    <span className="text-xs font-semibold text-gray-500">{seg.airline}</span>
+                    <span className="text-gray-200">·</span>
+                    <span className="text-xs text-gray-400">{seg.flightNumber}</span>
+                  </div>
+
+                  {/* Arrival row */}
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-sm font-extrabold tabular-nums text-gray-900">{fmtSegTime(seg.arrAt)}</span>
+                    <span className="text-sm font-bold text-gray-800">{seg.arrCode}</span>
+                    <span className="text-xs text-gray-400 hidden sm:inline">{arrDate}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Layover pill */}
+              {layover && (
+                <div className="flex items-center gap-2 ml-7 my-2">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
+                    style={{ background: '#F1F5F9', color: '#64748B' }}>
+                    <span>🚶</span>
+                    <span>Layover in {nextSeg.depCode} · {layover}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 flex justify-end">
+        <a href={bookUrl} target="_blank" rel="noopener noreferrer"
+          className="text-xs font-bold hover:underline" style={{ color: '#1D9E75' }}>
+          Book this flight on Aviasales →
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export default function FlightResults({ fromCode, toCode, fromName, toName, depart, ret, onClear, passportCodes }: Props) {
   const [offers, setOffers] = useState<FlightOffer[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [scope, setScope] = useState<'exact' | 'month' | 'open' | ''>('');
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [itineraries, setItineraries] = useState<ItineraryOption[] | null>(null);
+  const [itinLoading, setItinLoading] = useState(false);
+  const [itinError, setItinError] = useState('');
+
+  const loadItinerary = useCallback((depDate: string) => {
+    setItineraries(null);
+    setItinError('');
+    setItinLoading(true);
+    const date = depDate?.slice(0, 10) || depart;
+    fetch(`/api/flights/itinerary?from=${fromCode}&to=${toCode}&depart=${date}`)
+      .then(r => r.json())
+      .then(json => {
+        if (json.error === 'no_credentials') setItinError('setup');
+        else if (json.error) setItinError('failed');
+        else setItineraries(json.itineraries ?? []);
+      })
+      .catch(() => setItinError('failed'))
+      .finally(() => setItinLoading(false));
+  }, [fromCode, toCode, depart]);
 
   const fallbackUrl = (() => {
     const p = new URLSearchParams({ origin: fromCode, destination: toCode, depart_date: depart, adults: '1', marker: '537802' });
@@ -298,7 +422,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         <p className="text-xs text-gray-400 mt-1">Direct</p>
                       ) : (
                         <button
-                          onClick={() => setExpanded(expanded === i ? null : i)}
+                          onClick={() => {
+                            if (expanded === i) {
+                              setExpanded(null);
+                            } else {
+                              setExpanded(i);
+                              loadItinerary(offer.departure_at);
+                            }
+                          }}
                           className="text-xs mt-1 font-semibold hover:underline transition-colors"
                           style={{ color: expanded === i ? '#1D9E75' : '#6b7280' }}>
                           {offer.transfers} stop{offer.transfers > 1 ? 's' : ''} {expanded === i ? '▲' : '▼'}
@@ -329,18 +460,52 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   </div>
                 </div>
 
-                {/* Expanded layover details */}
+                {/* Expanded itinerary */}
                 {expanded === i && offer.transfers > 0 && (
-                  <div className="px-5 pb-4 pt-3 border-t border-gray-100 flex items-center gap-2">
-                    <span className="text-sm">🔄</span>
-                    <p className="text-xs text-gray-500 flex-1">
-                      Layover airports are not available in the price preview.
-                    </p>
-                    <a href={bookUrl} target="_blank" rel="noopener noreferrer"
-                      className="text-xs font-bold whitespace-nowrap hover:underline flex-shrink-0"
-                      style={{ color: '#1D9E75' }}>
-                      See full itinerary on Aviasales →
-                    </a>
+                  <div className="border-t border-gray-100">
+                    {itinLoading && (
+                      <div className="px-5 py-4 space-y-3 animate-pulse">
+                        {Array.from({ length: offer.transfers + 1 }).map((_, s) => (
+                          <div key={s}>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-8 bg-gray-100 rounded" />
+                              <div className="flex-1 h-px bg-gray-100" />
+                              <div className="w-10 h-8 bg-gray-100 rounded" />
+                            </div>
+                            {s < offer.transfers && <div className="ml-5 mt-2 w-40 h-5 bg-gray-100 rounded" />}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {itinError === 'setup' && (
+                      <div className="px-5 py-4 text-center">
+                        <p className="text-xs font-bold text-gray-700 mb-1">Itinerary details need setup</p>
+                        <p className="text-xs text-gray-400 mb-3">
+                          Add <code className="bg-gray-100 px-1 rounded">AMADEUS_API_KEY</code> and{' '}
+                          <code className="bg-gray-100 px-1 rounded">AMADEUS_API_SECRET</code> to your Vercel environment variables.{' '}
+                          Free at <a href="https://developers.amadeus.com" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#1D9E75' }}>developers.amadeus.com</a>
+                        </p>
+                        <a href={bookUrl} target="_blank" rel="noopener noreferrer"
+                          className="text-xs font-bold hover:underline" style={{ color: '#1D9E75' }}>
+                          See full itinerary on Aviasales →
+                        </a>
+                      </div>
+                    )}
+
+                    {itinError === 'failed' && (
+                      <div className="px-5 py-3 flex items-center justify-between">
+                        <p className="text-xs text-gray-400">Could not load itinerary details.</p>
+                        <a href={bookUrl} target="_blank" rel="noopener noreferrer"
+                          className="text-xs font-bold hover:underline flex-shrink-0" style={{ color: '#1D9E75' }}>
+                          See on Aviasales →
+                        </a>
+                      </div>
+                    )}
+
+                    {!itinLoading && !itinError && itineraries && itineraries.length > 0 && (
+                      <SegmentTimeline itinerary={itineraries[0]} bookUrl={bookUrl} />
+                    )}
                   </div>
                 )}
               </div>
