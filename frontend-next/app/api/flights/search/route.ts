@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-async function tpFetch(params: URLSearchParams) {
-  const res = await fetch(
-    `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?${params}`,
-    { next: { revalidate: 3600 } }
-  );
-  if (!res.ok) throw new Error(`TP API ${res.status}`);
+const TP_BASE = 'https://api.travelpayouts.com';
+
+async function get(url: string) {
+  const res = await fetch(url, { next: { revalidate: 3600 } });
+  if (!res.ok) return null;
   return res.json();
 }
 
@@ -24,38 +23,37 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'no_token' }, { status: 503 });
   }
 
-  const base: Record<string, string> = {
-    origin: from,
-    destination: to,
-    currency: 'USD',
-    sorting: 'price',
-    direct: 'false',
-    limit: '10',
-    one_way: ret ? 'false' : 'true',
-    token,
-  };
+  const month    = depart.slice(0, 7);
+  const retMonth = ret ? ret.slice(0, 7) : '';
 
   try {
-    // 1st attempt: exact date
-    const qs1 = new URLSearchParams({ ...base, departure_at: depart });
-    if (ret) qs1.set('return_at', ret);
-    const exact = await tpFetch(qs1);
-    if (exact.data?.length) return NextResponse.json({ ...exact, scope: 'exact' });
+    // 1. prices_for_dates — exact date
+    const q1 = new URLSearchParams({ origin: from, destination: to, departure_at: depart, currency: 'USD', sorting: 'price', direct: 'false', limit: '10', one_way: ret ? 'false' : 'true', token });
+    if (ret) q1.set('return_at', ret);
+    const r1 = await get(`${TP_BASE}/aviasales/v3/prices_for_dates?${q1}`);
+    if (r1?.data?.length) return NextResponse.json({ success: true, data: r1.data, scope: 'exact' });
 
-    // 2nd attempt: whole month (much higher cache hit rate)
-    const month = depart.slice(0, 7); // YYYY-MM
-    const qs2 = new URLSearchParams({ ...base, departure_at: month });
-    if (ret) qs2.set('return_at', ret.slice(0, 7));
-    const monthly = await tpFetch(qs2);
-    if (monthly.data?.length) return NextResponse.json({ ...monthly, scope: 'month' });
+    // 2. prices_for_dates — whole month
+    const q2 = new URLSearchParams({ origin: from, destination: to, departure_at: month, currency: 'USD', sorting: 'price', direct: 'false', limit: '10', one_way: ret ? 'false' : 'true', token });
+    if (retMonth) q2.set('return_at', retMonth);
+    const r2 = await get(`${TP_BASE}/aviasales/v3/prices_for_dates?${q2}`);
+    if (r2?.data?.length) return NextResponse.json({ success: true, data: r2.data, scope: 'month' });
 
-    // 3rd attempt: open destination (any date in next 3 months, limited to route)
-    const qs3 = new URLSearchParams({ ...base, limit: '5' });
-    delete Object.assign(qs3 as unknown as Record<string, string>)['departure_at'];
-    qs3.delete('departure_at');
-    qs3.delete('return_at');
-    const open = await tpFetch(qs3);
-    if (open.data?.length) return NextResponse.json({ ...open, scope: 'open' });
+    // 3. v2/prices/latest — recent cached prices, no date filter
+    const q3 = new URLSearchParams({ origin: from, destination: to, period_type: 'year', one_way: ret ? 'false' : 'true', currency: 'usd', limit: '10', sorting: 'price', token });
+    const r3 = await get(`${TP_BASE}/v2/prices/latest?${q3}`);
+    const latest = r3?.data ? Object.values(r3.data as Record<string, unknown[]>).flat() : [];
+    if (latest.length) return NextResponse.json({ success: true, data: latest, scope: 'latest' });
+
+    // 4. v1/prices/cheap — cheapest tickets for the month
+    const q4 = new URLSearchParams({ origin: from, destination: to, depart_date: month, currency: 'usd', token });
+    if (retMonth) q4.set('return_date', retMonth);
+    const r4 = await get(`${TP_BASE}/v1/prices/cheap?${q4}`);
+    const cheap = r4?.data ? Object.values(r4.data as Record<string, unknown>).map((v: unknown) => {
+      const entry = v as Record<string, unknown>;
+      return Object.entries(entry).map(([date, d]) => ({ ...(d as object), departure_at: date, origin: from, destination: to }));
+    }).flat() : [];
+    if (cheap.length) return NextResponse.json({ success: true, data: cheap, scope: 'cheap' });
 
     return NextResponse.json({ success: true, data: [], scope: 'none' });
   } catch (err) {
