@@ -774,7 +774,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                               {seg.depCode} → {seg.arrCode} · {seg.airline}
                             </p>
                           )}
-                          <div className="flex gap-4">
+                          <div className="flex items-center gap-5 flex-wrap">
                             <div className="flex items-center gap-1.5 text-xs">
                               <span className={b && b.carryOn > 0 ? 'text-emerald-500 font-bold text-sm' : 'text-gray-300 text-sm'}>
                                 {b && b.carryOn > 0 ? '✓' : '✗'}
@@ -790,6 +790,22 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                               <span className={b && b.checkedBags > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}>
                                 {b && b.checkedBags > 0 ? `${b.checkedBags} checked bag${b.checkedBags > 1 ? 's' : ''}` : 'No checked bag'}
                               </span>
+                              {(!b || b.checkedBags === 0) && (() => {
+                                const hasBagSvc = baggageServices.some(s => s.segmentIds.includes(seg.segmentId ?? ''));
+                                return hasBagSvc ? (
+                                  <button
+                                    onClick={() => {
+                                      const el = document.getElementById('extras-section');
+                                      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    }}
+                                    className="text-[10px] font-bold px-2 py-0.5 rounded-full cursor-pointer"
+                                    style={{ background: '#E6F7F1', color: '#1D9E75' }}>
+                                    + Add below
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] text-gray-400">— add at check-in or via airline</span>
+                                );
+                              })()}
                             </div>
                           </div>
                         </div>
@@ -884,7 +900,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
               {/* Extras inline — shown below passenger form before payment */}
               {bookStep === 'passenger' && offer.availableServices.length > 0 && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div id="extras-section" className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <p className="text-base font-extrabold text-gray-900">Add extras (optional)</p>
@@ -1612,7 +1628,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 {/* Expand/collapse button for direct flights */}
                 {stops === 0 && (
                   <button onClick={() => setExpanded(isExpanded ? null : offer.id)}
-                    className="w-full py-2 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors"
+                    className="w-full py-2 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                     style={{ borderTop: '1px solid #F8FAFC' }}>
                     {isExpanded ? '▲ Hide itinerary' : '▼ Show itinerary'}
                   </button>
@@ -1620,44 +1636,44 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
                 {/* ── Expanded timeline ── */}
                 {isExpanded && (
-                  <div className="px-5 py-5" style={{ borderTop: '1px solid #F1F5F9', background: '#FAFBFC' }}>
+                  <div className="px-6 py-6" style={{ borderTop: '1px solid #F1F5F9', background: '#FAFBFC' }}>
                     {offer.segments.map((seg, i) => {
                       const depDay = fmtDate(seg.depAt);
                       const arrDay = fmtDate(seg.arrAt);
                       return (
                         <div key={i}>
                           {/* Segment timeline */}
-                          <div className="flex gap-4">
+                          <div className="flex gap-5">
                             {/* Timeline dots + line */}
-                            <div className="flex flex-col items-center flex-shrink-0 pt-1" style={{ width: 16 }}>
-                              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: '#1D9E75', border: '2px solid #A7F3D0' }} />
-                              <div className="flex-1 w-0.5 my-1" style={{ background: '#E2E8F0', minHeight: 72 }} />
-                              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: i < offer.segments.length - 1 ? '#64748B' : '#1D9E75', border: `2px solid ${i < offer.segments.length - 1 ? '#CBD5E1' : '#A7F3D0'}` }} />
+                            <div className="flex flex-col items-center flex-shrink-0 pt-1.5" style={{ width: 20 }}>
+                              <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ background: '#1D9E75', border: '3px solid #A7F3D0' }} />
+                              <div className="flex-1 w-0.5 my-1.5" style={{ background: '#E2E8F0', minHeight: 100 }} />
+                              <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ background: i < offer.segments.length - 1 ? '#64748B' : '#1D9E75', border: `3px solid ${i < offer.segments.length - 1 ? '#CBD5E1' : '#A7F3D0'}` }} />
                             </div>
 
                             {/* Content */}
-                            <div className="flex-1 pb-2">
+                            <div className="flex-1 pb-3">
                               {/* Departure node */}
-                              <div className="flex items-baseline gap-2 mb-0.5">
-                                <p className="text-xl font-extrabold text-gray-900 tabular-nums leading-none">{fmtTime(seg.depAt)}</p>
-                                <p className="text-xs text-gray-400">{depDay}</p>
+                              <div className="flex items-baseline gap-2.5 mb-1">
+                                <p className="text-2xl font-extrabold text-gray-900 tabular-nums leading-none">{fmtTime(seg.depAt)}</p>
+                                <p className="text-sm text-gray-400">{depDay}</p>
                               </div>
-                              <p className="text-sm font-bold text-gray-800">{seg.depCity} ({seg.depCode})</p>
+                              <p className="text-base font-bold text-gray-800 mb-0.5">{seg.depCity} <span className="text-gray-400 font-semibold">({seg.depCode})</span></p>
 
                               {/* Flight details */}
-                              <div className="my-3 pl-3 py-2 rounded-lg" style={{ borderLeft: '2px solid #E2E8F0', background: 'white' }}>
-                                <div className="flex items-center gap-2 mb-1">
+                              <div className="my-4 pl-4 py-3 rounded-xl" style={{ borderLeft: '3px solid #E2E8F0', background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                <div className="flex items-center gap-2.5 mb-1.5">
                                   <AirlineLogo code={seg.airlineCode} name={seg.airline} />
-                                  <span className="text-xs font-bold text-gray-700">{seg.airline}</span>
+                                  <span className="text-sm font-bold text-gray-800">{seg.airline}</span>
                                 </div>
-                                <p className="text-[11px] text-gray-400">
+                                <p className="text-xs text-gray-500 leading-relaxed">
                                   Economy · {seg.flightNumber}{seg.aircraft ? ` · ${seg.aircraft}` : ''} · {seg.duration}
                                 </p>
                                 {seg.baggage && (seg.baggage.checkedBags > 0 || seg.baggage.carryOn > 0) && (
-                                  <p className="text-[11px] text-gray-400 mt-0.5">
-                                    {seg.baggage.carryOn > 0 && `🎒 Carry-on`}
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {seg.baggage.carryOn > 0 && `🎒 Carry-on included`}
                                     {seg.baggage.carryOn > 0 && seg.baggage.checkedBags > 0 && ' · '}
-                                    {seg.baggage.checkedBags > 0 && `🧳 ${seg.baggage.checkedBags} checked bag${seg.baggage.checkedBags > 1 ? 's' : ''}`}
+                                    {seg.baggage.checkedBags > 0 && `🧳 ${seg.baggage.checkedBags} checked bag${seg.baggage.checkedBags > 1 ? 's' : ''} included`}
                                   </p>
                                 )}
                                 {seg.amenities && (
@@ -1707,11 +1723,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                               </div>
 
                               {/* Arrival node */}
-                              <div className="flex items-baseline gap-2 mb-0.5">
-                                <p className="text-xl font-extrabold text-gray-900 tabular-nums leading-none">{fmtTime(seg.arrAt)}</p>
-                                <p className="text-xs text-gray-400">{arrDay}</p>
+                              <div className="flex items-baseline gap-2.5 mb-1">
+                                <p className="text-2xl font-extrabold text-gray-900 tabular-nums leading-none">{fmtTime(seg.arrAt)}</p>
+                                <p className="text-sm text-gray-400">{arrDay}</p>
                               </div>
-                              <p className="text-sm font-bold text-gray-800">{seg.arrCity} ({seg.arrCode})</p>
+                              <p className="text-base font-bold text-gray-800">{seg.arrCity} <span className="text-gray-400 font-semibold">({seg.arrCode})</span></p>
                             </div>
                           </div>
 
@@ -1721,8 +1737,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             const mins = parseLayoverMinutes(seg.layoverAfter);
                             const guide = mins >= LAYOVER_GUIDE_THRESHOLD_MIN ? getLayoverGuide(nextCode) : null;
                             return (
-                              <div className="flex gap-4 my-3">
-                                <div className="flex flex-col items-center flex-shrink-0" style={{ width: 16 }}>
+                              <div className="flex gap-5 my-4">
+                                <div className="flex flex-col items-center flex-shrink-0" style={{ width: 20 }}>
                                   <div className="flex-1 w-0.5" style={{ background: '#FDE68A' }} />
                                 </div>
                                 <div className="flex-1">
