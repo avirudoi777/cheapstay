@@ -17,10 +17,10 @@ interface PassengerInput {
 }
 
 export async function POST(req: NextRequest) {
-  const { offerId, paymentIntentId, passenger } = await req.json() as {
+  const { offerId, paymentIntentId, passengers } = await req.json() as {
     offerId: string;
     paymentIntentId: string;
-    passenger: PassengerInput;
+    passengers: PassengerInput[];
   };
 
   const key = process.env.NODE_ENV === 'production'
@@ -40,22 +40,22 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         data: {
           selected_offers: [offerId],
-          passengers: [{
-            id: passenger.passengerId,
-            title: passenger.title,
-            given_name: passenger.givenName,
-            family_name: passenger.familyName,
-            gender: passenger.gender,
-            born_on: passenger.bornOn,
-            email: passenger.email,
-            phone_number: passenger.phoneNumber,
+          passengers: passengers.map(p => ({
+            id: p.passengerId,
+            title: p.title,
+            given_name: p.givenName,
+            family_name: p.familyName,
+            gender: p.gender,
+            born_on: p.bornOn,
+            email: p.email,
+            phone_number: p.phoneNumber,
             identity_documents: [{
               type: 'passport',
-              number: passenger.passportNumber,
-              expires_on: passenger.passportExpiry,
-              issuing_country_code: passenger.passportCountry,
+              number: p.passportNumber,
+              expires_on: p.passportExpiry,
+              issuing_country_code: p.passportCountry,
             }],
-          }],
+          })),
           payments: [{
             type: 'payment_intent',
             id: paymentIntentId,

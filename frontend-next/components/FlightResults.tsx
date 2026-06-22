@@ -14,7 +14,7 @@ interface Segment {
 export interface DuffelOffer {
   id: string; expiresAt: string;
   totalAmount: number; totalCurrency: string; totalDuration: string;
-  passengerId: string; segments: Segment[];
+  passengerIds: string[]; segments: Segment[];
 }
 interface PassengerForm {
   title: string; givenName: string; familyName: string;
@@ -36,6 +36,7 @@ interface Props {
   fromCode: string; toCode: string;
   fromName: string; toName: string;
   depart: string; ret: string;
+  adults?: number;
   onClear: () => void;
   passportCodes: string[];
 }
@@ -209,7 +210,7 @@ const EMPTY_FORM: PassengerForm = {
 };
 const EMPTY_CARD: CardForm = { name: '', number: '', expiry: '', cvc: '' };
 
-export default function FlightResults({ fromCode, toCode, fromName, toName, depart, ret, onClear, passportCodes }: Props) {
+export default function FlightResults({ fromCode, toCode, fromName, toName, depart, ret, adults = 1, onClear, passportCodes }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // ── Search state
@@ -225,13 +226,17 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   // ── Booking state
   const [selectedOffer, setSelectedOffer] = useState<DuffelOffer | null>(null);
   const [bookStep, setBookStep] = useState<'passenger' | 'payment' | 'confirmed'>('passenger');
-  const [form, setForm] = useState<PassengerForm>(EMPTY_FORM);
-  const [formErrors, setFormErrors] = useState<Partial<PassengerForm>>({});
+  const [forms, setForms] = useState<PassengerForm[]>([EMPTY_FORM]);
+  const [formErrors, setFormErrors] = useState<Partial<PassengerForm>[]>([{}]);
+  const [selectedPassportIds, setSelectedPassportIds] = useState<string[]>(['']);
   const [cardForm, setCardForm] = useState<CardForm>(EMPTY_CARD);
   const [cardErrors, setCardErrors] = useState<Partial<CardForm>>({});
   const [booking, setBooking] = useState(false);
   const [bookingError, setBookingError] = useState('');
   const [confirmation, setConfirmation] = useState<{ reference: string; amount: number; currency: string } | null>(null);
+  const [savePassenger, setSavePassenger] = useState(false);
+  // Live countdown for offer expiry
+  const [offerSecsLeft, setOfferSecsLeft] = useState<number | null>(null);
 
   // Load saved traveler profile for form pre-fill
   useEffect(() => {
@@ -246,7 +251,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     fetch('/api/flights/duffel-search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ origin: fromCode, destination: toCode, departureDate: depart, returnDate: ret || undefined }),
+      body: JSON.stringify({ origin: fromCode, destination: toCode, departureDate: depart, returnDate: ret || undefined, adults }),
     })
       .then(r => r.json())
       .then(json => {
@@ -258,66 +263,82 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       .finally(() => setLoading(false));
   }, [fromCode, toCode, depart, ret]);
 
+  // Live countdown for selected offer
+  useEffect(() => {
+    if (!selectedOffer?.expiresAt) { setOfferSecsLeft(null); return; }
+    function tick() {
+      const secs = Math.floor((new Date(selectedOffer!.expiresAt).getTime() - Date.now()) / 1000);
+      setOfferSecsLeft(Math.max(0, secs));
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [selectedOffer]);
+
   function startBooking(offer: DuffelOffer) {
     setSelectedOffer(offer);
     setBookStep('passenger');
-    setFormErrors({});
     setCardForm(EMPTY_CARD); setCardErrors({});
     setBookingError(''); setConfirmation(null);
 
+    const numPax = offer.passengerIds.length;
     if (savedProfile) {
-      // Pick best passport: prefer the one matching destination country
       const destCountry = AIRPORT_COUNTRY[toCode.toUpperCase()] ?? '';
       const best = savedProfile.passports.find(p => p.country === destCountry)
         ?? savedProfile.passports[0];
-      setForm({
-        title:           savedProfile.title || 'mr',
-        givenName:       savedProfile.givenName || '',
-        familyName:      savedProfile.familyName || '',
-        gender:          savedProfile.gender || 'm',
-        bornOn:          savedProfile.bornOn || '',
-        email:           savedProfile.email || '',
-        phoneNumber:     savedProfile.phone || '',
-        passportNumber:  best?.passportNumber || '',
-        passportExpiry:  best?.passportExpiry || '',
+      const firstForm: PassengerForm = {
+        title: savedProfile.title || 'mr',
+        givenName: savedProfile.givenName || '',
+        familyName: savedProfile.familyName || '',
+        gender: savedProfile.gender || 'm',
+        bornOn: savedProfile.bornOn || '',
+        email: savedProfile.email || '',
+        phoneNumber: savedProfile.phone || '',
+        passportNumber: best?.passportNumber || '',
+        passportExpiry: best?.passportExpiry || '',
         passportCountry: best?.country || '',
-      });
-      setSelectedPassportId(best?.id || '');
+      };
+      const newForms = [firstForm, ...Array.from({ length: numPax - 1 }, () => ({ ...EMPTY_FORM, email: savedProfile.email || '' }))];
+      setForms(newForms);
+      setSelectedPassportIds([best?.id || '', ...Array(numPax - 1).fill('')]);
     } else {
-      setForm(EMPTY_FORM);
-      setSelectedPassportId('');
+      setForms(Array.from({ length: numPax }, () => ({ ...EMPTY_FORM })));
+      setSelectedPassportIds(Array(numPax).fill(''));
     }
-
+    setFormErrors(Array.from({ length: numPax }, () => ({})));
     containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function update(key: keyof PassengerForm, val: string) {
-    setForm(f => ({ ...f, [key]: val }));
-    setFormErrors(e => ({ ...e, [key]: '' }));
+  function updatePassenger(idx: number, key: keyof PassengerForm, val: string) {
+    setForms(fs => fs.map((f, i) => i === idx ? { ...f, [key]: val } : f));
+    setFormErrors(es => es.map((e, i) => i === idx ? { ...e, [key]: '' } : e));
   }
   function updateCard(key: keyof CardForm, val: string) {
     setCardForm(f => ({ ...f, [key]: val }));
     setCardErrors(e => ({ ...e, [key]: '' }));
   }
 
-  function selectPassport(p: SavedPassport) {
-    setSelectedPassportId(p.id);
-    setForm(f => ({ ...f, passportNumber: p.passportNumber, passportExpiry: p.passportExpiry, passportCountry: p.country }));
-    setFormErrors(e => ({ ...e, passportNumber: '', passportExpiry: '', passportCountry: '' }));
+  function selectPassportForPax(idx: number, p: SavedPassport) {
+    setSelectedPassportIds(ids => ids.map((id, i) => i === idx ? p.id : id));
+    setForms(fs => fs.map((f, i) => i === idx ? { ...f, passportNumber: p.passportNumber, passportExpiry: p.passportExpiry, passportCountry: p.country } : f));
+    setFormErrors(es => es.map((e, i) => i === idx ? { ...e, passportNumber: '', passportExpiry: '', passportCountry: '' } : e));
   }
 
-  function validateForm(): boolean {
-    const errs: Partial<PassengerForm> = {};
-    if (!form.givenName.trim())       errs.givenName = 'Required';
-    if (!form.familyName.trim())      errs.familyName = 'Required';
-    if (!form.email.includes('@'))    errs.email = 'Valid email required';
-    if (!form.bornOn)                 errs.bornOn = 'Required';
-    if (!form.phoneNumber.trim())     errs.phoneNumber = 'Required';
-    if (!form.passportNumber.trim())  errs.passportNumber = 'Required';
-    if (!form.passportExpiry)         errs.passportExpiry = 'Required';
-    if (!form.passportCountry.trim()) errs.passportCountry = 'Required (2-letter, e.g. US)';
-    setFormErrors(errs);
-    return Object.keys(errs).length === 0;
+  function validateForms(): boolean {
+    const allErrs = forms.map(form => {
+      const errs: Partial<PassengerForm> = {};
+      if (!form.givenName.trim())       errs.givenName = 'Required';
+      if (!form.familyName.trim())      errs.familyName = 'Required';
+      if (!form.email.includes('@'))    errs.email = 'Valid email required';
+      if (!form.bornOn)                 errs.bornOn = 'Required';
+      if (!form.phoneNumber.trim())     errs.phoneNumber = 'Required';
+      if (!form.passportNumber.trim())  errs.passportNumber = 'Required';
+      if (!form.passportExpiry)         errs.passportExpiry = 'Required';
+      if (!form.passportCountry.trim()) errs.passportCountry = 'Required (2-letter, e.g. US)';
+      return errs;
+    });
+    setFormErrors(allErrs);
+    return allErrs.every(e => Object.keys(e).length === 0);
   }
 
   function validateCard(): boolean {
@@ -334,7 +355,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     if (!selectedOffer || !validateCard()) return;
 
     // Check offer hasn't expired before hitting Duffel
-    if (new Date(selectedOffer.expiresAt) < new Date()) {
+    if (selectedOffer.expiresAt && new Date(selectedOffer.expiresAt) < new Date()) {
       setBookingError('OFFER_EXPIRED');
       return;
     }
@@ -347,7 +368,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         body: JSON.stringify({ amount: selectedOffer.totalAmount.toFixed(2), currency: selectedOffer.totalCurrency }),
       });
       const pi = await piRes.json();
-      if (pi.error) throw new Error(pi.detail || pi.error);
+      if (pi.error) {
+        const piMsg = pi.detail || pi.error;
+        if (piMsg.toLowerCase().includes('does not exist') || piMsg.toLowerCase().includes('not exist')) throw new Error('OFFER_EXPIRED');
+        throw new Error(piMsg);
+      }
 
       const [expMonth, expYearShort] = cardForm.expiry.split('/');
       const confirmRes = await fetch(`https://api.duffel.com/air/payment_intents/${pi.paymentIntentId}/actions/confirm`, {
@@ -361,13 +386,19 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       });
       if (!confirmRes.ok) {
         const err = await confirmRes.json();
-        throw new Error(err?.errors?.[0]?.message || 'Card was declined');
+        const cardMsg = err?.errors?.[0]?.message || 'Card was declined';
+        if (cardMsg.toLowerCase().includes('does not exist') || cardMsg.toLowerCase().includes('not exist')) throw new Error('OFFER_EXPIRED');
+        throw new Error(cardMsg);
       }
 
       const orderRes = await fetch('/api/flights/duffel-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ offerId: selectedOffer.id, paymentIntentId: pi.paymentIntentId, passenger: { ...form, passengerId: selectedOffer.passengerId } }),
+        body: JSON.stringify({
+          offerId: selectedOffer.id,
+          paymentIntentId: pi.paymentIntentId,
+          passengers: forms.map((f, i) => ({ ...f, passengerId: selectedOffer.passengerIds[i] })),
+        }),
       });
       const order = await orderRes.json();
       if (order.error) {
@@ -397,320 +428,429 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     const processingFee = parseFloat((gross - offer.totalAmount - SERVICE_FEE).toFixed(2));
     const firstSeg = offer.segments[0];
     const lastSeg = offer.segments[offer.segments.length - 1];
+    const secsLeft = offerSecsLeft;
+    const countdownStr = secsLeft !== null
+      ? `${String(Math.floor(secsLeft / 60)).padStart(2, '0')}:${String(secsLeft % 60).padStart(2, '0')}`
+      : '';
+    const isExpiringSoon = secsLeft !== null && secsLeft < 600;
+    const isExpired = secsLeft !== null && secsLeft <= 0;
 
     return (
-      <div ref={containerRef} className="max-w-2xl mx-auto px-4 sm:px-6 mt-6 mb-12">
-        {/* Back link + expiry warning */}
-        <div className="flex items-center justify-between mb-5">
+      <div ref={containerRef} className="mt-4 mb-12" style={{ background: '#F8FAFC', minHeight: '100vh' }}>
+        {/* Countdown banner */}
+        {secsLeft !== null && (
+          <div className="w-full py-2.5 px-4 flex items-center justify-center gap-3 text-sm font-semibold"
+            style={{ background: isExpired ? '#FEF2F2' : isExpiringSoon ? '#FFFBEB' : '#FFF7ED', borderBottom: `1px solid ${isExpired ? '#FECACA' : isExpiringSoon ? '#FCD34D' : '#FED7AA'}` }}>
+            <span>{isExpired ? '❌' : '🕐'}</span>
+            <span style={{ color: isExpired ? '#B91C1C' : isExpiringSoon ? '#92400E' : '#C2410C' }}>
+              {isExpired ? 'This offer has expired — please pick a fresh flight' : `These deals may not last!`}
+            </span>
+            {!isExpired && <span className="font-mono font-extrabold text-base tabular-nums" style={{ color: isExpiringSoon ? '#DC2626' : '#EA580C' }}>{countdownStr}</span>}
+            {isExpired && (
+              <button onClick={() => { setSelectedOffer(null); setBookingError(''); }}
+                className="ml-2 text-xs font-bold px-3 py-1 rounded-lg text-white"
+                style={{ background: '#1D9E75' }}>
+                ← Back to flights
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-5">
+          {/* Back link */}
           <button onClick={() => setSelectedOffer(null)}
-            className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors">
+            className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors mb-5">
             ← Back to results
           </button>
-          {offer.expiresAt && (() => {
-            const minsLeft = Math.floor((new Date(offer.expiresAt).getTime() - Date.now()) / 60000);
-            if (minsLeft <= 0) return <span className="text-xs font-bold text-red-500">⏰ Offer expired</span>;
-            if (minsLeft <= 10) return <span className="text-xs font-semibold text-amber-600">⏰ Offer expires in {minsLeft}m</span>;
-            return null;
-          })()}
-        </div>
 
-        {/* Route map */}
-        <RouteMap
-          fromCode={offer.segments[0].depCode}
-          toCode={offer.segments[offer.segments.length - 1].arrCode}
-          fromName={fromName} toName={toName}
-          stops={offer.segments.slice(1).map(s => s.depCode)}
-          duration={offer.totalDuration}
-        />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            {/* ── LEFT COLUMN: forms ───────────────────────────────────── */}
+            <div className="lg:col-span-2 space-y-4">
 
-        {/* Flight summary */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Your flight</p>
-          {offer.segments.map((seg, i) => (
-            <div key={i}>
-              <div className="flex items-center gap-3 text-sm py-1">
-                <div className="text-center w-14 flex-shrink-0">
-                  <p className="text-lg font-extrabold tabular-nums">{fmtTime(seg.depAt)}</p>
-                  <p className="text-xs font-bold text-gray-500">{seg.depCode}</p>
-                </div>
-                <div className="flex-1 flex flex-col items-center">
-                  <p className="text-[10px] text-gray-400">{seg.duration}</p>
-                  <div className="w-full h-px bg-gray-200 my-0.5" />
-                  <p className="text-[10px] text-gray-400">{seg.airline} · {seg.flightNumber}</p>
-                </div>
-                <div className="text-center w-14 flex-shrink-0">
-                  <p className="text-lg font-extrabold tabular-nums">{fmtTime(seg.arrAt)}</p>
-                  <p className="text-xs font-bold text-gray-500">{seg.arrCode}</p>
-                </div>
-              </div>
-              {seg.layoverAfter && (() => {
-                const nextCode = offer.segments[i + 1]?.depCode ?? '';
-                const mins = parseLayoverMinutes(seg.layoverAfter);
-                const guide = mins >= LAYOVER_GUIDE_THRESHOLD_MIN ? getLayoverGuide(nextCode) : null;
-                return (
-                  <div className="my-3">
-                    <div className="flex justify-center mb-3">
-                      <span className="text-[11px] font-semibold px-3 py-1 rounded-lg" style={{ background: '#FEF9C3', color: '#92400E' }}>
-                        🚶 Layover in {nextCode} · {seg.layoverAfter}
-                      </span>
+              {/* Contact details */}
+              {savedProfile && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-3">For all bookings</p>
+                  <p className="text-lg font-extrabold text-gray-900 mb-0.5">Contact details</p>
+                  <p className="text-sm text-gray-500 mb-4">This is where your confirmation will be sent</p>
+                  <div className="flex items-center justify-between p-4 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                    <div>
+                      <p className="font-semibold text-gray-900">{savedProfile.givenName} {savedProfile.familyName}</p>
+                      <p className="text-sm text-gray-500 mt-0.5">{savedProfile.email}{savedProfile.phone ? ` · ${savedProfile.phone}` : ''}</p>
                     </div>
-                    {guide && (
-                      <div className="rounded-xl p-4 space-y-3" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                        <div className="flex items-center gap-2">
-                          <span>{guide.flag}</span>
-                          <p className="text-xs font-bold text-gray-700">{guide.airport} · {seg.layoverAfter} to explore</p>
+                    <a href="/account" target="_blank" className="text-xs font-bold flex items-center gap-1" style={{ color: '#1A73E8' }}>
+                      ✏️ Edit
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Passenger forms */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">✈️ Flight(s)</p>
+                {forms.map((paxForm, idx) => {
+                  const paxErrors = formErrors[idx] ?? {};
+                  const destCountry = AIRPORT_COUNTRY[toCode.toUpperCase()] ?? '';
+                  return (
+                    <div key={idx} className={idx > 0 ? 'border-t border-gray-100 pt-5 mt-5' : ''}>
+                      <p className="text-lg font-extrabold text-gray-900 mb-0.5">
+                        Passenger {idx + 1}: (Adult, 18 years or older)
+                      </p>
+                      <p className="text-sm text-gray-500 mb-1">Passenger details must match your passport or photo ID</p>
+                      <p className="text-xs font-semibold mb-4" style={{ color: '#DC2626' }}>*Required field</p>
+
+                      {/* Saved passenger select */}
+                      {savedProfile && (savedProfile.passports.length > 0 || savedProfile.givenName) && (
+                        <div className="mb-4">
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Select passenger</label>
+                          <select
+                            value={selectedPassportIds[idx] ?? ''}
+                            onChange={e => {
+                              const p = savedProfile.passports.find(p => p.id === e.target.value);
+                              if (p) selectPassportForPax(idx, p);
+                              else setSelectedPassportIds(ids => ids.map((id, i) => i === idx ? '' : id));
+                            }}
+                            className={selectCls + ' w-full'}>
+                            {savedProfile.givenName && (
+                              <option value={savedProfile.passports[0]?.id ?? 'profile'}>
+                                {savedProfile.givenName} {savedProfile.familyName}
+                                {savedProfile.passports[0] ? ` — ${flagEmoji(savedProfile.passports[0].country)} ${savedProfile.passports[0].country}` : ''}
+                              </option>
+                            )}
+                            {savedProfile.passports.slice(1).map(p => (
+                              <option key={p.id} value={p.id}>
+                                {savedProfile.givenName} {savedProfile.familyName} — {flagEmoji(p.country)} {p.country} passport{p.country === destCountry ? ' ★ Best' : ''}
+                              </option>
+                            ))}
+                            <option value="">Create new passenger</option>
+                          </select>
                         </div>
-                        {guide.transitVisa && (
-                          <p className="text-[11px] text-blue-600 font-semibold">🛂 {guide.transitVisa}</p>
-                        )}
-                        <div className="grid grid-cols-1 gap-1.5">
-                          {guide.tips.slice(0, 3).map((tip, ti) => (
-                            <div key={ti} className="flex items-start gap-2">
-                              <span className="text-sm flex-shrink-0">{tip.icon}</span>
-                              <div>
-                                <p className="text-xs font-bold text-gray-700">{tip.title}</p>
-                                <p className="text-[11px] text-gray-500">{tip.desc}</p>
-                              </div>
-                            </div>
+                      )}
+
+                      {/* Gender */}
+                      <div className="mb-4">
+                        <label className="block text-xs font-semibold text-gray-600 mb-2">Gender *</label>
+                        <div className="flex items-center gap-4">
+                          {[['m', 'Male'], ['f', 'Female']] .map(([val, label]) => (
+                            <label key={val} className="flex items-center gap-2 cursor-pointer">
+                              <input type="radio" name={`gender-${idx}`} value={val} checked={paxForm.gender === val}
+                                onChange={() => updatePassenger(idx, 'gender', val)}
+                                className="w-4 h-4 accent-teal-600" />
+                              <span className="text-sm font-medium text-gray-700">{label}</span>
+                            </label>
                           ))}
                         </div>
-                        {/* Revenue: lounge access + eSIM */}
-                        <div className="grid grid-cols-2 gap-2 pt-1">
-                          <a href="https://www.prioritypass.com/en/single-visit"
-                            target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold text-white text-center justify-center"
-                            style={{ background: '#1A3C5E' }}>
-                            🛋️ Lounge access
-                          </a>
-                          <a href="https://saily.com/"
-                            target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold border justify-center"
-                            style={{ color: '#1D9E75', borderColor: '#1D9E75' }}>
-                            📶 Get local eSIM
-                          </a>
-                        </div>
-                        {guide.lounges && (
-                          <p className="text-[10px] text-gray-400">Lounges: {guide.lounges}</p>
-                        )}
                       </div>
-                    )}
+
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <Field label="First and middle name *">
+                          <input value={paxForm.givenName} onChange={e => updatePassenger(idx, 'givenName', e.target.value)} placeholder="As on passport" className={inputCls} />
+                          {paxErrors.givenName && <p className="text-xs text-red-500 mt-0.5">{paxErrors.givenName}</p>}
+                        </Field>
+                        <Field label="Last name *">
+                          <input value={paxForm.familyName} onChange={e => updatePassenger(idx, 'familyName', e.target.value)} placeholder="As on passport" className={inputCls} />
+                          {paxErrors.familyName && <p className="text-xs text-red-500 mt-0.5">{paxErrors.familyName}</p>}
+                        </Field>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-2 mb-3">
+                        <div className="col-span-1">
+                          <Field label="Title">
+                            <select value={paxForm.title} onChange={e => updatePassenger(idx, 'title', e.target.value)} className={selectCls}>
+                              <option value="mr">Mr</option><option value="ms">Ms</option>
+                              <option value="mrs">Mrs</option><option value="miss">Miss</option><option value="dr">Dr</option>
+                            </select>
+                          </Field>
+                        </div>
+                        <div className="col-span-3">
+                          <Field label="Date of birth *">
+                            <input type="date" value={paxForm.bornOn} onChange={e => updatePassenger(idx, 'bornOn', e.target.value)} className={inputCls} />
+                            {paxErrors.bornOn && <p className="text-xs text-red-500 mt-0.5">{paxErrors.bornOn}</p>}
+                          </Field>
+                        </div>
+                      </div>
+
+                      {/* Nationality / passport */}
+                      <div className="mb-3">
+                        <Field label="Nationality *">
+                          {savedProfile && savedProfile.passports.length > 1 && (
+                            <select
+                              value={selectedPassportIds[idx] ?? ''}
+                              onChange={e => {
+                                const p = savedProfile.passports.find(p => p.id === e.target.value);
+                                if (p) selectPassportForPax(idx, p);
+                              }}
+                              className={selectCls + ' w-full mb-2'}>
+                              <option value="">Select nationality</option>
+                              {savedProfile.passports.map(p => (
+                                <option key={p.id} value={p.id}>
+                                  {flagEmoji(p.country)} {p.country}{p.country === destCountry ? ' ★ Best for this route' : ''}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                          <input value={paxForm.passportCountry} onChange={e => updatePassenger(idx, 'passportCountry', e.target.value.toUpperCase())}
+                            placeholder="e.g. US, TH, GB" maxLength={2} className={inputCls} />
+                          {paxErrors.passportCountry && <p className="text-xs text-red-500 mt-0.5">{paxErrors.passportCountry}</p>}
+                        </Field>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <Field label="Passport number *">
+                          <input value={paxForm.passportNumber} onChange={e => updatePassenger(idx, 'passportNumber', e.target.value.toUpperCase())}
+                            placeholder="AB1234567" className={inputCls} style={{ textTransform: 'uppercase' }} />
+                          {paxErrors.passportNumber && <p className="text-xs text-red-500 mt-0.5">{paxErrors.passportNumber}</p>}
+                        </Field>
+                        <Field label="Passport expiry *">
+                          <input type="date" value={paxForm.passportExpiry} onChange={e => updatePassenger(idx, 'passportExpiry', e.target.value)} className={inputCls} />
+                          {paxErrors.passportExpiry && <p className="text-xs text-red-500 mt-0.5">{paxErrors.passportExpiry}</p>}
+                        </Field>
+                      </div>
+
+                      {idx === 0 && (
+                        <>
+                          <Field label="Email *">
+                            <input type="email" value={paxForm.email} onChange={e => updatePassenger(idx, 'email', e.target.value)} placeholder="Confirmation sent here" className={inputCls} />
+                            {paxErrors.email && <p className="text-xs text-red-500 mt-0.5">{paxErrors.email}</p>}
+                          </Field>
+                          <div className="mt-3">
+                            <Field label="Phone (with country code) *">
+                              <input type="tel" value={paxForm.phoneNumber} onChange={e => updatePassenger(idx, 'phoneNumber', e.target.value)} placeholder="+1 555 000 0000" className={inputCls} />
+                              {paxErrors.phoneNumber && <p className="text-xs text-red-500 mt-0.5">{paxErrors.phoneNumber}</p>}
+                            </Field>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Save checkbox */}
+                <div className="border-t border-gray-100 mt-5 pt-4 flex items-start gap-3">
+                  <input type="checkbox" id="savePassenger" checked={savePassenger} onChange={e => setSavePassenger(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded accent-teal-600 cursor-pointer flex-shrink-0" />
+                  <label htmlFor="savePassenger" className="text-xs text-gray-600 cursor-pointer">
+                    Save/update passenger info for future bookings.{' '}
+                    <a href="/account" target="_blank" className="font-semibold underline" style={{ color: '#1A73E8' }}>See Privacy Policy</a>.
+                  </label>
+                </div>
+              </div>
+
+              {/* ── Payment form (shown after passenger step) */}
+              {bookStep === 'payment' && (
+                <div className="space-y-4">
+                  {/* Passenger summaries */}
+                  {forms.map((paxForm, idx) => (
+                    <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Passenger {idx + 1}</p>
+                          <p className="font-bold text-gray-900">{paxForm.title.charAt(0).toUpperCase() + paxForm.title.slice(1)} {paxForm.givenName} {paxForm.familyName}</p>
+                          {idx === 0 && <p className="text-xs text-gray-500 mt-0.5">{paxForm.email} · {paxForm.phoneNumber}</p>}
+                          <p className="text-xs text-gray-400 mt-0.5">Passport {paxForm.passportNumber} · {flagEmoji(paxForm.passportCountry)} {paxForm.passportCountry} · Expires {paxForm.passportExpiry}</p>
+                        </div>
+                        <button onClick={() => setBookStep('passenger')} className="text-xs font-bold underline flex-shrink-0" style={{ color: '#1D9E75' }}>Edit</button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Card form */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Payment card</p>
+                    <Field label="Name on card">
+                      <input value={cardForm.name} onChange={e => updateCard('name', e.target.value)} placeholder="John Smith" className={inputCls} />
+                      {cardErrors.name && <p className="text-xs text-red-500 mt-0.5">{cardErrors.name}</p>}
+                    </Field>
+                    <Field label="Card number">
+                      <input value={cardForm.number} onChange={e => updateCard('number', fmtCardNumber(e.target.value))}
+                        placeholder="1234 5678 9012 3456" maxLength={19} className={inputCls + ' font-mono tracking-wider'} />
+                      {cardErrors.number && <p className="text-xs text-red-500 mt-0.5">{cardErrors.number}</p>}
+                    </Field>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Expiry (MM/YY)">
+                        <input value={cardForm.expiry} onChange={e => updateCard('expiry', fmtExpiry(e.target.value))}
+                          placeholder="06/28" maxLength={5} className={inputCls + ' font-mono'} />
+                        {cardErrors.expiry && <p className="text-xs text-red-500 mt-0.5">{cardErrors.expiry}</p>}
+                      </Field>
+                      <Field label="CVV">
+                        <input value={cardForm.cvc} onChange={e => updateCard('cvc', e.target.value.replace(/\D/g, '').slice(0, 4))}
+                          placeholder="123" maxLength={4} className={inputCls + ' font-mono'} type="password" />
+                        {cardErrors.cvc && <p className="text-xs text-red-500 mt-0.5">{cardErrors.cvc}</p>}
+                      </Field>
+                    </div>
+                    <p className="text-[10px] text-gray-400">🔒 Card processed securely by Duffel Payments. We never store your card details.</p>
                   </div>
-                );
-              })()}
+
+                  {bookingError && (
+                    bookingError === 'OFFER_EXPIRED' ? (
+                      <div className="rounded-xl px-4 py-4 text-sm" style={{ background: '#FFFBEB', border: '1px solid #FCD34D' }}>
+                        <p className="font-bold text-amber-800 mb-1">⏰ This offer has expired</p>
+                        <p className="text-amber-700 text-xs mb-3">Flight prices are live and lock for ~30 minutes. This one timed out while you were filling in details.</p>
+                        <button onClick={() => { setSelectedOffer(null); setBookingError(''); }}
+                          className="text-xs font-bold px-4 py-2 rounded-xl text-white"
+                          style={{ background: '#1D9E75' }}>
+                          ← Pick a fresh flight
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl px-4 py-3 text-sm text-red-700 font-semibold" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+                        ⚠️ {bookingError}
+                      </div>
+                    )
+                  )}
+
+                  <div className="flex gap-3">
+                    <button onClick={() => setBookStep('passenger')}
+                      className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">
+                      ← Back
+                    </button>
+                    <button onClick={confirmBooking} disabled={booking}
+                      className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white disabled:opacity-60 flex items-center justify-center gap-2"
+                      style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+                      {booking
+                        ? <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Processing…</>
+                        : `Pay ${fmtPrice(gross, offer.totalCurrency)} →`
+                      }
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Continue button on passenger step */}
+              {bookStep === 'passenger' && (
+                <button onClick={() => { if (validateForms()) setBookStep('payment'); }}
+                  className="w-full py-4 rounded-2xl text-sm font-bold text-white"
+                  style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+                  Continue to payment →
+                </button>
+              )}
             </div>
-          ))}
-          <div className="border-t border-gray-100 mt-3 pt-3 flex items-center justify-between">
-            <p className="text-xs text-gray-400">{fmtDate(depart + 'T12:00')} · {fmtTime(firstSeg.depAt)} → {fmtTime(lastSeg.arrAt)}</p>
-            <p className="text-lg font-extrabold text-gray-900">{fmtPrice(gross, offer.totalCurrency)}</p>
+
+            {/* ── RIGHT COLUMN: summary + conditions ───────────────────── */}
+            <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-4">
+              {/* Flight card */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <p className="text-sm font-extrabold text-gray-900 mb-0.5">{fromCode} to {toCode}</p>
+                <p className="text-xs text-gray-400 mb-3">✈️ FLIGHT · {offer.passengerIds.length} adult{offer.passengerIds.length > 1 ? 's' : ''}</p>
+                <div className="space-y-3 mb-3">
+                  {offer.segments.map((seg, i) => (
+                    <div key={i}>
+                      <p className="text-[10px] font-semibold text-gray-400 mb-1">
+                        {i === 0 ? `Depart · ${new Date(seg.depAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}` : `Connection`}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <AirlineLogo code={seg.airlineCode} name={seg.airline} />
+                        <span className="hidden" aria-hidden />
+                        <div className="flex-1">
+                          <p className="text-sm font-extrabold text-gray-900">
+                            {seg.depCode} {fmtTime(seg.depAt)} → {seg.arrCode} {fmtTime(seg.arrAt)}
+                          </p>
+                          <p className="text-[10px] text-gray-400">{seg.airline} · {seg.flightNumber}{seg.aircraft ? ` · ${seg.aircraft}` : ''}</p>
+                        </div>
+                      </div>
+                      {seg.layoverAfter && (
+                        <div className="mt-2 ml-10">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md" style={{ background: '#FEF9C3', color: '#92400E' }}>
+                            Layover {offer.segments[i + 1]?.depCode} · {seg.layoverAfter}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <a href="#" onClick={e => { e.preventDefault(); setBookStep('passenger'); }}
+                  className="text-xs font-semibold flex items-center gap-1" style={{ color: '#1A73E8' }}>
+                  View flight details &amp; policies ›
+                </a>
+              </div>
+
+              {/* Price breakdown */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <p className="text-sm font-extrabold text-gray-900 mb-3">Price breakdown</p>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div className="flex justify-between">
+                    <span>Adult</span>
+                    <span className="font-semibold">{fmtPrice(offer.totalAmount, offer.totalCurrency)} x {offer.passengerIds.length}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>Base fare</span>
+                    <span>{fmtPrice(offer.totalAmount - (offer.totalAmount * 0.2), offer.totalCurrency)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>Taxes and fees</span>
+                    <span>{fmtPrice(offer.totalAmount * 0.2, offer.totalCurrency)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Service fee</span>
+                    <span>{fmtPrice(SERVICE_FEE, offer.totalCurrency)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>Processing (2.9%)</span>
+                    <span>{fmtPrice(processingFee, offer.totalCurrency)}</span>
+                  </div>
+                </div>
+                <div className="border-t border-gray-100 mt-3 pt-3 flex justify-between items-center">
+                  <span className="font-bold text-gray-900">Total</span>
+                  <span className="text-xl font-extrabold" style={{ color: '#DC2626' }}>{fmtPrice(gross, offer.totalCurrency)}</span>
+                </div>
+              </div>
+
+              {/* Booking conditions */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <p className="text-sm font-extrabold text-gray-900 mb-3">Booking conditions</p>
+                <div className="space-y-2.5 text-xs text-gray-500">
+                  {[
+                    'Passenger(s) are responsible for ensuring that all necessary travel documents are valid and available upon travel.',
+                    'Please ensure that your contact information in your booking is correct. We cannot be held responsible for issues related to inaccurate contact details.',
+                    'If the airline(s) makes changes to your flight(s), the airline is responsible for the change. We will do our best to notify you of any changes.',
+                    'Cancellation and refund policies are set by the airline. Please check the fare rules before booking.',
+                    'Name corrections may not be possible after booking. Ensure passenger names match travel documents exactly.',
+                    'By completing this booking you agree to our Terms of Service and the airline\'s conditions of carriage.',
+                  ].map((cond, i) => (
+                    <p key={i} className="flex gap-2">
+                      <span className="text-gray-300 flex-shrink-0">•</span>
+                      <span>{cond}</span>
+                    </p>
+                  ))}
+                </div>
+              </div>
+
+              {/* Airport lounges in layover airports */}
+              {offer.segments.some(seg => seg.layoverAfter) && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <p className="text-sm font-extrabold text-gray-900 mb-3">🛋️ Airport Lounges</p>
+                  {offer.segments.map((seg, i) => {
+                    if (!seg.layoverAfter) return null;
+                    const nextCode = offer.segments[i + 1]?.depCode ?? '';
+                    const guide = getLayoverGuide(nextCode);
+                    if (!guide?.lounges) return null;
+                    return (
+                      <div key={i} className="mb-3">
+                        <p className="text-xs font-bold text-gray-700 mb-1">{guide.flag} {nextCode} — {guide.airport}</p>
+                        <p className="text-xs text-gray-500 mb-2">{guide.lounges}</p>
+                        <a href="https://www.prioritypass.com/en/single-visit" target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white"
+                          style={{ background: '#1A3C5E' }}>
+                          🛋️ Get lounge access
+                        </a>
+                      </div>
+                    );
+                  })}
+                  {offer.segments.every(seg => !seg.layoverAfter || !getLayoverGuide(offer.segments[offer.segments.indexOf(seg) + 1]?.depCode ?? '')?.lounges) && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2">Access 1,600+ airport lounges worldwide with Priority Pass.</p>
+                      <a href="https://www.prioritypass.com/en/single-visit" target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white"
+                        style={{ background: '#1A3C5E' }}>
+                        🛋️ Browse lounges
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Step indicator */}
-        <div className="flex items-center gap-2 mb-6">
-          {['Passenger details', 'Review & pay'].map((label, i) => {
-            const active = (bookStep === 'passenger' && i === 0) || (bookStep === 'payment' && i === 1);
-            const done = bookStep === 'payment' && i === 0;
-            return (
-              <div key={i} className="flex items-center gap-1.5">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${active || done ? 'text-white' : 'bg-gray-100 text-gray-400'}`}
-                  style={active || done ? { background: '#1D9E75' } : {}}>
-                  {done ? '✓' : i + 1}
-                </div>
-                <span className={`text-sm font-semibold ${active ? 'text-gray-900' : 'text-gray-400'}`}>{label}</span>
-                {i < 1 && <div className="w-6 h-px bg-gray-200 ml-1" />}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── Passenger form */}
-        {bookStep === 'passenger' && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-            <p className="text-xs text-gray-500">Details must match your passport exactly.</p>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Title">
-                <select value={form.title} onChange={e => update('title', e.target.value)} className={selectCls}>
-                  <option value="mr">Mr</option><option value="ms">Ms</option>
-                  <option value="mrs">Mrs</option><option value="miss">Miss</option><option value="dr">Dr</option>
-                </select>
-              </Field>
-              <Field label="Gender">
-                <select value={form.gender} onChange={e => update('gender', e.target.value)} className={selectCls}>
-                  <option value="m">Male</option><option value="f">Female</option>
-                </select>
-              </Field>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="First name">
-                <input value={form.givenName} onChange={e => update('givenName', e.target.value)} placeholder="As on passport" className={inputCls} />
-                {formErrors.givenName && <p className="text-xs text-red-500 mt-0.5">{formErrors.givenName}</p>}
-              </Field>
-              <Field label="Last name">
-                <input value={form.familyName} onChange={e => update('familyName', e.target.value)} placeholder="As on passport" className={inputCls} />
-                {formErrors.familyName && <p className="text-xs text-red-500 mt-0.5">{formErrors.familyName}</p>}
-              </Field>
-            </div>
-
-            <Field label="Date of birth">
-              <input type="date" value={form.bornOn} onChange={e => update('bornOn', e.target.value)} className={inputCls} />
-              {formErrors.bornOn && <p className="text-xs text-red-500 mt-0.5">{formErrors.bornOn}</p>}
-            </Field>
-
-            <Field label="Email">
-              <input type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="Confirmation sent here" className={inputCls} />
-              {formErrors.email && <p className="text-xs text-red-500 mt-0.5">{formErrors.email}</p>}
-            </Field>
-
-            <Field label="Phone (with country code)">
-              <input type="tel" value={form.phoneNumber} onChange={e => update('phoneNumber', e.target.value)} placeholder="+1 555 000 0000" className={inputCls} />
-              {formErrors.phoneNumber && <p className="text-xs text-red-500 mt-0.5">{formErrors.phoneNumber}</p>}
-            </Field>
-
-            <div className="border-t border-gray-100 pt-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-bold text-gray-700">Passport</p>
-                {savedProfile && savedProfile.passports.length > 0 && (
-                  <select
-                    value={selectedPassportId}
-                    onChange={e => {
-                      const p = savedProfile.passports.find(p => p.id === e.target.value);
-                      if (p) selectPassport(p);
-                      else { setSelectedPassportId(''); setForm(f => ({ ...f, passportNumber: '', passportExpiry: '', passportCountry: '' })); }
-                    }}
-                    className="text-xs font-semibold border border-gray-200 rounded-xl px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal/30 appearance-none cursor-pointer"
-                    style={{ maxWidth: 220 }}>
-                    {savedProfile.passports.map(p => {
-                      const destCountry = AIRPORT_COUNTRY[toCode.toUpperCase()] ?? '';
-                      const isBest = p.country === destCountry;
-                      return (
-                        <option key={p.id} value={p.id}>
-                          {flagEmoji(p.country)} {p.country} ···{p.passportNumber.slice(-4) || '????'}{isBest ? ' ★' : ''}
-                        </option>
-                      );
-                    })}
-                    <option value="">Enter manually</option>
-                  </select>
-                )}
-              </div>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Passport number">
-                    <input value={form.passportNumber} onChange={e => { update('passportNumber', e.target.value.toUpperCase()); setSelectedPassportId(''); }}
-                      placeholder="AB1234567" className={inputCls} style={{ textTransform: 'uppercase' }} />
-                    {formErrors.passportNumber && <p className="text-xs text-red-500 mt-0.5">{formErrors.passportNumber}</p>}
-                  </Field>
-                  <Field label="Country (2-letter)">
-                    <input value={form.passportCountry} onChange={e => { update('passportCountry', e.target.value.toUpperCase()); setSelectedPassportId(''); }}
-                      placeholder="US" maxLength={2} className={inputCls} />
-                    {formErrors.passportCountry && <p className="text-xs text-red-500 mt-0.5">{formErrors.passportCountry}</p>}
-                  </Field>
-                </div>
-                <Field label="Passport expiry">
-                  <input type="date" value={form.passportExpiry} onChange={e => { update('passportExpiry', e.target.value); setSelectedPassportId(''); }} className={inputCls} />
-                  {formErrors.passportExpiry && <p className="text-xs text-red-500 mt-0.5">{formErrors.passportExpiry}</p>}
-                </Field>
-              </div>
-            </div>
-
-            <button onClick={() => { if (validateForm()) setBookStep('payment'); }}
-              className="w-full py-3.5 rounded-2xl text-sm font-bold text-white mt-2"
-              style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
-              Continue to payment →
-            </button>
-          </div>
-        )}
-
-        {/* ── Review & Pay */}
-        {bookStep === 'payment' && (
-          <div className="space-y-4">
-            {/* Passenger summary */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Passenger</p>
-                  <p className="font-bold text-gray-900">{form.title.charAt(0).toUpperCase() + form.title.slice(1)} {form.givenName} {form.familyName}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{form.email} · {form.phoneNumber}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Passport {form.passportNumber} · Expires {form.passportExpiry}</p>
-                </div>
-                <button onClick={() => setBookStep('passenger')} className="text-xs font-bold underline" style={{ color: '#1D9E75' }}>Edit</button>
-              </div>
-            </div>
-
-            {/* Price breakdown */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-2">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Price breakdown</p>
-              <div className="flex justify-between text-sm text-gray-600"><span>Base fare</span><span>{fmtPrice(offer.totalAmount, offer.totalCurrency)}</span></div>
-              <div className="flex justify-between text-sm text-gray-600"><span>Service fee</span><span>{fmtPrice(SERVICE_FEE, offer.totalCurrency)}</span></div>
-              <div className="flex justify-between text-xs text-gray-400"><span>Processing (2.9%)</span><span>{fmtPrice(processingFee, offer.totalCurrency)}</span></div>
-              <div className="border-t border-gray-100 pt-2 flex justify-between font-extrabold text-gray-900">
-                <span>Total charged</span>
-                <span className="text-xl">{fmtPrice(gross, offer.totalCurrency)}</span>
-              </div>
-            </div>
-
-            {/* Card form */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Payment card</p>
-              <Field label="Name on card">
-                <input value={cardForm.name} onChange={e => updateCard('name', e.target.value)} placeholder="John Smith" className={inputCls} />
-                {cardErrors.name && <p className="text-xs text-red-500 mt-0.5">{cardErrors.name}</p>}
-              </Field>
-              <Field label="Card number">
-                <input value={cardForm.number} onChange={e => updateCard('number', fmtCardNumber(e.target.value))}
-                  placeholder="1234 5678 9012 3456" maxLength={19} className={inputCls + ' font-mono tracking-wider'} />
-                {cardErrors.number && <p className="text-xs text-red-500 mt-0.5">{cardErrors.number}</p>}
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Expiry (MM/YY)">
-                  <input value={cardForm.expiry} onChange={e => updateCard('expiry', fmtExpiry(e.target.value))}
-                    placeholder="06/28" maxLength={5} className={inputCls + ' font-mono'} />
-                  {cardErrors.expiry && <p className="text-xs text-red-500 mt-0.5">{cardErrors.expiry}</p>}
-                </Field>
-                <Field label="CVV">
-                  <input value={cardForm.cvc} onChange={e => updateCard('cvc', e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    placeholder="123" maxLength={4} className={inputCls + ' font-mono'} type="password" />
-                  {cardErrors.cvc && <p className="text-xs text-red-500 mt-0.5">{cardErrors.cvc}</p>}
-                </Field>
-              </div>
-              <p className="text-[10px] text-gray-400">🔒 Card processed securely by Duffel Payments. We never store your card details.</p>
-            </div>
-
-            {bookingError && (
-              bookingError === 'OFFER_EXPIRED' ? (
-                <div className="rounded-xl px-4 py-4 text-sm" style={{ background: '#FFFBEB', border: '1px solid #FCD34D' }}>
-                  <p className="font-bold text-amber-800 mb-1">⏰ This offer has expired</p>
-                  <p className="text-amber-700 text-xs mb-3">Flight prices are live and lock for ~30 minutes. This one timed out while you were filling in details.</p>
-                  <button onClick={() => { setSelectedOffer(null); setBookingError(''); }}
-                    className="text-xs font-bold px-4 py-2 rounded-xl text-white"
-                    style={{ background: '#1D9E75' }}>
-                    ← Pick a fresh flight
-                  </button>
-                </div>
-              ) : (
-                <div className="rounded-xl px-4 py-3 text-sm text-red-700 font-semibold" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-                  ⚠️ {bookingError}
-                </div>
-              )
-            )}
-
-            <div className="flex gap-3">
-              <button onClick={() => setBookStep('passenger')}
-                className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">
-                ← Back
-              </button>
-              <button onClick={confirmBooking} disabled={booking}
-                className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white disabled:opacity-60 flex items-center justify-center gap-2"
-                style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
-                {booking
-                  ? <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Processing…</>
-                  : `Pay ${fmtPrice(gross, offer.totalCurrency)} →`
-                }
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -730,13 +870,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
           <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4" style={{ background: '#F0FBF7' }}>✅</div>
           <h2 className="text-2xl font-extrabold text-gray-900">Booking confirmed!</h2>
-          <p className="text-sm text-gray-500 mt-1 mb-6">Confirmation sent to {form.email}</p>
+          <p className="text-sm text-gray-500 mt-1 mb-6">Confirmation sent to {forms[0]?.email}</p>
 
           <div className="rounded-2xl p-6 text-left mb-4" style={{ background: '#F8FAFC', border: '1.5px solid #E2E8F0' }}>
             <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Booking reference</p>
             <p className="text-4xl font-extrabold tracking-widest text-gray-900 mb-3">{confirmation.reference}</p>
             <p className="text-sm text-gray-600">{fmtPrice(confirmation.amount, confirmation.currency)} · {fromName} → {toName}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{fmtDate(depart + 'T12:00')} · {form.givenName} {form.familyName}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{fmtDate(depart + 'T12:00')} · {forms[0]?.givenName} {forms[0]?.familyName}{forms.length > 1 ? ` + ${forms.length - 1} more` : ''}</p>
           </div>
 
           <button onClick={onClear}
@@ -760,7 +900,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           </h2>
           <p className="text-sm text-gray-400 mt-0.5">
             {departLabel}{ret && ` · Return ${new Date(ret + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
-            {!ret && ' · One way'} · 1 adult
+            {!ret && ' · One way'} · {adults} adult{adults !== 1 ? 's' : ''}
           </p>
         </div>
         <button onClick={onClear}

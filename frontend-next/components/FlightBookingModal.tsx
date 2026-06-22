@@ -166,7 +166,7 @@ export default function FlightBookingModal({ isOpen, onClose, offer, fromName, t
         body: JSON.stringify({
           offerId: offer.id,
           paymentIntentId: pi.paymentIntentId,
-          passenger: { ...form, passengerId: offer.passengerId },
+          passengers: [{ ...form, passengerId: offer.passengerIds[0] }],
         }),
       });
       const order = await orderRes.json();

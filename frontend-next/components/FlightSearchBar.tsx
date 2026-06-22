@@ -429,7 +429,7 @@ function AirportInput({ label, value, onChange }: { label: string; value: string
 
 // ── Main component ─────────────────────────────────────────────────────────────
 interface FlightSearchBarProps {
-  onSearch: (from: string, to: string, depart: string, ret: string) => void;
+  onSearch: (from: string, to: string, depart: string, ret: string, adults: number) => void;
 }
 
 export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
@@ -438,24 +438,43 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
   const [depart, setDepart] = useState('');
   const [ret, setRet] = useState('');
   const [tripType, setTripType] = useState<'round' | 'oneway'>('round');
+  const [adults, setAdults] = useState(1);
 
   function handleSearch() {
-    onSearch(from, to, depart, tripType === 'round' ? ret : '');
+    onSearch(from, to, depart, tripType === 'round' ? ret : '', adults);
   }
 
   return (
     <div className="space-y-4">
-      {/* Trip type toggle */}
-      <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: '#f1f5f9' }}>
-        {([['round', 'Round trip'], ['oneway', 'One way']] as const).map(([val, label]) => (
-          <button key={val} type="button" onClick={() => setTripType(val)}
-            className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
-            style={tripType === val
-              ? { background: '#1D9E75', color: '#fff' }
-              : { color: '#6b7280' }}>
-            {label}
+      {/* Trip type + passenger row */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: '#f1f5f9' }}>
+          {([['round', 'Round trip'], ['oneway', 'One way']] as const).map(([val, label]) => (
+            <button key={val} type="button" onClick={() => setTripType(val)}
+              className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
+              style={tripType === val
+                ? { background: '#1D9E75', color: '#fff' }
+                : { color: '#6b7280' }}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {/* Passenger counter */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: '#f1f5f9' }}>
+          <button type="button" onClick={() => setAdults(Math.max(1, adults - 1))}
+            className="w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+            style={{ color: adults > 1 ? '#1D9E75' : '#9ca3af', background: adults > 1 ? '#e6f7f1' : 'transparent' }}>
+            −
           </button>
-        ))}
+          <span className="text-xs font-bold text-gray-700 whitespace-nowrap">
+            👤 {adults} {adults === 1 ? 'Adult' : 'Adults'}
+          </span>
+          <button type="button" onClick={() => setAdults(Math.min(6, adults + 1))}
+            className="w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+            style={{ color: adults < 6 ? '#1D9E75' : '#9ca3af', background: adults < 6 ? '#e6f7f1' : 'transparent' }}>
+            +
+          </button>
+        </div>
       </div>
 
       <div className={`grid gap-3 ${tripType === 'round' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3'}`}>

@@ -60,7 +60,7 @@ function formatOffer(offer: any) {
     totalAmount: parseFloat(offer.total_amount),
     totalCurrency: offer.total_currency,
     totalDuration: totalDur(segs),
-    passengerId: offer.passengers[0]?.id,
+    passengerIds: (offer.passengers as { id: string }[]).map(p => p.id),
     segments: segs.map((seg: Record<string, unknown>, si: number) => {
       const origin = seg.origin as Record<string, string>;
       const dest = seg.destination as Record<string, string>;
@@ -89,7 +89,7 @@ function formatOffer(offer: any) {
 }
 
 export async function POST(req: NextRequest) {
-  const { origin, destination, departureDate, returnDate } = await req.json();
+  const { origin, destination, departureDate, returnDate, adults = 1 } = await req.json();
 
   if (!getDuffelKey()) {
     return NextResponse.json({ error: 'no_credentials' }, { status: 503 });
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     const result = await duffelPost('/air/offer_requests', {
       data: {
         slices,
-        passengers: [{ type: 'adult' }],
+        passengers: Array.from({ length: Math.max(1, adults) }, () => ({ type: 'adult' })),
         cabin_class: 'economy',
         return_offers: true,
       },
