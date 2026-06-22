@@ -53,10 +53,13 @@ function fmtDur(mins: number) {
 }
 
 function buildBookUrl(offer: FlightOffer) {
-  const path = offer.link ? `https://www.aviasales.com${offer.link}` : null;
-  const search = `https://www.aviasales.com/search/${offer.origin}${offer.destination}`;
-  const base = path ?? search;
-  return `${base}${base.includes('?') ? '&' : '?'}marker=537802`;
+  if (offer.link) {
+    const sep = offer.link.includes('?') ? '&' : '?';
+    return `https://www.aviasales.com${offer.link}${sep}marker=537802`;
+  }
+  const p = new URLSearchParams({ origin: offer.origin, destination: offer.destination, adults: '1', marker: '537802' });
+  if (offer.departure_at) p.set('depart_date', offer.departure_at.slice(0, 10));
+  return `https://www.aviasales.com/search/?${p}`;
 }
 
 function SkeletonCard() {
@@ -93,9 +96,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [error, setError] = useState('');
   const [scope, setScope] = useState<'exact' | 'month' | 'open' | ''>('');
 
-  const departDay   = depart.split('-')[2];
-  const departMonth = depart.split('-')[1];
-  const fallbackUrl = `https://www.aviasales.com/search/${fromCode}${departDay}${departMonth}${toCode}1?marker=537802`;
+  const fallbackUrl = (() => {
+    const p = new URLSearchParams({ origin: fromCode, destination: toCode, depart_date: depart, adults: '1', marker: '537802' });
+    if (ret) p.set('return_date', ret);
+    return `https://www.aviasales.com/search/?${p}`;
+  })();
 
   const departLabel = new Date(depart + 'T12:00').toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long',

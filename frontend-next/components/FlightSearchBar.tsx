@@ -126,7 +126,6 @@ export const AIRPORTS = [
   { code: 'OTP', name: 'Bucharest', country: 'Romania' },
   { code: 'SOF', name: 'Sofia', country: 'Bulgaria' },
   { code: 'SKG', name: 'Thessaloniki', country: 'Greece' },
-  { code: 'DUB', name: 'Dubai', country: 'UAE' },
   // Africa
   { code: 'CAI', name: 'Cairo', country: 'Egypt' },
   { code: 'HRG', name: 'Hurghada', country: 'Egypt' },
