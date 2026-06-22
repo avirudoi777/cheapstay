@@ -1366,7 +1366,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             const depDate = new Date(firstSeg.depAt);
             const arrDate = new Date(lastSeg.arrAt);
             const daysDiff = Math.floor((arrDate.getTime() - depDate.getTime()) / 86400000);
-            const airlines = [...new Set(offer.segments.map(s => s.airlineCode))];
+            const uniqueAirlines = [...new Map(offer.segments.map(s => [s.airlineCode, s.airline])).entries()];
+            const marketingAirline = firstSeg;
 
             return (
               <div key={offer.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
@@ -1374,14 +1375,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 {/* ── Top bar: airline + cabin ── */}
                 <div className="px-5 pt-4 pb-3 flex items-center justify-between" style={{ borderBottom: '1px solid #F8FAFC' }}>
                   <div className="flex items-center gap-2.5">
-                    {airlines.map(code => (
-                      <AirlineLogo key={code} code={code} name={offer.segments.find(s => s.airlineCode === code)?.airline ?? code} />
-                    ))}
+                    <AirlineLogo code={marketingAirline.airlineCode} name={marketingAirline.airline} />
                     <div>
-                      <p className="text-sm font-bold text-gray-800">
-                        {offer.segments[0].airline}
-                        {airlines.length > 1 && <span className="text-gray-400 font-normal"> + codeshare</span>}
-                      </p>
+                      <p className="text-sm font-bold text-gray-800">{marketingAirline.airline}</p>
+                      {uniqueAirlines.length > 1 && (
+                        <p className="text-[11px] text-gray-400">
+                          operated by {uniqueAirlines.filter(([code]) => code !== marketingAirline.airlineCode).map(([, name]) => name).join(', ')}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>Economy</span>
