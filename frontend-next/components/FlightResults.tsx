@@ -332,6 +332,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
   async function confirmBooking() {
     if (!selectedOffer || !validateCard()) return;
+
+    // Check offer hasn't expired before hitting Duffel
+    if (new Date(selectedOffer.expiresAt) < new Date()) {
+      setBookingError('OFFER_EXPIRED');
+      return;
+    }
+
     setBooking(true); setBookingError('');
     try {
       const piRes = await fetch('/api/flights/duffel-payment-intent', {
@@ -363,7 +370,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         body: JSON.stringify({ offerId: selectedOffer.id, paymentIntentId: pi.paymentIntentId, passenger: { ...form, passengerId: selectedOffer.passengerId } }),
       });
       const order = await orderRes.json();
-      if (order.error) throw new Error(order.detail || order.error);
+      if (order.error) {
+        const msg = order.detail || order.error;
+        // Duffel "does not exist" = offer expired between search and checkout
+        if (msg.toLowerCase().includes('does not exist') || msg.toLowerCase().includes('not exist')) {
+          throw new Error('OFFER_EXPIRED');
+        }
+        throw new Error(msg);
+      }
 
       setConfirmation({ reference: order.bookingReference, amount: pi.grossAmount, currency: selectedOffer.totalCurrency });
       setBookStep('confirmed');
@@ -386,11 +400,19 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
     return (
       <div ref={containerRef} className="max-w-2xl mx-auto px-4 sm:px-6 mt-6 mb-12">
-        {/* Back link */}
-        <button onClick={() => setSelectedOffer(null)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors mb-5">
-          ← Back to results
-        </button>
+        {/* Back link + expiry warning */}
+        <div className="flex items-center justify-between mb-5">
+          <button onClick={() => setSelectedOffer(null)}
+            className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors">
+            ← Back to results
+          </button>
+          {offer.expiresAt && (() => {
+            const minsLeft = Math.floor((new Date(offer.expiresAt).getTime() - Date.now()) / 60000);
+            if (minsLeft <= 0) return <span className="text-xs font-bold text-red-500">⏰ Offer expired</span>;
+            if (minsLeft <= 10) return <span className="text-xs font-semibold text-amber-600">⏰ Offer expires in {minsLeft}m</span>;
+            return null;
+          })()}
+        </div>
 
         {/* Route map */}
         <RouteMap
@@ -656,9 +678,21 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             </div>
 
             {bookingError && (
-              <div className="rounded-xl px-4 py-3 text-sm text-red-700 font-semibold" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-                ⚠️ {bookingError}
-              </div>
+              bookingError === 'OFFER_EXPIRED' ? (
+                <div className="rounded-xl px-4 py-4 text-sm" style={{ background: '#FFFBEB', border: '1px solid #FCD34D' }}>
+                  <p className="font-bold text-amber-800 mb-1">⏰ This offer has expired</p>
+                  <p className="text-amber-700 text-xs mb-3">Flight prices are live and lock for ~30 minutes. This one timed out while you were filling in details.</p>
+                  <button onClick={() => { setSelectedOffer(null); setBookingError(''); }}
+                    className="text-xs font-bold px-4 py-2 rounded-xl text-white"
+                    style={{ background: '#1D9E75' }}>
+                    ← Pick a fresh flight
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-xl px-4 py-3 text-sm text-red-700 font-semibold" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+                  ⚠️ {bookingError}
+                </div>
+              )
             )}
 
             <div className="flex gap-3">
