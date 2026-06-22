@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import VisaBanner from '@/components/VisaBanner';
 
 interface FlightOffer {
@@ -148,21 +149,33 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         </div>
       </div>
 
-      {/* Visa requirements for destination — uses saved passport */}
-      {passportCodes.length > 0 && (
+      {/* Visa requirements — show banner if passport saved, prompt if not */}
+      {passportCodes.length > 0 ? (
         <VisaBanner passportCodes={passportCodes} city={toName} />
+      ) : (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl mb-4"
+          style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+          <span className="text-xl flex-shrink-0">🛂</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-gray-700">Do you need a visa for {toName}?</p>
+            <p className="text-xs text-gray-400 mt-0.5">Add your passport to see entry requirements instantly.</p>
+          </div>
+          <Link href="/account" className="text-xs font-bold whitespace-nowrap hover:underline flex-shrink-0"
+            style={{ color: '#1D9E75' }}>
+            Add passport →
+          </Link>
+        </div>
       )}
 
-      {/* Scope notice — shown when results are not for the exact date */}
+      {/* Subtle cache notice — only when results aren't for exact date */}
       {!loading && offers && scope !== 'exact' && (
-        <div className="mb-3 px-4 py-2.5 rounded-xl text-xs font-medium flex items-center gap-2"
-          style={{ background: '#FFFBEB', color: '#92400E', border: '1px solid #FDE68A' }}>
-          <span>ℹ️</span>
-          {scope === 'month'
-            ? `No cached prices for your exact date — showing cheapest found in ${new Date(depart + 'T12:00').toLocaleString('en', { month: 'long' })} for this route.`
-            : 'Showing recently cached prices for this route. Dates may differ from your search.'}
-          <span className="ml-auto text-amber-600 font-semibold">Check Aviasales for live availability →</span>
-        </div>
+        <p className="text-xs text-gray-400 mb-3 -mt-1">
+          Showing cheapest prices found in {new Date(depart + 'T12:00').toLocaleString('en', { month: 'long' })} — dates shown on each card.{' '}
+          <a href={fallbackUrl} target="_blank" rel="noopener noreferrer"
+            className="font-semibold hover:underline" style={{ color: '#1D9E75' }}>
+            Check live prices on Aviasales →
+          </a>
+        </p>
       )}
 
       {/* Loading */}
