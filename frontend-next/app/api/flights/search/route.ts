@@ -40,13 +40,28 @@ export async function GET(req: NextRequest) {
     if (r2?.data?.length) return NextResponse.json({ success: true, data: r2.data, scope: 'month' });
 
     // 3. v2/prices/latest — recent cached prices, no date filter
+    // Response: { data: { "GIG-BOG": { price, airline, number_of_changes, departure_at, ... } } }
     const q3 = new URLSearchParams({ origin: from, destination: to, period_type: 'year', one_way: ret ? 'false' : 'true', currency: 'usd', limit: '10', sorting: 'price', token });
     const r3 = await get(`${TP_BASE}/v2/prices/latest?${q3}`);
-    const latest = r3?.data ? Object.values(r3.data as Record<string, unknown[]>).flat() : [];
+    const latest: unknown[] = [];
+    if (r3?.data && typeof r3.data === 'object') {
+      for (const flight of Object.values(r3.data as Record<string, unknown>)) {
+        if (flight && typeof flight === 'object') {
+          const f = flight as Record<string, unknown>;
+          latest.push({
+            ...f,
+            origin: from,
+            destination: to,
+            transfers: typeof f.transfers === 'number' ? f.transfers : (typeof f.number_of_changes === 'number' ? f.number_of_changes : 0),
+            duration: typeof f.duration === 'number' ? f.duration : 0,
+          });
+        }
+      }
+    }
     if (latest.length) return NextResponse.json({ success: true, data: latest, scope: 'latest' });
 
     // 4. v1/prices/cheap — cheapest tickets for the month
-    // Response: { data: { "DEST": { "YYYY-MM-DD": { price, airline, ... } } } }
+    // Response: { data: { "BOG": { "YYYY-MM-DD": { price, airline, number_of_changes, ... } } } }
     const q4 = new URLSearchParams({ origin: from, destination: to, depart_date: month, currency: 'usd', token });
     if (retMonth) q4.set('return_date', retMonth);
     const r4 = await get(`${TP_BASE}/v1/prices/cheap?${q4}`);
@@ -55,9 +70,16 @@ export async function GET(req: NextRequest) {
       for (const destObj of Object.values(r4.data as Record<string, unknown>)) {
         if (destObj && typeof destObj === 'object') {
           for (const [dateKey, flight] of Object.entries(destObj as Record<string, unknown>)) {
-            // Only include entries where the key looks like a real date
             if (/^\d{4}-\d{2}-\d{2}/.test(dateKey) && flight && typeof flight === 'object') {
-              cheap.push({ ...(flight as object), departure_at: dateKey, origin: from, destination: to });
+              const f = flight as Record<string, unknown>;
+              cheap.push({
+                ...f,
+                departure_at: dateKey,
+                origin: from,
+                destination: to,
+                transfers: typeof f.transfers === 'number' ? f.transfers : (typeof f.number_of_changes === 'number' ? f.number_of_changes : 0),
+                duration: typeof f.duration === 'number' ? f.duration : 0,
+              });
             }
           }
         }

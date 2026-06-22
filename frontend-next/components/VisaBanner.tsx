@@ -24,8 +24,8 @@ const CONFIG: Record<VisaRequirement, { border: string; bg: string; icon: string
 
 const VACCINATION_INFO: Record<string, { label: string; detail: string }> = {
   yellow_fever: {
-    label: 'Yellow fever vaccine',
-    detail: 'Required if arriving from a country where yellow fever is endemic (e.g. Brazil, certain African countries). Airlines can deny boarding without proof of vaccination.',
+    label: 'Yellow fever vaccine required',
+    detail: 'Proof of yellow fever vaccination is required for entry. This applies to all travelers — airlines can deny boarding without a valid vaccination certificate (yellow card).',
   },
 };
 

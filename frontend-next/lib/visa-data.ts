@@ -297,7 +297,7 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'US-KE': { requirement: 'e_visa', duration: '90 days', notes: 'e-Visa required. Apply at evisa.go.ke ($51 single, $101 multiple entry).' },
   'US-TZ': { requirement: 'visa_on_arrival', duration: '90 days', notes: 'Visa on arrival ($50 single) or online e-visa.' },
   'US-MX': { requirement: 'visa_free', duration: '180 days', notes: 'No visa required. FMM tourist card issued on arrival (often included in airfare).' },
-  'US-BR': { requirement: 'visa_free', duration: '90 days', notes: 'Visa-free since 2024. No extra requirements.' },
+  'US-BR': { requirement: 'visa_free', duration: '90 days', notes: 'Visa-free since 2024.', vaccinations: ['yellow_fever'] },
   'US-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
   'US-PE': { requirement: 'visa_free', duration: '183 days', notes: 'No visa required.' },
   'US-AR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.' },
@@ -334,7 +334,7 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'GB-NZ': { requirement: 'visa_free', duration: '6 months', notes: 'No visa required.' },
   'GB-US': { requirement: 'e_visa', duration: '90 days', notes: 'ESTA required ($21). Apply at esta.cbp.dhs.gov before travel.' },
   'GB-CN': { requirement: 'visa_free', duration: '15 days', notes: '15-day visa-free for UK passport holders (2024 policy).' },
-  'GB-BR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.' },
+  'GB-BR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
   'GB-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
   'GB-TR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.' },
   'GB-EG': { requirement: 'visa_on_arrival', duration: '30 days', notes: 'Visa on arrival $25 or e-visa.' },
@@ -365,7 +365,7 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'AU-GB': { requirement: 'visa_free', duration: '6 months', notes: 'No visa required.' },
   'AU-NZ': { requirement: 'visa_free', duration: 'Indefinite', notes: 'No visa required. NZ citizens have special travel rights.' },
   'AU-KH': { requirement: 'visa_on_arrival', duration: '30 days', notes: 'Visa on arrival $30 or e-visa $36.' },
-  'AU-BR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.' },
+  'AU-BR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
   'AU-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
   'AU-CN': { requirement: 'visa_free', duration: '15 days', notes: '15-day visa-free (2024 policy).' },
   'AU-ZA': { requirement: 'visa_free', duration: '30 days', notes: 'No visa required.' },
@@ -395,7 +395,7 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'CA-GB': { requirement: 'e_visa', duration: '6 months', notes: 'ETA required for flying into UK (£10). Apply at gov.uk/electronic-travel-authorisation.' },
   'CA-AU': { requirement: 'e_visa', duration: '12 months', notes: 'eTA required (AUD$20).' },
   'CA-NZ': { requirement: 'visa_free', duration: '6 months', notes: 'No visa required.' },
-  'CA-BR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.' },
+  'CA-BR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
   'CA-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
   'CA-MX': { requirement: 'visa_free', duration: '180 days', notes: 'No visa required.' },
   'CA-KH': { requirement: 'visa_on_arrival', duration: '30 days', notes: 'Visa on arrival $30 or e-visa $36.' },
@@ -428,7 +428,7 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'IL-US': { requirement: 'e_visa', duration: '90 days', notes: 'ESTA required ($21). Israel joined the Visa Waiver Program in 2023.' },
   'IL-GB': { requirement: 'visa_free', duration: '6 months', notes: 'No visa required.' },
   'IL-AU': { requirement: 'e_visa', duration: '12 months', notes: 'eTA required (AUD$20).' },
-  'IL-BR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.' },
+  'IL-BR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
   'IL-CO': { requirement: 'visa_free', duration: '90 days', notes: 'No visa required.', vaccinations: ['yellow_fever'] },
   'IL-FR': { requirement: 'visa_free', duration: '90 days', notes: 'No visa for 90 days in Schengen area.' },
   'IL-DE': { requirement: 'visa_free', duration: '90 days', notes: 'No visa for 90 days in Schengen area.' },
@@ -522,10 +522,15 @@ export const VISA_DATA: Record<string, VisaEntry> = {
   'SG-MV': { requirement: 'visa_free', duration: '30 days', notes: 'Free on arrival.' },
 };
 
+function stripAccents(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
 export function getDestinationCountry(city: string): string | null {
-  const key = city.toLowerCase().trim();
+  const key = stripAccents(city.toLowerCase().trim());
   for (const [k, v] of Object.entries(CITY_TO_COUNTRY)) {
-    if (key.includes(k) || k.includes(key)) return v;
+    const nk = stripAccents(k);
+    if (key.includes(nk) || nk.includes(key)) return v;
   }
   return null;
 }
