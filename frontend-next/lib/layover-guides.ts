@@ -319,6 +319,19 @@ const GUIDES: Record<string, LayoverGuide> = {
       { icon: '💵', title: 'Use your foreign card at the ATM', desc: 'Argentina\'s "blue rate" gives foreign cards significantly better exchange than official rate. Withdraw ARS from the EZE airport ATM for the best legal rate before heading into the city.' },
     ],
   },
+  SAL: {
+    airport: 'Monseñor Óscar Arnulfo Romero International Airport',
+    city: 'San Salvador',
+    flag: '🇸🇻',
+    lounges: 'Avianca VIP Lounge (Avianca Business/LifeMiles Gold+); Executive Lounge SAL (pay ~$30, walk-in, food & drinks)',
+    tips: [
+      { icon: '🛋️', title: 'Executive Lounge — solid walk-in option', desc: 'SAL has a walk-in Executive Lounge for ~$30. Includes hot food, local beer, and AC — much better than the terminal for a 7h layover.' },
+      { icon: '🌋', title: 'Santa Ana volcano (5h+)', desc: 'El Salvador has some of Central America\'s most accessible volcanoes. Santa Ana is 1.5h by taxi (~$40 round trip). Guided hikes to the crater lake are surreal — bring a jacket.' },
+      { icon: '🏙️', title: 'San Salvador historic center (3h+)', desc: '20 min by taxi (~$15). The Palacio Nacional, Catedral Metropolitana, and Plaza Barrios are all walkable. The city is smaller and more manageable than most Central American capitals.' },
+      { icon: '🍜', title: 'Pupusas — El Salvador\'s national dish', desc: 'SAL\'s food court has decent pupuserías. These thick corn tortillas stuffed with cheese and beans are El Salvador\'s signature dish. Try the revuelta (mixed filling) — $2–3 each.' },
+      { icon: '☕', title: 'Salvadoran coffee', desc: 'El Salvador produces excellent coffee. The airport has a local coffee shop serving single-origin Salvadoran beans — arguably better than anything you\'ll find on the plane.' },
+    ],
+  },
   CLT: {
     airport: 'Charlotte Douglas International Airport',
     city: 'Charlotte',
