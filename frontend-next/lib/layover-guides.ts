@@ -283,6 +283,29 @@ const GUIDES: Record<string, LayoverGuide> = {
       { icon: '🛁', title: 'Shower facilities', desc: 'Shower facilities available at Plaza Premium — $25 including towel and amenities.' },
     ],
   },
+  PTY: {
+    airport: 'Tocumen International Airport',
+    city: 'Panama City',
+    flag: '🇵🇦',
+    lounges: 'Copa Airlines VIP Lounge (Copa Gold/Business or pay ~$45); Miraflores Lounge (pay ~$35, walk-in, food included)',
+    tips: [
+      { icon: '🛋️', title: 'Copa hub — great lounges', desc: 'PTY is Copa\'s main hub. The Copa VIP Lounge (near gate 17) is one of the best value lounges in Latin America — pay access is worth it for long layovers.' },
+      { icon: '🌊', title: 'Panama Canal (4h+)', desc: 'Miraflores Locks visitor centre is 30 min by taxi (~$25). Watch ships transit the canal — genuinely stunning engineering.' },
+      { icon: '🏙️', title: 'Casco Viejo (4h+)', desc: 'Panama City\'s UNESCO old town is 40 min by taxi (~$30). Colourful colonial buildings, rooftop bars, and incredible Pacific views.' },
+      { icon: '💵', title: 'USD everywhere', desc: 'Panama uses the US dollar — no currency exchange needed.' },
+    ],
+  },
+  ASU: {
+    airport: 'Silvio Pettirossi International Airport',
+    city: 'Asunción',
+    flag: '🇵🇾',
+    lounges: 'VIP Lounge ASU (pay ~$25, walk-in, includes snacks); GOL Lounge (GOL members)',
+    tips: [
+      { icon: '💰', title: 'One of South America\'s cheapest cities', desc: 'Asunción is extremely affordable. Everything from food to taxis costs half what you\'d pay in Brazil or Argentina.' },
+      { icon: '🏛️', title: 'Centro Histórico (3h+)', desc: 'Taxi ~20 min to the old town (~$10). Palacio de los López and the waterfront Costanera are worth the quick visit.' },
+      { icon: '🥩', title: 'Paraguayan beef', desc: 'Paraguay has some of the best beef in South America. A proper churrasco in the airport food hall is cheap and excellent.' },
+    ],
+  },
 };
 
 // Minimum layover minutes to show airport guide

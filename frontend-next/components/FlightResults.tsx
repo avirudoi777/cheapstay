@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import VisaBanner from '@/components/VisaBanner';
 import { getLayoverGuide, parseLayoverMinutes, LAYOVER_GUIDE_THRESHOLD_MIN } from '@/lib/layover-guides';
 import { flagEmoji } from '@/lib/visa-data';
@@ -258,6 +258,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [searchError, setSearchError] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  // ── Filters
+  const [filterStops, setFilterStops] = useState<Set<number>>(new Set());
+  const [filterAirlines, setFilterAirlines] = useState<Set<string>>(new Set());
+  const [filterBaggage, setFilterBaggage] = useState(false);
+  const [showAllAirlines, setShowAllAirlines] = useState(false);
+
   // ── Saved traveler profile
   const [savedProfile, setSavedProfile] = useState<TravelerProfile | null>(null);
   const [selectedPassportId, setSelectedPassportId] = useState('');
@@ -321,7 +327,35 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     return () => clearInterval(id);
   }, [selectedOffer]);
 
+  // Browser back button: push history entry on booking start, clear state on popstate
+  useEffect(() => {
+    if (!selectedOffer) return;
+    const handlePop = () => { setSelectedOffer(null); setBookingError(''); };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [selectedOffer]);
+
+  // Derived filter data
+  const allAirlines = useMemo(() => {
+    const map = new Map<string, string>();
+    offers.forEach(o => o.segments.forEach(s => map.set(s.airline, s.airlineCode)));
+    return Array.from(map.keys()).sort((a, b) => a.localeCompare(b));
+  }, [offers]);
+
+  const filteredOffers = useMemo(() => {
+    return offers.filter(offer => {
+      const stops = offer.segments.length - 1;
+      if (filterStops.size > 0 && !filterStops.has(stops >= 2 ? 2 : stops)) return false;
+      if (filterAirlines.size > 0 && !offer.segments.some(s => filterAirlines.has(s.airline))) return false;
+      if (filterBaggage && !offer.segments.every(s => (s.baggage?.checkedBags ?? 0) > 0)) return false;
+      return true;
+    });
+  }, [offers, filterStops, filterAirlines, filterBaggage]);
+
+  const hasActiveFilters = filterStops.size > 0 || filterAirlines.size > 0 || filterBaggage;
+
   function startBooking(offer: DuffelOffer) {
+    window.history.pushState({ cheapstayBooking: true }, '');
     setSelectedOffer(offer);
     setBookStep('passenger');
     setCardForm(EMPTY_CARD); setCardErrors({});
@@ -548,7 +582,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             </span>
             {!isExpired && <span className="font-mono font-extrabold text-base tabular-nums" style={{ color: isExpiringSoon ? '#DC2626' : '#EA580C' }}>{countdownStr}</span>}
             {isExpired && (
-              <button onClick={() => { setSelectedOffer(null); setBookingError(''); }}
+              <button onClick={() => window.history.back()}
                 className="ml-2 text-xs font-bold px-3 py-1 rounded-lg text-white"
                 style={{ background: '#1D9E75' }}>
                 ← Back to flights
@@ -559,8 +593,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-5">
           {/* Back link */}
-          <button onClick={() => setSelectedOffer(null)}
-            className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors mb-5">
+          <button onClick={() => window.history.back()}
+            className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors mb-5 cursor-pointer">
             ← Back to results
           </button>
 
@@ -1498,7 +1532,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
   /* ── RESULTS LIST VIEW ───────────────────────────────────────────────────── */
   return (
-    <div ref={containerRef} className="max-w-4xl mx-auto px-4 sm:px-6 mt-6 mb-6">
+    <div ref={containerRef} className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 mb-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -1522,6 +1556,108 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
       {/* Visa banner */}
       <div className="mb-5"><VisaBanner passportCodes={passportCodes} city={toName} /></div>
+
+      <div className="flex gap-5 items-start">
+        {/* ── Filter sidebar (desktop only) */}
+        {!loading && !searchError && offers.length > 0 && (
+          <div className="hidden lg:block w-56 flex-shrink-0 space-y-5 sticky top-4">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+
+              {/* Recommended */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-bold text-gray-900">Recommended</p>
+                  {filterBaggage && (
+                    <button onClick={() => setFilterBaggage(false)} className="text-[11px] font-bold cursor-pointer" style={{ color: '#1A73E8' }}>Clear</button>
+                  )}
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={filterBaggage} onChange={e => setFilterBaggage(e.target.checked)}
+                    className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: '#1D9E75' }} />
+                  <span className="text-sm text-gray-700">Checked baggage included</span>
+                </label>
+              </div>
+
+              <div className="border-t border-gray-100 pt-4 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-bold text-gray-900">Stops</p>
+                  {filterStops.size > 0 && (
+                    <button onClick={() => setFilterStops(new Set())} className="text-[11px] font-bold cursor-pointer" style={{ color: '#1A73E8' }}>Clear</button>
+                  )}
+                </div>
+                {[{ label: 'Direct', val: 0 }, { label: '1 Stop', val: 1 }, { label: '2 Stops+', val: 2 }].map(({ label, val }) => (
+                  <label key={val} className="flex items-center gap-2 cursor-pointer mb-1.5">
+                    <input type="checkbox"
+                      checked={filterStops.has(val)}
+                      onChange={() => {
+                        setFilterStops(prev => {
+                          const next = new Set(prev);
+                          next.has(val) ? next.delete(val) : next.add(val);
+                          return next;
+                        });
+                      }}
+                      className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: '#1D9E75' }} />
+                    <span className="text-sm text-gray-700">{label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Airlines */}
+              <div className="border-t border-gray-100 pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-bold text-gray-900">Airlines</p>
+                  {filterAirlines.size > 0 && (
+                    <button onClick={() => setFilterAirlines(new Set())} className="text-[11px] font-bold cursor-pointer" style={{ color: '#1A73E8' }}>Clear</button>
+                  )}
+                </div>
+                <label className="flex items-center justify-between gap-2 mb-3 cursor-pointer">
+                  <span className="text-sm text-gray-600">Select all airlines</span>
+                  <div
+                    onClick={() => setFilterAirlines(new Set())}
+                    className="w-10 h-5 rounded-full cursor-pointer transition-colors flex items-center px-0.5"
+                    style={{ background: filterAirlines.size === 0 ? '#6B7280' : '#1D9E75' }}>
+                    <div className="w-4 h-4 bg-white rounded-full shadow transition-transform"
+                      style={{ transform: filterAirlines.size === 0 ? 'translateX(18px)' : 'translateX(0)' }} />
+                  </div>
+                </label>
+                {(showAllAirlines ? allAirlines : allAirlines.slice(0, 5)).map(airline => (
+                  <label key={airline} className="flex items-center gap-2 cursor-pointer mb-1.5">
+                    <input type="checkbox"
+                      checked={filterAirlines.has(airline)}
+                      onChange={() => {
+                        setFilterAirlines(prev => {
+                          const next = new Set(prev);
+                          next.has(airline) ? next.delete(airline) : next.add(airline);
+                          return next;
+                        });
+                      }}
+                      className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: '#1D9E75' }} />
+                    <span className="text-sm text-gray-700 truncate">{airline}</span>
+                  </label>
+                ))}
+                {allAirlines.length > 5 && (
+                  <button onClick={() => setShowAllAirlines(v => !v)}
+                    className="text-[11px] font-bold mt-1 cursor-pointer flex items-center gap-1"
+                    style={{ color: '#1A73E8' }}>
+                    {showAllAirlines ? '↑ Show less' : `↓ Show ${allAirlines.length - 5} more`}
+                  </button>
+                )}
+              </div>
+
+              {hasActiveFilters && (
+                <button
+                  onClick={() => { setFilterStops(new Set()); setFilterAirlines(new Set()); setFilterBaggage(false); }}
+                  className="mt-4 w-full py-2 rounded-xl text-xs font-bold cursor-pointer transition"
+                  style={{ background: '#FEF2F2', color: '#DC2626' }}>
+                  Clear all filters
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Main results column */}
+        <div className="flex-1 min-w-0">
 
       {/* Loading */}
       {loading && (
@@ -1549,8 +1685,21 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       {/* Flight cards */}
       {!loading && !searchError && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-gray-400">{offers.length} flight{offers.length !== 1 ? 's' : ''} · prices include all fees</p>
-          {offers.map(offer => {
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-gray-400">
+              {hasActiveFilters ? `${filteredOffers.length} of ${offers.length}` : offers.length} flight{offers.length !== 1 ? 's' : ''} · prices include all fees
+            </p>
+          </div>
+          {filteredOffers.length === 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center">
+              <p className="text-sm font-bold text-gray-600">No flights match your filters</p>
+              <button onClick={() => { setFilterStops(new Set()); setFilterAirlines(new Set()); setFilterBaggage(false); }}
+                className="mt-2 text-xs font-bold cursor-pointer" style={{ color: '#1A73E8' }}>
+                Clear all filters
+              </button>
+            </div>
+          )}
+          {filteredOffers.map(offer => {
             const gross = calcGross(offer.totalAmount);
             const isExpanded = expanded === offer.id;
             const stops = offer.segments.length - 1;
@@ -1954,6 +2103,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           })}
         </div>
       )}
+        </div>{/* end main results column */}
+      </div>{/* end flex wrapper */}
     </div>
   );
 }
