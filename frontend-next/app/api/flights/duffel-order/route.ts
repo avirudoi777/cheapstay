@@ -88,7 +88,18 @@ export async function POST(req: NextRequest) {
       const segs = slice?.segments ?? [];
       const firstSeg = segs[0];
       const lastSeg = segs[segs.length - 1];
-      await supabase.from('flight_bookings').insert({
+
+      const cancellationPolicy = (() => {
+        const r = order.conditions?.refund_before_departure;
+        if (!r) return null;
+        return {
+          allowed: r.allowed ?? false,
+          penalty_amount: r.penalty_amount ? parseFloat(r.penalty_amount) : null,
+          penalty_currency: r.penalty_currency ?? null,
+        };
+      })();
+
+      const baseRow = {
         user_id: user?.id ?? null,
         passenger_email: passengers[0]?.email ?? null,
         duffel_order_id: order.id,
@@ -107,16 +118,19 @@ export async function POST(req: NextRequest) {
         passenger_names: order.passengers?.map((p: { given_name: string; family_name: string }) =>
           `${p.given_name} ${p.family_name}`
         ) ?? [],
-        cancellation_policy: (() => {
-          const r = order.conditions?.refund_before_departure;
-          if (!r) return null;
-          return {
-            allowed: r.allowed ?? false,
-            penalty_amount: r.penalty_amount ? parseFloat(r.penalty_amount) : null,
-            penalty_currency: r.penalty_currency ?? null,
-          };
-        })(),
+      };
+
+      // Try full insert with cancellation_policy; fall back to base row if column missing
+      const { error: insertErr } = await supabase.from('flight_bookings').insert({
+        ...baseRow,
+        cancellation_policy: cancellationPolicy,
       });
+
+      if (insertErr) {
+        console.error('Full insert failed, retrying without cancellation_policy:', insertErr.message);
+        const { error: retryErr } = await supabase.from('flight_bookings').insert(baseRow);
+        if (retryErr) console.error('Retry insert also failed:', retryErr.message);
+      }
     } catch (saveErr) {
       console.error('Failed to save booking to Supabase:', saveErr);
     }

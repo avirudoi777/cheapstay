@@ -587,6 +587,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
       setConfirmation({ reference: order.bookingReference, amount: grossAmount, currency: finalOffer.totalCurrency });
       setBookStep('confirmed');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       setBookingError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
     } finally {
