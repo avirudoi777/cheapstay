@@ -31,6 +31,12 @@ export async function POST(req: NextRequest) {
 
   if (!key) return NextResponse.json({ error: 'no_credentials' }, { status: 503 });
 
+  // Use unlimited test balance in test mode — no real card needed
+  const isTestMode = !process.env.DUFFEL_LIVE_API_KEY;
+  const payment = isTestMode
+    ? { type: 'balance' }
+    : { type: 'payment_intent', id: paymentIntentId };
+
   try {
     const res = await fetch(`${DUFFEL}/air/orders`, {
       method: 'POST',
@@ -58,10 +64,7 @@ export async function POST(req: NextRequest) {
               issuing_country_code: p.passportCountry,
             }],
           })),
-          payments: [{
-            type: 'payment_intent',
-            id: paymentIntentId,
-          }],
+          payments: [payment],
           ...(services.length > 0 ? {
             services: services.map(s => ({ id: s.serviceId, quantity: s.quantity })),
           } : {}),
@@ -122,6 +125,7 @@ export async function POST(req: NextRequest) {
       totalAmount: parseFloat(order.total_amount),
       currency: order.total_currency,
       passengers: order.passengers,
+      testMode: isTestMode,
     });
   } catch (err) {
     console.error('Duffel order error:', JSON.stringify(err));

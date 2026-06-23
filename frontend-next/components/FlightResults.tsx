@@ -260,6 +260,12 @@ const EMPTY_CARD: CardForm = { name: '', number: '', expiry: '', cvc: '' };
 export default function FlightResults({ fromCode, toCode, fromName, toName, depart, ret, adults = 1, children = 0, infants = 0, cabinClass = 'economy', onClear, passportCodes }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // ── Test mode detection
+  const [duffelTestMode, setDuffelTestMode] = useState(false);
+  useEffect(() => {
+    fetch('/api/flights/duffel-mode').then(r => r.json()).then(d => setDuffelTestMode(d.testMode ?? false)).catch(() => {});
+  }, []);
+
   // ── Search state
   const [offers, setOffers] = useState<DuffelOffer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -504,80 +510,51 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   }
 
   async function confirmBooking() {
-    if (!selectedOffer || !validateCard()) return;
+    if (!selectedOffer || (!duffelTestMode && !validateCard())) return;
     setBooking(true); setBookingError('');
 
-    // If offer has expired, get a fresh one before attempting payment
-    let activeOffer = selectedOffer;
-    if (selectedOffer.expiresAt && new Date(selectedOffer.expiresAt) < new Date()) {
-      setOfferRefreshing(true);
+    try {
+      let paymentIntentId = '';
+      let grossAmount = calcGross(selectedOffer.totalAmount);
+
+      if (!duffelTestMode) {
+        // Live mode: create payment intent + confirm card
+        const extrasTotal = selectedServices.reduce((sum, ss) => {
+          const svc = selectedOffer.availableServices.find(s => s.id === ss.serviceId);
+          return sum + (svc ? svc.totalAmount * ss.quantity : 0);
+        }, 0);
+        grossAmount = calcGross(selectedOffer.totalAmount + extrasTotal);
+        const piRes = await fetch('/api/flights/duffel-payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: (selectedOffer.totalAmount + extrasTotal).toFixed(2), currency: selectedOffer.totalCurrency }),
+        });
+        const pi = await piRes.json();
+        if (pi.error) throw new Error(pi.detail || pi.error);
+        grossAmount = pi.grossAmount;
+
+        const [expMonth, expYearShort] = cardForm.expiry.split('/');
+        const confirmRes = await fetch(`https://api.duffel.com/air/payment_intents/${pi.paymentIntentId}/actions/confirm`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${pi.clientToken}`, 'Duffel-Version': 'v2', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: {
+            card_number: cardForm.number.replace(/\s/g, ''),
+            expiry_month: expMonth, expiry_year: '20' + expYearShort,
+            cvc: cardForm.cvc, name: cardForm.name,
+          }}),
+        });
+        if (!confirmRes.ok) {
+          const err = await confirmRes.json();
+          throw new Error(err?.errors?.[0]?.message || 'Card was declined');
+        }
+        paymentIntentId = pi.paymentIntentId;
+      }
+
+      // Get freshest offer right before creating the order
+      let finalOffer = selectedOffer;
       try {
         const firstSeg = selectedOffer.segments[0];
         const lastSeg = selectedOffer.segments[selectedOffer.segments.length - 1];
-        const depDate = firstSeg.depAt.slice(0, 10);
-        const refreshRes = await fetch('/api/flights/duffel-search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ origin: firstSeg.depCode, destination: lastSeg.arrCode, departureDate: depDate, adults, children, infants, cabinClass }),
-        });
-        const refreshJson = await refreshRes.json();
-        if (refreshJson.offers?.length) {
-          const fresh = (refreshJson.offers as DuffelOffer[]).find((o: DuffelOffer) =>
-            o.segments[0].airlineCode === firstSeg.airlineCode &&
-            o.segments[0].depCode === firstSeg.depCode &&
-            o.segments[o.segments.length - 1].arrCode === lastSeg.arrCode
-          ) ?? refreshJson.offers[0];
-          activeOffer = fresh;
-          setSelectedOffer(fresh);
-        } else {
-          setBookingError('No flights available — please go back and pick a new option.');
-          setBooking(false); setOfferRefreshing(false);
-          return;
-        }
-      } catch {
-        setBookingError('Could not refresh offer. Please go back and search again.');
-        setBooking(false); setOfferRefreshing(false);
-        return;
-      } finally {
-        setOfferRefreshing(false);
-      }
-    }
-    try {
-      const extrasTotal = selectedServices.reduce((sum, ss) => {
-        const svc = activeOffer.availableServices.find(s => s.id === ss.serviceId);
-        return sum + (svc ? svc.totalAmount * ss.quantity : 0);
-      }, 0);
-      const piRes = await fetch('/api/flights/duffel-payment-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: (activeOffer.totalAmount + extrasTotal).toFixed(2), currency: activeOffer.totalCurrency }),
-      });
-      const pi = await piRes.json();
-      if (pi.error) {
-        throw new Error(pi.detail || pi.error);
-      }
-
-      const [expMonth, expYearShort] = cardForm.expiry.split('/');
-      const confirmRes = await fetch(`https://api.duffel.com/air/payment_intents/${pi.paymentIntentId}/actions/confirm`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${pi.clientToken}`, 'Duffel-Version': 'v2', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: {
-          card_number: cardForm.number.replace(/\s/g, ''),
-          expiry_month: expMonth, expiry_year: '20' + expYearShort,
-          cvc: cardForm.cvc, name: cardForm.name,
-        }}),
-      });
-      if (!confirmRes.ok) {
-        const err = await confirmRes.json();
-        throw new Error(err?.errors?.[0]?.message || 'Card was declined');
-      }
-
-      // Get the freshest possible offer right before creating the order
-      // (minimises the window between offer fetch and order creation)
-      let finalOffer = activeOffer;
-      try {
-        const firstSeg = activeOffer.segments[0];
-        const lastSeg = activeOffer.segments[activeOffer.segments.length - 1];
         const freshRes = await fetch('/api/flights/duffel-search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -592,14 +569,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           ) ?? freshJson.offers[0];
           setSelectedOffer(finalOffer);
         }
-      } catch { /* keep existing activeOffer if refresh fails */ }
+      } catch { /* keep existing offer if refresh fails */ }
 
       const orderRes = await fetch('/api/flights/duffel-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           offerId: finalOffer.id,
-          paymentIntentId: pi.paymentIntentId,
+          paymentIntentId,
           passengers: forms.map((f, i) => ({ ...f, passengerId: finalOffer.passengerIds[i] })),
           services: selectedServices.filter(s => finalOffer.availableServices.some(a => a.id === s.serviceId)),
         }),
@@ -609,7 +586,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         throw new Error(order.detail || order.error);
       }
 
-      setConfirmation({ reference: order.bookingReference, amount: pi.grossAmount, currency: activeOffer.totalCurrency });
+      setConfirmation({ reference: order.bookingReference, amount: grossAmount, currency: finalOffer.totalCurrency });
       setBookStep('confirmed');
     } catch (err) {
       setBookingError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
@@ -1022,8 +999,19 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     </div>
                   ))}
 
-                  {/* Card form */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+                  {/* Test mode banner — replaces card form */}
+                  {duffelTestMode && (
+                    <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: '#EFF6FF', border: '1.5px solid #BFDBFE' }}>
+                      <span className="text-xl flex-shrink-0">🧪</span>
+                      <div>
+                        <p className="text-sm font-bold text-blue-800">Test mode — no real payment needed</p>
+                        <p className="text-xs text-blue-600 mt-0.5 leading-relaxed">Duffel test balance is unlimited. Click Pay to complete a real test booking with a real confirmation number — no card required.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Card form — live mode only */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4" style={{ display: duffelTestMode ? 'none' : undefined }}>
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Payment card</p>
                     <Field label="Name on card">
                       <input value={cardForm.name} onChange={e => updateCard('name', e.target.value)} placeholder="John Smith" className={inputCls} />
