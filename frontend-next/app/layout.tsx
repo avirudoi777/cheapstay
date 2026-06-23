@@ -202,6 +202,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </footer>
 
+        {/* Dev mode badge — hidden automatically when DUFFEL_LIVE_API_KEY is set */}
+        {process.env.NEXT_PUBLIC_DUFFEL_TEST_MODE === 'true' && (
+          <div style={{
+            position: 'fixed', bottom: '16px', right: '16px', zIndex: 9999,
+            background: '#F59E0B', color: '#1C1917',
+            fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em',
+            padding: '5px 10px', borderRadius: '9999px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+            pointerEvents: 'none', userSelect: 'none',
+          }}>
+            TEST MODE
+          </div>
+        )}
+
         {/* Vercel Analytics — page views & web vitals */}
         <Analytics />
       </body>
