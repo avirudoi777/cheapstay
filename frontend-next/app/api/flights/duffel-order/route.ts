@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (!key) return NextResponse.json({ error: 'no_credentials' }, { status: 503 });
 
   // Use unlimited test balance in test mode — no real card needed
-  const isTestMode = !process.env.DUFFEL_LIVE_API_KEY;
+  const isTestMode = !key.startsWith('duffel_live_');
   const payment = isTestMode
     ? { type: 'balance' }
     : { type: 'payment_intent', id: paymentIntentId };

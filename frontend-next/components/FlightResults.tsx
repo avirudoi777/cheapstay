@@ -260,11 +260,8 @@ const EMPTY_CARD: CardForm = { name: '', number: '', expiry: '', cvc: '' };
 export default function FlightResults({ fromCode, toCode, fromName, toName, depart, ret, adults = 1, children = 0, infants = 0, cabinClass = 'economy', onClear, passportCodes }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // ── Test mode detection
-  const [duffelTestMode, setDuffelTestMode] = useState(false);
-  useEffect(() => {
-    fetch('/api/flights/duffel-mode').then(r => r.json()).then(d => setDuffelTestMode(d.testMode ?? false)).catch(() => {});
-  }, []);
+  // Baked in at build time via next.config — no async fetch race
+  const duffelTestMode = process.env.NEXT_PUBLIC_DUFFEL_TEST_MODE === 'true';
 
   // ── Search state
   const [offers, setOffers] = useState<DuffelOffer[]>([]);
