@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
             phone_number: p.phoneNumber,
             identity_documents: [{
               type: 'passport',
-              number: p.passportNumber,
+              unique_identifier: p.passportNumber,
               expires_on: p.passportExpiry,
               issuing_country_code: p.passportCountry,
             }],
