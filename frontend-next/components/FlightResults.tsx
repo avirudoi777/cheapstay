@@ -812,8 +812,16 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       );
                     })}
                   </div>
-                  {offer.segments.every(s => !s.baggage?.checkedBags) && (
-                    <p className="text-[10px] text-amber-600 mt-2.5">💡 Buying extra baggage online is cheaper than paying at the airport.</p>
+                  {offer.segments.some(s => !s.baggage?.checkedBags) && baggageServices.length === 0 && (
+                    <div className="mt-3 rounded-xl px-3 py-2.5" style={{ background: '#FFFBEB', border: '1px solid #FCD34D' }}>
+                      <p className="text-xs font-bold text-amber-800">🧳 Need to add checked baggage?</p>
+                      <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
+                        This airline doesn&apos;t sell extra bags through our platform. Add them on the airline&apos;s website after booking — always much cheaper than paying at the airport desk.
+                      </p>
+                    </div>
+                  )}
+                  {offer.segments.some(s => !s.baggage?.checkedBags) && baggageServices.length > 0 && (
+                    <p className="text-[10px] text-amber-600 mt-2.5">💡 Adding baggage online is cheaper than at the airport.</p>
                   )}
                 </div>
               )}
@@ -1011,10 +1019,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
               {/* Airport lounges — inline below extras on passenger step */}
               {bookStep === 'passenger' && (() => {
-                const allCodes = Array.from(new Set([
-                  ...offer.segments.map(s => s.depCode),
-                  offer.segments[offer.segments.length - 1].arrCode,
-                ]));
+                // Only show lounges for departure + layover airports — not the final destination
+                const allCodes = Array.from(new Set(offer.segments.map(s => s.depCode)));
                 const airports = allCodes
                   .map(code => ({ code, guide: getLayoverGuide(code) }))
                   .filter(({ guide }) => guide?.lounges);
@@ -1124,6 +1130,25 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                 </div>
                               ))}
                             </div>
+                            {/* Layover tips — only for stopovers, not departure airport */}
+                            {isLayover && guide!.tips.length > 0 && (
+                              <div className="px-3 pb-3" style={{ borderTop: '1px solid #EEF2F7' }}>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide pt-2.5 mb-2">
+                                  🗺️ How to spend your time in {guide!.city}
+                                </p>
+                                <div className="space-y-1.5">
+                                  {guide!.tips.slice(0, 3).map((tip, ti) => (
+                                    <div key={ti} className="flex items-start gap-2 px-2.5 py-2 rounded-lg" style={{ background: '#F0FDF4', border: '1px solid #D1FAE5' }}>
+                                      <span className="text-sm flex-shrink-0 mt-0.5">{tip.icon}</span>
+                                      <div>
+                                        <p className="text-[11px] font-bold text-gray-800">{tip.title}</p>
+                                        <p className="text-[10px] text-gray-500 leading-relaxed mt-0.5">{tip.desc}</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -1771,10 +1796,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
                     {/* ── Airport lounges in expanded card ──────────────── */}
                     {(() => {
-                    const allCodes = Array.from(new Set([
-                      ...offer.segments.map(s => s.depCode),
-                      offer.segments[offer.segments.length - 1].arrCode,
-                    ]));
+                    // Only departure + layover airports — not the final destination
+                    const allCodes = Array.from(new Set(offer.segments.map(s => s.depCode)));
                     const airports = allCodes
                       .map(code => ({ code, guide: getLayoverGuide(code) }))
                       .filter(({ guide }) => guide?.lounges);
@@ -1898,6 +1921,25 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                     </div>
                                   ))}
                                 </div>
+                                {/* Layover tips — only for stopovers */}
+                                {isLayover && guide!.tips.length > 0 && (
+                                  <div className="px-3 pb-3" style={{ borderTop: '1px solid #EEF2F7' }}>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide pt-2.5 mb-2">
+                                      🗺️ How to spend your time in {guide!.city}
+                                    </p>
+                                    <div className="space-y-1.5">
+                                      {guide!.tips.slice(0, 3).map((tip, ti) => (
+                                        <div key={ti} className="flex items-start gap-2 px-2.5 py-2 rounded-lg" style={{ background: '#F0FDF4', border: '1px solid #D1FAE5' }}>
+                                          <span className="text-sm flex-shrink-0 mt-0.5">{tip.icon}</span>
+                                          <div>
+                                            <p className="text-[11px] font-bold text-gray-800">{tip.title}</p>
+                                            <p className="text-[10px] text-gray-500 leading-relaxed mt-0.5">{tip.desc}</p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 const DUFFEL = 'https://api.duffel.com';
 
@@ -73,6 +74,48 @@ export async function POST(req: NextRequest) {
     if (!res.ok) throw data;
 
     const order = data.data;
+
+    // Save booking to Supabase (best-effort — don't fail the booking if this errors)
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      const slice = order.slices?.[0];
+      const segs = slice?.segments ?? [];
+      const firstSeg = segs[0];
+      const lastSeg = segs[segs.length - 1];
+      await supabase.from('flight_bookings').insert({
+        user_id: user?.id ?? null,
+        passenger_email: passengers[0]?.email ?? null,
+        duffel_order_id: order.id,
+        booking_reference: order.booking_reference,
+        status: 'confirmed',
+        origin_code: firstSeg?.origin?.iata_code ?? null,
+        origin_city: firstSeg?.origin?.city_name ?? firstSeg?.origin?.name ?? null,
+        destination_code: lastSeg?.destination?.iata_code ?? null,
+        destination_city: lastSeg?.destination?.city_name ?? lastSeg?.destination?.name ?? null,
+        departure_at: firstSeg?.departing_at ?? null,
+        arrival_at: lastSeg?.arriving_at ?? null,
+        airline: firstSeg?.marketing_carrier?.name ?? null,
+        total_amount: parseFloat(order.total_amount),
+        currency: order.total_currency,
+        passengers_count: order.passengers?.length ?? 1,
+        passenger_names: order.passengers?.map((p: { given_name: string; family_name: string }) =>
+          `${p.given_name} ${p.family_name}`
+        ) ?? [],
+        cancellation_policy: (() => {
+          const r = order.conditions?.refund_before_departure;
+          if (!r) return null;
+          return {
+            allowed: r.allowed ?? false,
+            penalty_amount: r.penalty_amount ? parseFloat(r.penalty_amount) : null,
+            penalty_currency: r.penalty_currency ?? null,
+          };
+        })(),
+      });
+    } catch (saveErr) {
+      console.error('Failed to save booking to Supabase:', saveErr);
+    }
+
     return NextResponse.json({
       orderId: order.id,
       bookingReference: order.booking_reference,
