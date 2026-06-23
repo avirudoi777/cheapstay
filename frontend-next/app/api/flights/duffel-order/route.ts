@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
             gender: p.gender,
             born_on: p.bornOn,
             email: p.email,
-            phone_number: p.phoneNumber,
+            phone_number: p.phoneNumber.startsWith('+') ? p.phoneNumber : `+${p.phoneNumber}`,
             identity_documents: [{
               type: 'passport',
               unique_identifier: p.passportNumber,

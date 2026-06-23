@@ -92,6 +92,13 @@ const TEST_ROUTE = { origin: 'LHR', destination: 'JFK' };
 // ══════════════════════════════════════════════════════════════════════════════
 // 1. calcGross formula
 // ══════════════════════════════════════════════════════════════════════════════
+await section('Phone normalisation (E.164)', async () => {
+  const norm = (n) => n.startsWith('+') ? n : `+${n}`;
+  assert('already has + — unchanged',   norm('+12144146487') === '+12144146487');
+  assert('no + — prepend',              norm('12144146487')  === '+12144146487');
+  assert('no + international',          norm('6621234567')   === '+6621234567');
+});
+
 await section('calcGross formula', async () => {
   assert('fee-only amount > 0', calcGross(0) > 0, `$${calcGross(0)}`);
   assert('$300 base → reasonable gross', calcGross(300) > 315 && calcGross(300) < 340, `$${calcGross(300)}`);
