@@ -66,6 +66,8 @@ function formatOffer(offer: any) {
     metadata: svc.metadata ?? {},
   }));
   const offerPassengers = (offer.passengers as { id: string; type: string }[]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const refund = (offer as any).conditions?.refund_before_departure;
   return {
     id: offer.id,
     expiresAt: offer.expires_at,
@@ -75,6 +77,13 @@ function formatOffer(offer: any) {
     passengerIds: offerPassengers.map(p => p.id),
     passengers: offerPassengers.map(p => ({ id: p.id, type: p.type as 'adult' | 'child' | 'infant_without_seat' })),
     availableServices,
+    conditions: refund != null ? {
+      refundBeforeDeparture: {
+        allowed: refund.allowed ?? false,
+        penaltyAmount: refund.penalty_amount ?? null,
+        penaltyCurrency: refund.penalty_currency ?? null,
+      },
+    } : null,
     segments: segs.map((seg: Record<string, unknown>, si: number) => {
       const origin = seg.origin as Record<string, string>;
       const dest = seg.destination as Record<string, string>;
@@ -120,7 +129,7 @@ function formatOffer(offer: any) {
 }
 
 export async function POST(req: NextRequest) {
-  const { origin, destination, departureDate, returnDate, adults = 1, children = 0, infants = 0 } = await req.json();
+  const { origin, destination, departureDate, returnDate, adults = 1, children = 0, infants = 0, cabinClass = 'economy' } = await req.json();
 
   if (!getDuffelKey()) {
     return NextResponse.json({ error: 'no_credentials' }, { status: 503 });
@@ -144,7 +153,7 @@ export async function POST(req: NextRequest) {
       data: {
         slices,
         passengers,
-        cabin_class: 'economy',
+        cabin_class: cabinClass,
         return_offers: true,
       },
     });

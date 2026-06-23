@@ -428,8 +428,17 @@ function AirportInput({ label, value, onChange }: { label: string; value: string
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
+type CabinClass = 'economy' | 'premium_economy' | 'business' | 'first';
+
+const CABIN_OPTIONS: { value: CabinClass; label: string; icon: string }[] = [
+  { value: 'economy', label: 'Economy', icon: '💺' },
+  { value: 'premium_economy', label: 'Premium Economy', icon: '⭐' },
+  { value: 'business', label: 'Business', icon: '🍸' },
+  { value: 'first', label: 'First Class', icon: '✨' },
+];
+
 interface FlightSearchBarProps {
-  onSearch: (from: string, to: string, depart: string, ret: string, adults: number, children: number, infants: number) => void;
+  onSearch: (from: string, to: string, depart: string, ret: string, adults: number, children: number, infants: number, cabinClass: CabinClass) => void;
 }
 
 export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
@@ -441,22 +450,24 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
+  const [cabinClass, setCabinClass] = useState<CabinClass>('economy');
   const [paxOpen, setPaxOpen] = useState(false);
+  const [cabinOpen, setCabinOpen] = useState(false);
   const paxRef = useRef<HTMLDivElement>(null);
+  const cabinRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!paxOpen) return;
+    if (!paxOpen && !cabinOpen) return;
     function handleClickOutside(e: MouseEvent) {
-      if (paxRef.current && !paxRef.current.contains(e.target as Node)) {
-        setPaxOpen(false);
-      }
+      if (paxRef.current && !paxRef.current.contains(e.target as Node)) setPaxOpen(false);
+      if (cabinRef.current && !cabinRef.current.contains(e.target as Node)) setCabinOpen(false);
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [paxOpen]);
+  }, [paxOpen, cabinOpen]);
 
   function handleSearch() {
-    onSearch(from, to, depart, tripType === 'round' ? ret : '', adults, children, infants);
+    onSearch(from, to, depart, tripType === 'round' ? ret : '', adults, children, infants, cabinClass);
   }
 
   const totalPax = adults + children + infants;
@@ -481,9 +492,35 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
             </button>
           ))}
         </div>
+        <div className="flex items-center gap-2 ml-auto">
+        {/* Cabin class selector */}
+        <div className="relative" ref={cabinRef}>
+          <button type="button" onClick={() => { setCabinOpen(o => !o); setPaxOpen(false); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700"
+            style={{ background: '#f1f5f9' }}>
+            {CABIN_OPTIONS.find(c => c.value === cabinClass)?.icon}{' '}
+            {CABIN_OPTIONS.find(c => c.value === cabinClass)?.label}
+            <span className="text-gray-400">{cabinOpen ? '▲' : '▼'}</span>
+          </button>
+          {cabinOpen && (
+            <div className="absolute right-0 top-full mt-1 z-50 rounded-2xl shadow-lg py-1.5 w-48"
+              style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+              {CABIN_OPTIONS.map(opt => (
+                <button key={opt.value} type="button"
+                  onClick={() => { setCabinClass(opt.value); setCabinOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors hover:bg-gray-50"
+                  style={cabinClass === opt.value ? { fontWeight: 700, color: '#1D9E75' } : { color: '#374151' }}>
+                  <span className="text-base">{opt.icon}</span>
+                  <span>{opt.label}</span>
+                  {cabinClass === opt.value && <span className="ml-auto text-xs">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         {/* Passenger selector */}
         <div className="relative" ref={paxRef}>
-          <button type="button" onClick={() => setPaxOpen(o => !o)}
+          <button type="button" onClick={() => { setPaxOpen(o => !o); setCabinOpen(false); }}
             className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700"
             style={{ background: '#f1f5f9' }}>
             👤 {paxLabel}
@@ -528,6 +565,7 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
             </div>
           )}
         </div>
+        </div>{/* end cabin+pax wrapper */}
       </div>
 
       <div className={`grid gap-3 ${tripType === 'round' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3'}`}>

@@ -247,10 +247,11 @@ export default function HomePage() {
     fromCode: string; toCode: string;
     fromName: string; toName: string;
     depart: string; ret: string; adults: number; children: number; infants: number;
+    cabinClass: string;
   } | null>(null);
   const flightResultsRef = useRef<HTMLDivElement>(null);
 
-  function handleFlightSearch(from: string, to: string, depart: string, ret: string, adults = 1, children = 0, infants = 0) {
+  function handleFlightSearch(from: string, to: string, depart: string, ret: string, adults = 1, children = 0, infants = 0, cabinClass = 'economy') {
     const codeMatch = (s: string) => s.match(/\(([A-Z]{3})\)/)?.[1] ?? '';
     const nameOf    = (s: string) => s.replace(/\s*\([A-Z]{3}\).*/, '').trim();
 
@@ -281,7 +282,7 @@ export default function HomePage() {
     setFlightSearch({
       fromCode: fromRes.code, toCode: toRes.code,
       fromName: fromRes.name, toName: toRes.name,
-      depart, ret, adults, children, infants,
+      depart, ret, adults, children, infants, cabinClass,
     });
     setTimeout(() => flightResultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   }
@@ -531,6 +532,7 @@ export default function HomePage() {
             adults={flightSearch.adults}
             children={flightSearch.children}
             infants={flightSearch.infants}
+            cabinClass={flightSearch.cabinClass}
             onClear={() => setFlightSearch(null)}
             passportCodes={passportCodes}
           />

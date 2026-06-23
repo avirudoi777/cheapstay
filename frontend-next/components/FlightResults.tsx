@@ -43,6 +43,13 @@ export interface DuffelOffer {
   passengers: DuffelPassenger[];
   segments: Segment[];
   availableServices: DuffelService[];
+  conditions?: {
+    refundBeforeDeparture?: {
+      allowed: boolean;
+      penaltyAmount?: string | null;
+      penaltyCurrency?: string | null;
+    } | null;
+  } | null;
 }
 interface SelectedService { serviceId: string; quantity: number; }
 interface SeatElement {
@@ -76,6 +83,7 @@ interface Props {
   adults?: number;
   children?: number;
   infants?: number;
+  cabinClass?: string;
   onClear: () => void;
   passportCodes: string[];
 }
@@ -249,7 +257,7 @@ const EMPTY_FORM: PassengerForm = {
 };
 const EMPTY_CARD: CardForm = { name: '', number: '', expiry: '', cvc: '' };
 
-export default function FlightResults({ fromCode, toCode, fromName, toName, depart, ret, adults = 1, children = 0, infants = 0, onClear, passportCodes }: Props) {
+export default function FlightResults({ fromCode, toCode, fromName, toName, depart, ret, adults = 1, children = 0, infants = 0, cabinClass = 'economy', onClear, passportCodes }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // ── Search state
@@ -263,6 +271,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [filterAirlines, setFilterAirlines] = useState<Set<string>>(new Set());
   const [filterBaggage, setFilterBaggage] = useState(false);
   const [showAllAirlines, setShowAllAirlines] = useState(false);
+
+  // ── Sidebar details toggle
+  const [sidebarDetailsOpen, setSidebarDetailsOpen] = useState(false);
 
   // ── Saved traveler profile
   const [savedProfile, setSavedProfile] = useState<TravelerProfile | null>(null);
@@ -303,7 +314,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     fetch('/api/flights/duffel-search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ origin: fromCode, destination: toCode, departureDate: depart, returnDate: ret || undefined, adults, children, infants }),
+      body: JSON.stringify({ origin: fromCode, destination: toCode, departureDate: depart, returnDate: ret || undefined, adults, children, infants, cabinClass }),
     })
       .then(r => r.json())
       .then(json => {
@@ -578,7 +589,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             style={{ background: isExpired ? '#FEF2F2' : isExpiringSoon ? '#FFFBEB' : '#FFF7ED', borderBottom: `1px solid ${isExpired ? '#FECACA' : isExpiringSoon ? '#FCD34D' : '#FED7AA'}` }}>
             <span>{isExpired ? '❌' : '🕐'}</span>
             <span style={{ color: isExpired ? '#B91C1C' : isExpiringSoon ? '#92400E' : '#C2410C' }}>
-              {isExpired ? 'This offer has expired — please pick a fresh flight' : `These deals may not last!`}
+              {isExpired ? 'This offer has expired — please pick a fresh flight' : `Offer locked — seats may sell out!`}
             </span>
             {!isExpired && <span className="font-mono font-extrabold text-base tabular-nums" style={{ color: isExpiringSoon ? '#DC2626' : '#EA580C' }}>{countdownStr}</span>}
             {isExpired && (
@@ -860,6 +871,39 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 </div>
               )}
 
+              {/* Cancellation policy card */}
+              {bookStep === 'passenger' && (() => {
+                const r = offer.conditions?.refundBeforeDeparture;
+                if (!r) return null;
+                const free = r.allowed && !r.penaltyAmount;
+                const fee = r.allowed && r.penaltyAmount;
+                const noRefund = !r.allowed;
+                return (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <p className="text-sm font-extrabold text-gray-900 mb-3">🔄 Cancellation policy</p>
+                    <div className="flex items-start gap-3 p-3 rounded-xl"
+                      style={free ? { background: '#ECFDF5', border: '1px solid #BBF7D0' }
+                        : fee ? { background: '#FFFBEB', border: '1px solid #FCD34D' }
+                        : { background: '#FEF2F2', border: '1px solid #FECACA' }}>
+                      <span className="text-xl flex-shrink-0">{free ? '✅' : fee ? '⚠️' : '❌'}</span>
+                      <div>
+                        <p className="text-sm font-bold"
+                          style={{ color: free ? '#15803D' : fee ? '#92400E' : '#DC2626' }}>
+                          {free ? 'Free cancellation before departure'
+                            : fee ? `Refundable with ${r.penaltyCurrency ?? ''} ${r.penaltyAmount} cancellation fee`
+                            : 'Non-refundable fare'}
+                        </p>
+                        <p className="text-[11px] mt-0.5 text-gray-500">
+                          {free ? 'You can cancel this booking and receive a full refund before departure.'
+                            : fee ? 'A cancellation fee applies if you cancel this booking.'
+                            : 'This ticket cannot be cancelled or refunded. Consider travel insurance.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* ── Payment form (shown after passenger step) */}
               {bookStep === 'payment' && (
                 <div className="space-y-4">
@@ -909,7 +953,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     bookingError === 'OFFER_EXPIRED' ? (
                       <div className="rounded-xl px-4 py-4 text-sm" style={{ background: '#FFFBEB', border: '1px solid #FCD34D' }}>
                         <p className="font-bold text-amber-800 mb-1">⏰ This offer has expired</p>
-                        <p className="text-amber-700 text-xs mb-3">Flight prices are live and lock for ~30 minutes. This one timed out while you were filling in details.</p>
+                        <p className="text-amber-700 text-xs mb-3">Flight prices lock temporarily when you search, but airlines can expire an offer early if seats sell out. Pick a fresh flight to continue.</p>
                         <button onClick={() => { setSelectedOffer(null); setBookingError(''); }}
                           className="text-xs font-bold px-4 py-2 rounded-xl text-white"
                           style={{ background: '#1D9E75' }}>
@@ -1427,10 +1471,47 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     </div>
                   ))}
                 </div>
-                <a href="#" onClick={e => { e.preventDefault(); setBookStep('passenger'); }}
-                  className="text-xs font-semibold flex items-center gap-1" style={{ color: '#1A73E8' }}>
-                  View flight details &amp; policies ›
-                </a>
+                <button onClick={() => setSidebarDetailsOpen(o => !o)}
+                  className="text-xs font-semibold flex items-center gap-1 cursor-pointer w-full py-2 px-3 rounded-xl border transition-colors"
+                  style={{ color: '#1A73E8', borderColor: '#BFDBFE', background: sidebarDetailsOpen ? '#EFF6FF' : '#F8FAFF' }}>
+                  {sidebarDetailsOpen ? '▲' : '▼'} {sidebarDetailsOpen ? 'Hide' : 'View'} flight details &amp; policies
+                </button>
+
+                {sidebarDetailsOpen && (
+                  <div className="mt-3 space-y-3 text-xs">
+                    {/* Per-segment baggage */}
+                    <div>
+                      <p className="font-bold text-gray-600 mb-1.5">🧳 Baggage allowance</p>
+                      {offer.segments.map((seg, i) => (
+                        <div key={i} className="flex justify-between py-1.5 border-b border-gray-100 last:border-0">
+                          <span className="text-gray-500">{seg.depCode} → {seg.arrCode} <span className="text-gray-400">({seg.airline})</span></span>
+                          <span className="font-semibold text-gray-700">
+                            {seg.baggage?.carryOn ? `1 carry-on` : 'No carry-on'}
+                            {seg.baggage?.checkedBags ? ` + ${seg.baggage.checkedBags} checked` : ''}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Fare conditions */}
+                    <div>
+                      <p className="font-bold text-gray-600 mb-1.5">📋 Fare conditions</p>
+                      {(() => {
+                        const r = (offer as DuffelOffer & { conditions?: { refund_before_departure?: { allowed: boolean; penalty_amount?: string; penalty_currency?: string } } }).conditions?.refund_before_departure;
+                        if (!r) return <p className="text-gray-400">Fare rules not available — check with airline.</p>;
+                        return (
+                          <div className="rounded-lg px-3 py-2" style={r.allowed ? { background: '#ECFDF5', color: '#166534' } : { background: '#FEF2F2', color: '#991B1B' }}>
+                            {r.allowed
+                              ? r.penalty_amount
+                                ? `Refundable with ${r.penalty_currency ?? ''} ${r.penalty_amount} cancellation fee`
+                                : 'Free cancellation before departure'
+                              : 'Non-refundable fare — no refund if cancelled'}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    <p className="text-gray-400 leading-relaxed">Name changes are not permitted after booking. Ensure all passenger names match travel documents exactly.</p>
+                  </div>
+                )}
               </div>
 
               {/* Price breakdown */}
