@@ -5,6 +5,6 @@ export async function GET() {
     ?? process.env.DUFFEL_TEST_API_KEY
     ?? process.env.DUFFEL_API_KEY
     ?? '';
-  const testMode = !key.startsWith('duffel_live_');
+  const testMode = process.env.DUFFEL_TEST_MODE === 'true' || !key.startsWith('duffel_live_');
   return NextResponse.json({ testMode });
 }

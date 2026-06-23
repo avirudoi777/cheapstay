@@ -1,11 +1,12 @@
 import type { NextConfig } from 'next';
 
-// Detect test mode at build time by checking the key prefix — avoids async fetch race on payment step
+// DUFFEL_TEST_MODE=true in Vercel overrides everything; otherwise infer from key prefix
 const duffelKey = process.env.DUFFEL_LIVE_API_KEY
   ?? process.env.DUFFEL_TEST_API_KEY
   ?? process.env.DUFFEL_API_KEY
   ?? '';
-const duffelTestMode = !duffelKey.startsWith('duffel_live_');
+const duffelTestMode =
+  process.env.DUFFEL_TEST_MODE === 'true' || !duffelKey.startsWith('duffel_live_');
 
 const nextConfig: NextConfig = {
   env: {
