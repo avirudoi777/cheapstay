@@ -545,7 +545,7 @@ export function getDestinationCountry(city: string): string | null {
 export function getVisaInfo(passportCode: string, destinationCity: string): VisaEntry | null {
   const destCountry = getDestinationCountry(destinationCity);
   if (!destCountry) return null;
-  if (passportCode === destCountry) return null; // home country
+  if (passportCode === destCountry) return { requirement: 'visa_free', duration: 'Unrestricted', notes: 'You hold a passport from this country — no visa required.' };
   const key = `${passportCode}-${destCountry}`;
   return VISA_DATA[key] || null;
 }

@@ -336,8 +336,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         else {
           setOffers(json.offers);
           setChipCurrency(json.offers[0]?.totalCurrency ?? 'USD');
-          const minPrice = Math.min(...(json.offers as DuffelOffer[]).map((o: DuffelOffer) => o.totalAmount));
-          setChipPrices(prev => ({ ...prev, [activeDate]: minPrice }));
+          const minRaw = Math.min(...(json.offers as DuffelOffer[]).map((o: DuffelOffer) => o.totalAmount));
+          setChipPrices(prev => ({ ...prev, [activeDate]: calcGross(minRaw) }));
         }
       })
       .catch(() => setSearchError('Search failed — please try again.'))
@@ -361,7 +361,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         .then(r => r.json())
         .then(json => {
           const minPrice = json.offers?.length
-            ? Math.min(...(json.offers as DuffelOffer[]).map((o: DuffelOffer) => o.totalAmount))
+            ? calcGross(Math.min(...(json.offers as DuffelOffer[]).map((o: DuffelOffer) => o.totalAmount)))
             : null;
           setChipPrices(prev => ({ ...prev, [iso]: minPrice }));
         })
@@ -554,9 +554,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       });
       const pi = await piRes.json();
       if (pi.error) {
-        const piMsg = pi.detail || pi.error;
-        if (piMsg.toLowerCase().includes('does not exist') || piMsg.toLowerCase().includes('not exist')) throw new Error('Flight unavailable — please go back and select a new option.');
-        throw new Error(piMsg);
+        throw new Error(pi.detail || pi.error);
       }
 
       const [expMonth, expYearShort] = cardForm.expiry.split('/');
@@ -571,9 +569,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       });
       if (!confirmRes.ok) {
         const err = await confirmRes.json();
-        const cardMsg = err?.errors?.[0]?.message || 'Card was declined';
-        if (cardMsg.toLowerCase().includes('does not exist') || cardMsg.toLowerCase().includes('not exist')) throw new Error('Flight unavailable — please go back and select a new option.');
-        throw new Error(cardMsg);
+        throw new Error(err?.errors?.[0]?.message || 'Card was declined');
       }
 
       const orderRes = await fetch('/api/flights/duffel-order', {
@@ -588,9 +584,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       });
       const order = await orderRes.json();
       if (order.error) {
-        const msg = order.detail || order.error;
-        if (msg.toLowerCase().includes('does not exist') || msg.toLowerCase().includes('not exist')) throw new Error('Flight unavailable — please go back and select a new option.');
-        throw new Error(msg);
+        throw new Error(order.detail || order.error);
       }
 
       setConfirmation({ reference: order.bookingReference, amount: pi.grossAmount, currency: activeOffer.totalCurrency });
