@@ -18,9 +18,11 @@ interface PassengerInput {
 }
 
 export async function POST(req: NextRequest) {
-  const { offerId, paymentIntentId, passengers, services = [] } = await req.json() as {
+  const { offerId, paymentIntentId, amount, currency, passengers, services = [] } = await req.json() as {
     offerId: string;
     paymentIntentId: string;
+    amount: string;
+    currency: string;
     passengers: PassengerInput[];
     services?: { serviceId: string; quantity: number }[];
   };
@@ -34,7 +36,7 @@ export async function POST(req: NextRequest) {
   // DUFFEL_TEST_MODE=true overrides; otherwise infer from key prefix
   const isTestMode = process.env.DUFFEL_TEST_MODE === 'true' || !key.startsWith('duffel_live_');
   const payment = isTestMode
-    ? { type: 'balance' }
+    ? { type: 'balance', amount, currency }
     : { type: 'payment_intent', id: paymentIntentId };
 
   try {

@@ -574,6 +574,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         body: JSON.stringify({
           offerId: finalOffer.id,
           paymentIntentId,
+          amount: finalOffer.totalAmount.toFixed(2),
+          currency: finalOffer.totalCurrency,
           passengers: forms.map((f, i) => ({ ...f, passengerId: finalOffer.passengerIds[i] })),
           services: selectedServices.filter(s => finalOffer.availableServices.some(a => a.id === s.serviceId)),
         }),
