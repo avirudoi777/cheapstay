@@ -306,6 +306,19 @@ const GUIDES: Record<string, LayoverGuide> = {
       { icon: '🥩', title: 'Paraguayan beef', desc: 'Paraguay has some of the best beef in South America. A proper churrasco in the airport food hall is cheap and excellent.' },
     ],
   },
+  EZE: {
+    airport: 'Ministro Pistarini International Airport (Ezeiza)',
+    city: 'Buenos Aires',
+    flag: '🇦🇷',
+    lounges: 'Aerolíneas Argentinas Cóndor Lounge (AR Business/Gold or pay ~$35); VIP Lounge EZE Terminal A (pay ~$30, walk-in, food & drinks included)',
+    tips: [
+      { icon: '🛋️', title: 'Walk-in lounge — worth every peso', desc: 'The VIP Lounge in Terminal A costs ~$30 walk-in and includes hot food, wine, and showers. Far better than the terminal food courts for a 7h layover.' },
+      { icon: '🥩', title: 'Buenos Aires steak (4h+)', desc: 'Palermo or San Telmo are 45 min by taxi (~$20). A proper Argentine asado lunch runs $15–25. One of the best meals you\'ll have at any layover destination.' },
+      { icon: '🏙️', title: 'Puerto Madero (3h+)', desc: 'The revamped waterfront is 30 min from EZE. Upscale restaurants, a walking boardwalk, and easy taxi return — the most time-efficient city visit from the airport.' },
+      { icon: '💃', title: 'San Telmo tango & market', desc: 'San Telmo market has street tango performances on weekends and great leather shops. Free to watch — an authentic Buenos Aires snapshot in under 2 hours on the ground.' },
+      { icon: '💵', title: 'Use your foreign card at the ATM', desc: 'Argentina\'s "blue rate" gives foreign cards significantly better exchange than official rate. Withdraw ARS from the EZE airport ATM for the best legal rate before heading into the city.' },
+    ],
+  },
 };
 
 // Minimum layover minutes to show airport guide

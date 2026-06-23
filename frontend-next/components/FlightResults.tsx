@@ -269,11 +269,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   // ── Date price strip
   const [activeDate, setActiveDate] = useState(depart);
   const [chipPrices, setChipPrices] = useState<Record<string, number | null>>({});
+  const [chipCurrency, setChipCurrency] = useState('USD');
+  const prefetchingDates = useRef<Set<string>>(new Set());
 
   // Reset strip when a new search comes in from the search bar
   useEffect(() => {
     setActiveDate(depart);
     setChipPrices({});
+    prefetchingDates.current.clear();
   }, [depart, fromCode, toCode]);
 
   // ── Filters
@@ -332,6 +335,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         else if (!json.offers?.length) { setSearchError('No flights found for this route and date.'); }
         else {
           setOffers(json.offers);
+          setChipCurrency(json.offers[0]?.totalCurrency ?? 'USD');
           const minPrice = Math.min(...(json.offers as DuffelOffer[]).map((o: DuffelOffer) => o.totalAmount));
           setChipPrices(prev => ({ ...prev, [activeDate]: minPrice }));
         }
@@ -340,6 +344,33 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       .finally(() => setLoading(false));
   }, [fromCode, toCode, activeDate, ret]);
 
+  // Pre-fetch surrounding date prices in the background once main results arrive
+  useEffect(() => {
+    if (!offers.length) return;
+    [-2, -1, 1, 2].forEach(offset => {
+      const d = new Date(depart + 'T12:00:00Z');
+      d.setUTCDate(d.getUTCDate() + offset);
+      const iso = d.toISOString().slice(0, 10);
+      if (prefetchingDates.current.has(iso)) return;
+      prefetchingDates.current.add(iso);
+      fetch('/api/flights/duffel-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ origin: fromCode, destination: toCode, departureDate: iso, adults, children, infants, cabinClass }),
+      })
+        .then(r => r.json())
+        .then(json => {
+          const minPrice = json.offers?.length
+            ? Math.min(...(json.offers as DuffelOffer[]).map((o: DuffelOffer) => o.totalAmount))
+            : null;
+          setChipPrices(prev => ({ ...prev, [iso]: minPrice }));
+        })
+        .catch(() => {})
+        .finally(() => prefetchingDates.current.delete(iso));
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offers]);
+
   // Clear booking state when user triggers a new search from the search bar
   useEffect(() => {
     setSelectedOffer(null);
@@ -347,34 +378,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     setBookStep('passenger');
   }, [fromCode, toCode, depart]);
 
-  // Auto-refresh expired offer silently
   const [offerRefreshing, setOfferRefreshing] = useState(false);
-  useEffect(() => {
-    if (offerSecsLeft !== 0 || !selectedOffer || offerRefreshing) return;
-    setOfferRefreshing(true);
-    const firstSeg = selectedOffer.segments[0];
-    const lastSeg = selectedOffer.segments[selectedOffer.segments.length - 1];
-    const depDate = firstSeg.depAt.slice(0, 10);
-    fetch('/api/flights/duffel-search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ origin: firstSeg.depCode, destination: lastSeg.arrCode, departureDate: depDate, adults, children, infants, cabinClass }),
-    })
-      .then(r => r.json())
-      .then(json => {
-        if (!json.offers?.length) return;
-        const fresh = (json.offers as DuffelOffer[]).find(o =>
-          o.segments[0].airlineCode === firstSeg.airlineCode &&
-          o.segments[0].depCode === firstSeg.depCode &&
-          o.segments[o.segments.length - 1].arrCode === lastSeg.arrCode
-        ) ?? json.offers[0];
-        setSelectedOffer(fresh);
-        setBookingError('');
-      })
-      .catch(() => {})
-      .finally(() => setOfferRefreshing(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [offerSecsLeft]);
 
   // Live countdown for selected offer
   useEffect(() => {
@@ -414,6 +418,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   }, [offers, filterStops, filterAirlines, filterBaggage]);
 
   const hasActiveFilters = filterStops.size > 0 || filterAirlines.size > 0 || filterBaggage;
+
+  const bestPriceDate = useMemo(() => {
+    const loaded = (Object.entries(chipPrices) as [string, number | null][]).filter(([, v]) => v != null) as [string, number][];
+    if (!loaded.length) return null;
+    return loaded.reduce((best, cur) => cur[1] < best[1] ? cur : best)[0];
+  }, [chipPrices]);
 
   function startBooking(offer: DuffelOffer) {
     window.history.pushState({ cheapstayBooking: true }, '');
@@ -495,28 +505,57 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
   async function confirmBooking() {
     if (!selectedOffer || !validateCard()) return;
-
-    // Check offer hasn't expired before hitting Duffel
-    if (selectedOffer.expiresAt && new Date(selectedOffer.expiresAt) < new Date()) {
-      setBookingError('OFFER_EXPIRED');
-      return;
-    }
-
     setBooking(true); setBookingError('');
+
+    // If offer has expired, get a fresh one before attempting payment
+    let activeOffer = selectedOffer;
+    if (selectedOffer.expiresAt && new Date(selectedOffer.expiresAt) < new Date()) {
+      setOfferRefreshing(true);
+      try {
+        const firstSeg = selectedOffer.segments[0];
+        const lastSeg = selectedOffer.segments[selectedOffer.segments.length - 1];
+        const depDate = firstSeg.depAt.slice(0, 10);
+        const refreshRes = await fetch('/api/flights/duffel-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ origin: firstSeg.depCode, destination: lastSeg.arrCode, departureDate: depDate, adults, children, infants, cabinClass }),
+        });
+        const refreshJson = await refreshRes.json();
+        if (refreshJson.offers?.length) {
+          const fresh = (refreshJson.offers as DuffelOffer[]).find((o: DuffelOffer) =>
+            o.segments[0].airlineCode === firstSeg.airlineCode &&
+            o.segments[0].depCode === firstSeg.depCode &&
+            o.segments[o.segments.length - 1].arrCode === lastSeg.arrCode
+          ) ?? refreshJson.offers[0];
+          activeOffer = fresh;
+          setSelectedOffer(fresh);
+        } else {
+          setBookingError('No flights available — please go back and pick a new option.');
+          setBooking(false); setOfferRefreshing(false);
+          return;
+        }
+      } catch {
+        setBookingError('Could not refresh offer. Please go back and search again.');
+        setBooking(false); setOfferRefreshing(false);
+        return;
+      } finally {
+        setOfferRefreshing(false);
+      }
+    }
     try {
       const extrasTotal = selectedServices.reduce((sum, ss) => {
-        const svc = selectedOffer.availableServices.find(s => s.id === ss.serviceId);
+        const svc = activeOffer.availableServices.find(s => s.id === ss.serviceId);
         return sum + (svc ? svc.totalAmount * ss.quantity : 0);
       }, 0);
       const piRes = await fetch('/api/flights/duffel-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: (selectedOffer.totalAmount + extrasTotal).toFixed(2), currency: selectedOffer.totalCurrency }),
+        body: JSON.stringify({ amount: (activeOffer.totalAmount + extrasTotal).toFixed(2), currency: activeOffer.totalCurrency }),
       });
       const pi = await piRes.json();
       if (pi.error) {
         const piMsg = pi.detail || pi.error;
-        if (piMsg.toLowerCase().includes('does not exist') || piMsg.toLowerCase().includes('not exist')) throw new Error('OFFER_EXPIRED');
+        if (piMsg.toLowerCase().includes('does not exist') || piMsg.toLowerCase().includes('not exist')) throw new Error('Flight unavailable — please go back and select a new option.');
         throw new Error(piMsg);
       }
 
@@ -533,7 +572,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       if (!confirmRes.ok) {
         const err = await confirmRes.json();
         const cardMsg = err?.errors?.[0]?.message || 'Card was declined';
-        if (cardMsg.toLowerCase().includes('does not exist') || cardMsg.toLowerCase().includes('not exist')) throw new Error('OFFER_EXPIRED');
+        if (cardMsg.toLowerCase().includes('does not exist') || cardMsg.toLowerCase().includes('not exist')) throw new Error('Flight unavailable — please go back and select a new option.');
         throw new Error(cardMsg);
       }
 
@@ -541,23 +580,20 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          offerId: selectedOffer.id,
+          offerId: activeOffer.id,
           paymentIntentId: pi.paymentIntentId,
-          passengers: forms.map((f, i) => ({ ...f, passengerId: selectedOffer.passengerIds[i] })),
+          passengers: forms.map((f, i) => ({ ...f, passengerId: activeOffer.passengerIds[i] })),
           services: selectedServices,
         }),
       });
       const order = await orderRes.json();
       if (order.error) {
         const msg = order.detail || order.error;
-        // Duffel "does not exist" = offer expired between search and checkout
-        if (msg.toLowerCase().includes('does not exist') || msg.toLowerCase().includes('not exist')) {
-          throw new Error('OFFER_EXPIRED');
-        }
+        if (msg.toLowerCase().includes('does not exist') || msg.toLowerCase().includes('not exist')) throw new Error('Flight unavailable — please go back and select a new option.');
         throw new Error(msg);
       }
 
-      setConfirmation({ reference: order.bookingReference, amount: pi.grossAmount, currency: selectedOffer.totalCurrency });
+      setConfirmation({ reference: order.bookingReference, amount: pi.grossAmount, currency: activeOffer.totalCurrency });
       setBookStep('confirmed');
     } catch (err) {
       setBookingError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
@@ -634,17 +670,17 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     return (
       <div ref={containerRef} className="mt-4 mb-12" style={{ background: '#F8FAFC', minHeight: '100vh' }}>
         {/* Countdown banner */}
-        {offerRefreshing ? (
+        {(offerRefreshing || booking) ? (
           <div className="w-full py-2.5 px-4 flex items-center justify-center gap-3 text-sm font-semibold" style={{ background: '#EFF6FF', borderBottom: '1px solid #BFDBFE' }}>
             <svg className="animate-spin h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-            <span style={{ color: '#1D4ED8' }}>Refreshing offer price…</span>
+            <span style={{ color: '#1D4ED8' }}>{offerRefreshing ? 'Getting latest price…' : 'Processing payment…'}</span>
           </div>
         ) : secsLeft !== null && (
           <div className="w-full py-2.5 px-4 flex items-center justify-center gap-3 text-sm font-semibold"
-            style={{ background: isExpired ? '#FEF2F2' : isExpiringSoon ? '#FFFBEB' : '#FFF7ED', borderBottom: `1px solid ${isExpired ? '#FECACA' : isExpiringSoon ? '#FCD34D' : '#FED7AA'}` }}>
-            <span>{isExpired ? '🔄' : '🕐'}</span>
-            <span style={{ color: isExpired ? '#B91C1C' : isExpiringSoon ? '#92400E' : '#C2410C' }}>
-              {isExpired ? 'Refreshing offer…' : `Offer locked — seats may sell out!`}
+            style={{ background: isExpired ? '#FFFBEB' : isExpiringSoon ? '#FFFBEB' : '#FFF7ED', borderBottom: `1px solid ${isExpired ? '#FCD34D' : isExpiringSoon ? '#FCD34D' : '#FED7AA'}` }}>
+            <span>🕐</span>
+            <span style={{ color: isExpired ? '#92400E' : isExpiringSoon ? '#92400E' : '#C2410C' }}>
+              {isExpired ? 'Price may have updated — click Pay to confirm latest price' : 'Offer locked — seats may sell out!'}
             </span>
             {!isExpired && <span className="font-mono font-extrabold text-base tabular-nums" style={{ color: isExpiringSoon ? '#DC2626' : '#EA580C' }}>{countdownStr}</span>}
           </div>
@@ -997,29 +1033,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     <p className="text-[10px] text-gray-400">🔒 Card processed securely by Duffel Payments. We never store your card details.</p>
                   </div>
 
-                  {offerRefreshing && (
-                    <div className="rounded-xl px-4 py-3 text-sm text-blue-700 font-semibold flex items-center gap-2" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
-                      <svg className="animate-spin h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-                      Refreshing your offer price…
+                  {bookingError && (
+                    <div className="rounded-xl px-4 py-3 text-sm text-red-700 font-semibold flex items-center gap-2" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+                      <span>⚠️</span>
+                      <span>{bookingError}</span>
                     </div>
-                  )}
-
-                  {bookingError && !offerRefreshing && (
-                    bookingError === 'OFFER_EXPIRED' ? (
-                      <div className="rounded-xl px-4 py-4 text-sm" style={{ background: '#FFFBEB', border: '1px solid #FCD34D' }}>
-                        <p className="font-bold text-amber-800 mb-1">⏰ Offer expired — price may have changed</p>
-                        <p className="text-amber-700 text-xs mb-3">We couldn&apos;t find the same flight on a fresh search. Try picking another option.</p>
-                        <button onClick={() => { setSelectedOffer(null); setBookingError(''); }}
-                          className="text-xs font-bold px-4 py-2 rounded-xl text-white"
-                          style={{ background: '#1D9E75' }}>
-                          ← Back to flights
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="rounded-xl px-4 py-3 text-sm text-red-700 font-semibold" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-                        ⚠️ {bookingError}
-                      </div>
-                    )
                   )}
 
                   <div className="flex gap-3">
@@ -1706,25 +1724,29 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           <div className="flex gap-2 overflow-x-auto pb-1 mb-5 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
             {chips.map(({ iso, label }) => {
               const isActive = iso === activeDate;
+              const isBest = iso === bestPriceDate;
               const price = chipPrices[iso];
-              const isLoading = iso === activeDate && loading;
+              const isLoading = (iso === activeDate && loading) || (iso !== activeDate && chipPrices[iso] === undefined && prefetchingDates.current.has(iso));
+              const borderColor = isActive ? '#1A73E8' : isBest ? '#16A34A' : '#E5E7EB';
+              const bgColor = isActive ? '#EEF4FE' : isBest ? '#F0FDF4' : '#FFFFFF';
+              const labelColor = isActive ? '#1A73E8' : isBest ? '#16A34A' : '#374151';
+              const priceColor = isActive ? '#1A73E8' : isBest ? '#15803D' : '#111827';
               return (
                 <button
                   key={iso}
                   onClick={() => { if (iso !== activeDate) setActiveDate(iso); }}
                   className="flex-shrink-0 rounded-xl px-3.5 py-2.5 text-left transition-all cursor-pointer"
-                  style={{
-                    border: isActive ? '2px solid #1A73E8' : '1.5px solid #E5E7EB',
-                    background: isActive ? '#EEF4FE' : '#FFFFFF',
-                    minWidth: 90,
-                  }}
+                  style={{ border: `${isActive || isBest ? '2px' : '1.5px'} solid ${borderColor}`, background: bgColor, minWidth: 90 }}
                 >
-                  <p className="text-[11px] font-bold" style={{ color: isActive ? '#1A73E8' : '#374151' }}>{label}</p>
+                  <div className="flex items-center gap-1">
+                    <p className="text-[11px] font-bold" style={{ color: labelColor }}>{label}</p>
+                    {isBest && !isActive && <span className="text-[9px] font-bold px-1 py-0.5 rounded" style={{ background: '#DCFCE7', color: '#15803D' }}>Best</span>}
+                  </div>
                   {isLoading ? (
                     <div className="h-3 w-14 bg-gray-200 rounded animate-pulse mt-1" />
                   ) : price != null ? (
-                    <p className="text-[12px] font-bold mt-0.5" style={{ color: isActive ? '#1A73E8' : '#111827' }}>
-                      {price.toLocaleString('en-US', { style: 'currency', currency: offers[0]?.totalCurrency ?? 'USD', maximumFractionDigits: 0 })}
+                    <p className="text-[12px] font-bold mt-0.5" style={{ color: priceColor }}>
+                      {price.toLocaleString('en-US', { style: 'currency', currency: chipCurrency, maximumFractionDigits: 0 })}
                     </p>
                   ) : (
                     <p className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>See prices</p>
