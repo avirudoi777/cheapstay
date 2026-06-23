@@ -572,14 +572,36 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         throw new Error(err?.errors?.[0]?.message || 'Card was declined');
       }
 
+      // Get the freshest possible offer right before creating the order
+      // (minimises the window between offer fetch and order creation)
+      let finalOffer = activeOffer;
+      try {
+        const firstSeg = activeOffer.segments[0];
+        const lastSeg = activeOffer.segments[activeOffer.segments.length - 1];
+        const freshRes = await fetch('/api/flights/duffel-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ origin: firstSeg.depCode, destination: lastSeg.arrCode, departureDate: firstSeg.depAt.slice(0, 10), adults, children, infants, cabinClass }),
+        });
+        const freshJson = await freshRes.json();
+        if (freshJson.offers?.length) {
+          finalOffer = (freshJson.offers as DuffelOffer[]).find((o: DuffelOffer) =>
+            o.segments[0].airlineCode === firstSeg.airlineCode &&
+            o.segments[0].depCode === firstSeg.depCode &&
+            o.segments[o.segments.length - 1].arrCode === lastSeg.arrCode
+          ) ?? freshJson.offers[0];
+          setSelectedOffer(finalOffer);
+        }
+      } catch { /* keep existing activeOffer if refresh fails */ }
+
       const orderRes = await fetch('/api/flights/duffel-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          offerId: activeOffer.id,
+          offerId: finalOffer.id,
           paymentIntentId: pi.paymentIntentId,
-          passengers: forms.map((f, i) => ({ ...f, passengerId: activeOffer.passengerIds[i] })),
-          services: selectedServices,
+          passengers: forms.map((f, i) => ({ ...f, passengerId: finalOffer.passengerIds[i] })),
+          services: selectedServices.filter(s => finalOffer.availableServices.some(a => a.id === s.serviceId)),
         }),
       });
       const order = await orderRes.json();
