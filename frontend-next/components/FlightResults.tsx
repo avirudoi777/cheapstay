@@ -340,6 +340,42 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       .finally(() => setLoading(false));
   }, [fromCode, toCode, activeDate, ret]);
 
+  // Clear booking state when user triggers a new search from the search bar
+  useEffect(() => {
+    setSelectedOffer(null);
+    setBookingError('');
+    setBookStep('passenger');
+  }, [fromCode, toCode, depart]);
+
+  // Auto-refresh expired offer silently
+  const [offerRefreshing, setOfferRefreshing] = useState(false);
+  useEffect(() => {
+    if (offerSecsLeft !== 0 || !selectedOffer || offerRefreshing) return;
+    setOfferRefreshing(true);
+    const firstSeg = selectedOffer.segments[0];
+    const lastSeg = selectedOffer.segments[selectedOffer.segments.length - 1];
+    const depDate = firstSeg.depAt.slice(0, 10);
+    fetch('/api/flights/duffel-search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ origin: firstSeg.depCode, destination: lastSeg.arrCode, departureDate: depDate, adults, children, infants, cabinClass }),
+    })
+      .then(r => r.json())
+      .then(json => {
+        if (!json.offers?.length) return;
+        const fresh = (json.offers as DuffelOffer[]).find(o =>
+          o.segments[0].airlineCode === firstSeg.airlineCode &&
+          o.segments[0].depCode === firstSeg.depCode &&
+          o.segments[o.segments.length - 1].arrCode === lastSeg.arrCode
+        ) ?? json.offers[0];
+        setSelectedOffer(fresh);
+        setBookingError('');
+      })
+      .catch(() => {})
+      .finally(() => setOfferRefreshing(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offerSecsLeft]);
+
   // Live countdown for selected offer
   useEffect(() => {
     if (!selectedOffer?.expiresAt) { setOfferSecsLeft(null); return; }
@@ -598,21 +634,19 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     return (
       <div ref={containerRef} className="mt-4 mb-12" style={{ background: '#F8FAFC', minHeight: '100vh' }}>
         {/* Countdown banner */}
-        {secsLeft !== null && (
+        {offerRefreshing ? (
+          <div className="w-full py-2.5 px-4 flex items-center justify-center gap-3 text-sm font-semibold" style={{ background: '#EFF6FF', borderBottom: '1px solid #BFDBFE' }}>
+            <svg className="animate-spin h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+            <span style={{ color: '#1D4ED8' }}>Refreshing offer price…</span>
+          </div>
+        ) : secsLeft !== null && (
           <div className="w-full py-2.5 px-4 flex items-center justify-center gap-3 text-sm font-semibold"
             style={{ background: isExpired ? '#FEF2F2' : isExpiringSoon ? '#FFFBEB' : '#FFF7ED', borderBottom: `1px solid ${isExpired ? '#FECACA' : isExpiringSoon ? '#FCD34D' : '#FED7AA'}` }}>
-            <span>{isExpired ? '❌' : '🕐'}</span>
+            <span>{isExpired ? '🔄' : '🕐'}</span>
             <span style={{ color: isExpired ? '#B91C1C' : isExpiringSoon ? '#92400E' : '#C2410C' }}>
-              {isExpired ? 'This offer has expired — please pick a fresh flight' : `Offer locked — seats may sell out!`}
+              {isExpired ? 'Refreshing offer…' : `Offer locked — seats may sell out!`}
             </span>
             {!isExpired && <span className="font-mono font-extrabold text-base tabular-nums" style={{ color: isExpiringSoon ? '#DC2626' : '#EA580C' }}>{countdownStr}</span>}
-            {isExpired && (
-              <button onClick={() => window.history.back()}
-                className="ml-2 text-xs font-bold px-3 py-1 rounded-lg text-white"
-                style={{ background: '#1D9E75' }}>
-                ← Back to flights
-              </button>
-            )}
           </div>
         )}
 
@@ -963,15 +997,22 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     <p className="text-[10px] text-gray-400">🔒 Card processed securely by Duffel Payments. We never store your card details.</p>
                   </div>
 
-                  {bookingError && (
+                  {offerRefreshing && (
+                    <div className="rounded-xl px-4 py-3 text-sm text-blue-700 font-semibold flex items-center gap-2" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+                      <svg className="animate-spin h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                      Refreshing your offer price…
+                    </div>
+                  )}
+
+                  {bookingError && !offerRefreshing && (
                     bookingError === 'OFFER_EXPIRED' ? (
                       <div className="rounded-xl px-4 py-4 text-sm" style={{ background: '#FFFBEB', border: '1px solid #FCD34D' }}>
-                        <p className="font-bold text-amber-800 mb-1">⏰ This offer has expired</p>
-                        <p className="text-amber-700 text-xs mb-3">Flight prices lock temporarily when you search, but airlines can expire an offer early if seats sell out. Pick a fresh flight to continue.</p>
+                        <p className="font-bold text-amber-800 mb-1">⏰ Offer expired — price may have changed</p>
+                        <p className="text-amber-700 text-xs mb-3">We couldn&apos;t find the same flight on a fresh search. Try picking another option.</p>
                         <button onClick={() => { setSelectedOffer(null); setBookingError(''); }}
                           className="text-xs font-bold px-4 py-2 rounded-xl text-white"
                           style={{ background: '#1D9E75' }}>
-                          ← Pick a fresh flight
+                          ← Back to flights
                         </button>
                       </div>
                     ) : (
