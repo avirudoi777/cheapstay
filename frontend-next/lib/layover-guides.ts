@@ -319,6 +319,54 @@ const GUIDES: Record<string, LayoverGuide> = {
       { icon: '💵', title: 'Use your foreign card at the ATM', desc: 'Argentina\'s "blue rate" gives foreign cards significantly better exchange than official rate. Withdraw ARS from the EZE airport ATM for the best legal rate before heading into the city.' },
     ],
   },
+  CLT: {
+    airport: 'Charlotte Douglas International Airport',
+    city: 'Charlotte',
+    flag: '🇺🇸',
+    lounges: 'American Airlines Admirals Club (AA status or day pass ~$79); Priority Pass lounges in Concourse E',
+    tips: [
+      { icon: '🛋️', title: 'Admirals Club — best rest spot', desc: 'CLT is an AA hub so the Admirals Club is well-stocked. Day pass ~$79 or use Priority Pass. Great for a 3h+ layover.' },
+      { icon: '🍺', title: 'NC craft beer at the terminal', desc: 'Concourse E has several local NC brewery bars (NoDa, Olde Mecklenburg). Worth trying a local pint — you\'re in one of the best craft beer states.' },
+      { icon: '🏙️', title: 'Uptown Charlotte (3h+)', desc: '15 min by taxi (~$25). The NASCAR Hall of Fame, Romare Bearden Park, and the SouthEnd brewery district are all walkable. Good option for a 4h+ layover.' },
+      { icon: '🎵', title: 'NASCAR Hall of Fame', desc: 'Only 15 min from the airport. $30 entry. Unique to Charlotte — worth a quick visit if you have 3+ hours and want something different.' },
+    ],
+  },
+  ORD: {
+    airport: "O'Hare International Airport",
+    city: 'Chicago',
+    flag: '🇺🇸',
+    lounges: 'United Club (UA status or ~$59 day pass); American Admirals Club; The Club ORD (pay ~$45, any airline)',
+    tips: [
+      { icon: '🛋️', title: 'The Club ORD — walk-in friendly', desc: 'Terminal 2 has The Club ORD with pay-per-use access (~$45). Hot food, showers, and quiet seating — worth it for a 3h+ layover.' },
+      { icon: '🏙️', title: 'Chicago Riverwalk (3h+)', desc: '45 min by Blue Line train ($5). The Riverwalk, Millennium Park, and the Bean are all walking distance from O\'Hare\'s Blue Line stop. Chicago is one of the best airport city trips in the US.' },
+      { icon: '🍕', title: 'Deep dish pizza', desc: 'Lou Malnati\'s has a location inside Terminal 3 — grab an authentic Chicago deep dish without leaving the airport.' },
+      { icon: '🎨', title: 'Art in the terminal', desc: 'ORD\'s underground tunnel between Concourses B and C has a neon light art installation. Worth the 5-minute walk just to see it.' },
+    ],
+  },
+  ATL: {
+    airport: 'Hartsfield-Jackson Atlanta International Airport',
+    city: 'Atlanta',
+    flag: '🇺🇸',
+    lounges: 'Delta Sky Club (DL status or ~$50 day pass); American Express Centurion Lounge (Amex Platinum); Club ATL (pay ~$40)',
+    tips: [
+      { icon: '🛋️', title: 'Delta Sky Club — ATL\'s best', desc: 'ATL is Delta\'s main hub and the Sky Club here is excellent. Multiple locations across Concourses B, C, D, and F. Day pass ~$50 or Priority Pass.' },
+      { icon: '🍑', title: 'Georgia peach everything', desc: 'Almost every restaurant in ATL has a Georgia peach dish or drink. Try the peach sweet tea — it\'s the most "Atlanta" thing you can do in the terminal.' },
+      { icon: '🏙️', title: 'Downtown Atlanta (3h+)', desc: '20 min by MARTA train ($2.50). The World of Coca-Cola, Georgia Aquarium, and Centennial Olympic Park are all within walking distance of Peachtree Center station.' },
+      { icon: '🚇', title: 'Skybridge — biggest airport in the world', desc: 'ATL has an underground train connecting all 7 concourses. Even if you\'re not going anywhere, riding it end-to-end gives a sense of the scale — it\'s the world\'s busiest airport.' },
+    ],
+  },
+  DEN: {
+    airport: 'Denver International Airport',
+    city: 'Denver',
+    flag: '🇺🇸',
+    lounges: 'United Club (UA status or ~$59 day pass); The Club DEN (pay ~$45, Terminal B/C); Centurion Lounge (Amex Platinum)',
+    tips: [
+      { icon: '🏔️', title: 'Rocky Mountain views from the terminal', desc: 'DEN has floor-to-ceiling mountain views from Concourse B and C. On a clear day you can see the entire Front Range — no need to leave the terminal for a postcard shot.' },
+      { icon: '🏙️', title: 'Denver downtown (3h+)', desc: '45 min by A-Line train ($10.50). The 16th Street Mall, LoDo brewery district, and Red Rocks Amphitheatre area are all accessible. Denver is very walkable and worth the trip.' },
+      { icon: '🍺', title: 'Colorado craft beer at the gate', desc: 'DEN has several Colorado craft breweries inside (New Belgium, Oskar Blues). Grab a Fat Tire or Dale\'s Pale Ale before your next flight.' },
+      { icon: '🎨', title: 'Blue Mustang & airport art', desc: 'DEN is famous for its controversial art — the giant blue horse (Blucifer) outside, plus murals inside the terminal. There\'s even a time capsule not to be opened until 2094.' },
+    ],
+  },
 };
 
 // Minimum layover minutes to show airport guide
