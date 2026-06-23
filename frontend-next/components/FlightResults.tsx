@@ -266,6 +266,16 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [searchError, setSearchError] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  // ── Date price strip
+  const [activeDate, setActiveDate] = useState(depart);
+  const [chipPrices, setChipPrices] = useState<Record<string, number | null>>({});
+
+  // Reset strip when a new search comes in from the search bar
+  useEffect(() => {
+    setActiveDate(depart);
+    setChipPrices({});
+  }, [depart, fromCode, toCode]);
+
   // ── Filters
   const [filterStops, setFilterStops] = useState<Set<number>>(new Set());
   const [filterAirlines, setFilterAirlines] = useState<Set<string>>(new Set());
@@ -314,17 +324,21 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     fetch('/api/flights/duffel-search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ origin: fromCode, destination: toCode, departureDate: depart, returnDate: ret || undefined, adults, children, infants, cabinClass }),
+      body: JSON.stringify({ origin: fromCode, destination: toCode, departureDate: activeDate, returnDate: ret || undefined, adults, children, infants, cabinClass }),
     })
       .then(r => r.json())
       .then(json => {
-        if (json.error) setSearchError(json.detail || 'No flights found for this route.');
-        else if (!json.offers?.length) setSearchError('No flights found for this route and date.');
-        else setOffers(json.offers);
+        if (json.error) { setSearchError(json.detail || 'No flights found for this route.'); }
+        else if (!json.offers?.length) { setSearchError('No flights found for this route and date.'); }
+        else {
+          setOffers(json.offers);
+          const minPrice = Math.min(...(json.offers as DuffelOffer[]).map((o: DuffelOffer) => o.totalAmount));
+          setChipPrices(prev => ({ ...prev, [activeDate]: minPrice }));
+        }
       })
       .catch(() => setSearchError('Search failed — please try again.'))
       .finally(() => setLoading(false));
-  }, [fromCode, toCode, depart, ret]);
+  }, [fromCode, toCode, activeDate, ret]);
 
   // Live countdown for selected offer
   useEffect(() => {
@@ -1637,6 +1651,49 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
       {/* Visa banner */}
       <div className="mb-5"><VisaBanner passportCodes={passportCodes} city={toName} /></div>
+
+      {/* Date price strip */}
+      {(() => {
+        const chips = [-2, -1, 0, 1, 2].map(offset => {
+          const d = new Date(depart + 'T12:00:00Z');
+          d.setUTCDate(d.getUTCDate() + offset);
+          const iso = d.toISOString().slice(0, 10);
+          const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+          return { iso, label };
+        });
+        return (
+          <div className="flex gap-2 overflow-x-auto pb-1 mb-5 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+            {chips.map(({ iso, label }) => {
+              const isActive = iso === activeDate;
+              const price = chipPrices[iso];
+              const isLoading = iso === activeDate && loading;
+              return (
+                <button
+                  key={iso}
+                  onClick={() => { if (iso !== activeDate) setActiveDate(iso); }}
+                  className="flex-shrink-0 rounded-xl px-3.5 py-2.5 text-left transition-all cursor-pointer"
+                  style={{
+                    border: isActive ? '2px solid #1A73E8' : '1.5px solid #E5E7EB',
+                    background: isActive ? '#EEF4FE' : '#FFFFFF',
+                    minWidth: 90,
+                  }}
+                >
+                  <p className="text-[11px] font-bold" style={{ color: isActive ? '#1A73E8' : '#374151' }}>{label}</p>
+                  {isLoading ? (
+                    <div className="h-3 w-14 bg-gray-200 rounded animate-pulse mt-1" />
+                  ) : price != null ? (
+                    <p className="text-[12px] font-bold mt-0.5" style={{ color: isActive ? '#1A73E8' : '#111827' }}>
+                      {price.toLocaleString('en-US', { style: 'currency', currency: offers[0]?.totalCurrency ?? 'USD', maximumFractionDigits: 0 })}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>See prices</p>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       <div className="flex gap-5 items-start">
         {/* ── Filter sidebar (desktop only) */}
