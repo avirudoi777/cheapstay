@@ -1548,6 +1548,16 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             {seg.depCode} {fmtTime(seg.depAt)} → {seg.arrCode} {fmtTime(seg.arrAt)}
                           </p>
                           <p className="text-[10px] text-gray-400">{seg.airline} · {seg.flightNumber}{seg.aircraft ? ` · ${seg.aircraft}` : ''}</p>
+                          {seg.amenities && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {seg.amenities.food && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: seg.amenities.food.cost === 'free' ? '#ECFDF5' : '#F1F5F9', color: seg.amenities.food.cost === 'free' ? '#15803D' : '#64748B' }}>🍽️ {seg.amenities.food.cost === 'free' ? 'Meal free' : 'Meal paid'}</span>}
+                              {seg.amenities.drink && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: seg.amenities.drink.cost === 'free' ? '#ECFDF5' : '#F1F5F9', color: seg.amenities.drink.cost === 'free' ? '#15803D' : '#64748B' }}>🍸 {seg.amenities.drink.cost === 'free' ? 'Drinks free' : 'Drinks paid'}</span>}
+                              {seg.amenities.entertainment && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: seg.amenities.entertainment.cost === 'free' ? '#ECFDF5' : '#F1F5F9', color: seg.amenities.entertainment.cost === 'free' ? '#15803D' : '#64748B' }}>🎬 {seg.amenities.entertainment.cost === 'free' ? 'Entertainment free' : 'Entertainment paid'}</span>}
+                              {seg.amenities.wifi && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: seg.amenities.wifi.cost === 'free' ? '#ECFDF5' : '#F1F5F9', color: seg.amenities.wifi.cost === 'free' ? '#15803D' : '#64748B' }}>📶 {seg.amenities.wifi.cost === 'free' ? 'WiFi free' : 'WiFi paid'}</span>}
+                              {seg.amenities.power && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>🔌 Power</span>}
+                              {seg.amenities.seat?.type && seg.amenities.seat.type !== 'standard' && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>💺 {seg.amenities.seat.type.replace(/_/g, ' ')}{seg.amenities.seat.pitch ? ` ${seg.amenities.seat.pitch}"` : ''}</span>}
+                            </div>
+                          )}
                         </div>
                       </div>
                       {seg.layoverAfter && (
