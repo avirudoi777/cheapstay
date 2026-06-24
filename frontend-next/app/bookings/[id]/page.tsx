@@ -627,6 +627,24 @@ export default function ManageBookingPage() {
   );
 }
 
+// ── App logo with fallback ────────────────────────────────────────────────────
+
+function AppLogo({ name, logoUrl, borderColor }: { name: string; logoUrl: string; borderColor: string }) {
+  const [err, setErr] = useState(false);
+  return (
+    <div className="w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden flex-shrink-0"
+      style={{ background: err || !logoUrl ? borderColor : '#fff' }}>
+      {logoUrl && !err ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logoUrl} alt={name} onError={() => setErr(true)}
+          className="w-10 h-10 object-contain" />
+      ) : (
+        <span className="text-2xl font-black text-white">{name[0]}</span>
+      )}
+    </div>
+  );
+}
+
 // ── Destination tips section ──────────────────────────────────────────────────
 
 function DestinationTipsSection({
@@ -832,20 +850,17 @@ function DestinationTipsSection({
               return (
                 <a key={appName} href={meta.downloadUrl} target="_blank" rel="noopener noreferrer"
                   className="flex-shrink-0 flex flex-col rounded-2xl p-4 active:scale-95 transition-transform"
-                  style={{ width: 164, minHeight: 208, background: meta.bgColor, border: `1.5px solid ${meta.borderColor}` }}>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl font-black mb-3 flex-shrink-0"
-                    style={{ background: meta.borderColor }}>
-                    <span className="text-white text-xl">{appName[0]}</span>
-                  </div>
-                  <p className="text-[15px] font-extrabold text-white leading-tight">{appName}</p>
-                  <p className="text-[11px] font-semibold mt-0.5 leading-tight" style={{ color: meta.borderColor }}>
+                  style={{ width: 200, minHeight: 230, background: meta.bgColor, border: `1.5px solid ${meta.borderColor}` }}>
+                  <AppLogo name={appName} logoUrl={meta.logoUrl} borderColor={meta.borderColor} />
+                  <p className="text-base font-extrabold text-white leading-tight mt-3">{appName}</p>
+                  <p className="text-[11px] font-semibold mt-0.5 leading-snug" style={{ color: meta.accentColor }}>
                     {meta.tagline}
                   </p>
-                  <p className="text-[11px] mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.62)' }}>
+                  <p className="text-xs mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.65)' }}>
                     {meta.description}
                   </p>
-                  <div className="mt-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.13)' }}>
-                    <p className="text-[11px] font-bold text-white text-center">Download →</p>
+                  <div className="mt-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.12)' }}>
+                    <p className="text-xs font-bold text-white text-center">Download →</p>
                   </div>
                 </a>
               );
@@ -855,19 +870,19 @@ function DestinationTipsSection({
             {limoServices.map(limo => (
               <a key={limo.name} href={limo.url} target="_blank" rel="noopener noreferrer"
                 className="flex-shrink-0 flex flex-col rounded-2xl p-4 active:scale-95 transition-transform"
-                style={{ width: 164, minHeight: 208, background: '#0A0A0A', border: '1.5px solid rgba(234,179,8,0.4)' }}>
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3 flex-shrink-0"
+                style={{ width: 200, minHeight: 230, background: '#0A0A0A', border: '1.5px solid rgba(234,179,8,0.45)' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0"
                   style={{ background: 'rgba(234,179,8,0.15)' }}>
                   🚘
                 </div>
-                <p className="text-[15px] font-extrabold text-white leading-tight">{limo.name}</p>
+                <p className="text-base font-extrabold text-white leading-tight mt-3">{limo.name}</p>
                 <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#EAB308' }}>{limo.tagline}</p>
-                <p className="text-[11px] mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.58)' }}>
+                <p className="text-xs mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.60)' }}>
                   {limo.description}
                 </p>
-                <p className="text-[11px] font-bold mt-1" style={{ color: '#86EFAC' }}>{limo.estimatedCost}</p>
-                <div className="mt-3 py-1.5 rounded-xl" style={{ background: 'rgba(234,179,8,0.14)' }}>
-                  <p className="text-[11px] font-bold text-center" style={{ color: '#EAB308' }}>Book →</p>
+                <p className="text-xs font-bold mt-1" style={{ color: '#86EFAC' }}>{limo.estimatedCost}</p>
+                <div className="mt-3 py-2 rounded-xl" style={{ background: 'rgba(234,179,8,0.14)' }}>
+                  <p className="text-xs font-bold text-center" style={{ color: '#EAB308' }}>Book →</p>
                 </div>
               </a>
             ))}
@@ -875,16 +890,16 @@ function DestinationTipsSection({
             {/* Transit card */}
             {arrival?.transit && (
               <div className="flex-shrink-0 flex flex-col rounded-2xl p-4"
-                style={{ width: 164, minHeight: 208, background: '#0F172A', border: '1.5px solid rgba(99,102,241,0.4)' }}>
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3 flex-shrink-0"
+                style={{ width: 200, minHeight: 230, background: '#0F172A', border: '1.5px solid rgba(99,102,241,0.45)' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0"
                   style={{ background: 'rgba(99,102,241,0.15)' }}>
                   🚇
                 </div>
-                <p className="text-[15px] font-extrabold text-white leading-tight">{arrival.transit.name}</p>
-                <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#A5B4FC' }}>
+                <p className="text-base font-extrabold text-white leading-tight mt-3">{arrival.transit.name}</p>
+                <p className="text-xs font-semibold mt-0.5" style={{ color: '#A5B4FC' }}>
                   {arrival.transit.cost} · {arrival.transit.time}
                 </p>
-                <p className="text-[11px] mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.58)' }}>
+                <p className="text-xs mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.60)' }}>
                   {arrival.transit.note ?? ''}
                 </p>
               </div>
@@ -893,14 +908,14 @@ function DestinationTipsSection({
             {/* SIM card */}
             {arrival?.sim && (
               <div className="flex-shrink-0 flex flex-col rounded-2xl p-4"
-                style={{ width: 164, minHeight: 208, background: '#0F172A', border: '1.5px solid rgba(16,185,129,0.4)' }}>
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3 flex-shrink-0"
+                style={{ width: 200, minHeight: 230, background: '#0F172A', border: '1.5px solid rgba(16,185,129,0.45)' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0"
                   style={{ background: 'rgba(16,185,129,0.15)' }}>
                   📱
                 </div>
-                <p className="text-[15px] font-extrabold text-white leading-tight">Local SIM</p>
-                <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#34D399' }}>Buy at the airport</p>
-                <p className="text-[11px] mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.58)' }}>
+                <p className="text-base font-extrabold text-white leading-tight mt-3">Local SIM</p>
+                <p className="text-xs font-semibold mt-0.5" style={{ color: '#34D399' }}>Buy at the airport</p>
+                <p className="text-xs mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.60)' }}>
                   {arrival.sim}
                 </p>
               </div>
@@ -910,18 +925,15 @@ function DestinationTipsSection({
             {showVpnPromo && (
               <a href="https://go.nordvpn.net/aff_c?offer_id=15&aff_id=151019&url_id=902" target="_blank" rel="noopener noreferrer"
                 className="flex-shrink-0 flex flex-col rounded-2xl p-4 active:scale-95 transition-transform"
-                style={{ width: 164, minHeight: 208, background: '#1E0546', border: '1.5px solid rgba(139,92,246,0.55)' }}>
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3 flex-shrink-0"
-                  style={{ background: 'rgba(139,92,246,0.22)' }}>
-                  🔒
-                </div>
-                <p className="text-[15px] font-extrabold text-white leading-tight">NordVPN</p>
+                style={{ width: 200, minHeight: 230, background: '#1E0546', border: '1.5px solid rgba(139,92,246,0.55)' }}>
+                <AppLogo name="NordVPN" logoUrl="https://logo.clearbit.com/nordvpn.com" borderColor="rgba(139,92,246,0.45)" />
+                <p className="text-base font-extrabold text-white leading-tight mt-3">NordVPN</p>
                 <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#C4B5FD' }}>Required for China</p>
-                <p className="text-[11px] mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.62)' }}>
+                <p className="text-xs mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.65)' }}>
                   Google, WhatsApp &amp; Instagram are blocked. Install before landing — can&apos;t download inside China.
                 </p>
-                <div className="mt-3 py-1.5 rounded-xl" style={{ background: 'rgba(139,92,246,0.28)' }}>
-                  <p className="text-[11px] font-bold text-center" style={{ color: '#E9D5FF' }}>70% off + 3mo free →</p>
+                <div className="mt-3 py-2 rounded-xl" style={{ background: 'rgba(139,92,246,0.28)' }}>
+                  <p className="text-xs font-bold text-center" style={{ color: '#E9D5FF' }}>70% off + 3mo free →</p>
                 </div>
               </a>
             )}
