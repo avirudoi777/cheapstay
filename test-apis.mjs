@@ -558,6 +558,52 @@ if (runUnit) {
     assert('Supabase failure does not break booking (best-effort)', src.includes('best-effort'));
   });
 
+  // ── transport-tips: APP_META ──────────────────────────────────────────────
+  await section('transport-tips — APP_META coverage', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/lib/transport-tips.ts'), 'utf8');
+    for (const app of ['Uber', 'Lyft', 'Bolt', 'Grab', 'DiDi', 'Gojek', 'Careem']) {
+      assert(`APP_META has ${app}`, src.includes(`'${app}':`));
+    }
+    assert('getAppMeta exported', src.includes('export function getAppMeta'));
+    assert('getVisaNotice exported', src.includes('export function getVisaNotice'));
+    assert('LIMO_SERVICES exported', src.includes('export const LIMO_SERVICES'));
+  });
+
+  // ── transport-tips: visa notices ─────────────────────────────────────────
+  await section('transport-tips — visa notices', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/lib/transport-tips.ts'), 'utf8');
+    assert('USA ESTA notice defined', src.includes('USA_ESTA'));
+    assert('Australia ETA notice defined', src.includes('AUSTRALIA_ETA'));
+    assert('Canada eTA notice defined', src.includes('CANADA_ETA'));
+    assert('India eVisa notice defined', src.includes('INDIA_EVISA'));
+    assert('US airports set includes JFK', src.includes("'JFK'"));
+    assert('US airports set includes LAX', src.includes("'LAX'"));
+    assert('China visa notice defined', src.includes('CHINA_VISA'));
+  });
+
+  // ── transport-tips: limo services ────────────────────────────────────────
+  await section('transport-tips — limo services', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/lib/transport-tips.ts'), 'utf8');
+    assert('Blacklane listed for JFK', src.includes('JFK:') && src.includes('Blacklane'));
+    assert('Blacklane listed for LHR', src.includes('LHR:'));
+    assert('DXB limo services defined', src.includes('DXB:'));
+    assert('limo URLs are present', src.includes('blacklane.com'));
+  });
+
+  // ── Booking page: countdown and visa notice ───────────────────────────────
+  await section('Booking page — countdown + visa notice + branded app cards', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    assert('countdown renders departure days', src.includes('Departing in'));
+    assert('countdown shows urgent state for <2 days', src.includes('isUrgent'));
+    assert('visa notice rendered when present', src.includes('visaNotice.title'));
+    assert('Apply now button links to visa applyUrl', src.includes('visaNotice.applyUrl'));
+    assert('individual app cards rendered per app', src.includes('rideApps.map(appName =>'));
+    assert('getAppMeta used for brand colors', src.includes('getAppMeta(appName)'));
+    assert('limo services section present', src.includes('VIP'));
+    assert('limo card links to limo.url', src.includes('limo.url'));
+    assert('transport-tips imported', src.includes("from '@/lib/transport-tips'"));
+  });
+
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

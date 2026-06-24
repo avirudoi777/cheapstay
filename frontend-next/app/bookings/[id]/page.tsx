@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getLayoverGuide } from '@/lib/layover-guides';
 import { getArrivalTips } from '@/lib/arrival-tips';
+import { getAppMeta, getVisaNotice, LIMO_SERVICES } from '@/lib/transport-tips';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -262,6 +263,29 @@ export default function ManageBookingPage() {
               <p className="text-sm text-gray-400 mt-0.5">
                 {booking.airline} · {fmtDate(booking.departure_at)}
               </p>
+              {!isCancelled && !isPast && (() => {
+                const diff = new Date(booking.departure_at).getTime() - Date.now();
+                const totalH = Math.floor(diff / 3_600_000);
+                const days = Math.floor(totalH / 24);
+                const hours = totalH % 24;
+                const mins = Math.floor((diff % 3_600_000) / 60_000);
+                const isToday = days === 0;
+                const isTomorrow = days === 1;
+                const isUrgent = days < 2;
+                const label = isToday
+                  ? `Today · departing in ${hours}h ${mins}m`
+                  : isTomorrow
+                  ? `Tomorrow · departing in ${hours}h ${mins}m`
+                  : `Departing in ${days} day${days !== 1 ? 's' : ''}, ${hours}h`;
+                return (
+                  <span className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold px-3 py-1 rounded-full"
+                    style={isUrgent
+                      ? { background: '#FEF3C7', color: '#B45309' }
+                      : { background: '#ECFDF5', color: '#15803D' }}>
+                    {isUrgent ? '⏱' : '✈'} {label}
+                  </span>
+                );
+              })()}
             </div>
             <div className="text-right flex-shrink-0">
               <p className="text-2xl font-extrabold" style={{ color: '#DC2626' }}>
@@ -640,16 +664,11 @@ function DestinationTipsSection({
 
   if (!guide && !arrival && !originGuide && layovers.length === 0) return null;
 
-  // Detect ride-share apps for destination to show promo
   const rideApps = arrival?.rideShare.apps ?? [];
-  const showUberPromo = rideApps.includes('Uber');
-  const showLyftPromo = rideApps.includes('Lyft');
-  const showBoltPromo = rideApps.includes('Bolt');
-  const showGrabPromo = rideApps.includes('Grab');
-
-  // China-specific: show NordVPN promo for CN destinations
-  const CHINA_AIRPORTS = new Set(['PEK', 'PVG', 'SHA', 'CAN', 'SZX', 'CTU', 'XIY', 'HGH', 'WUH', 'CKG', 'KMG', 'MFM', 'HKG']);
+  const CHINA_AIRPORTS = new Set(['PEK', 'PVG', 'SHA', 'CAN', 'SZX', 'CTU', 'XIY', 'HGH', 'WUH', 'CKG', 'KMG', 'MFM']);
   const showVpnPromo = CHINA_AIRPORTS.has(destinationCode.toUpperCase());
+  const limoServices = LIMO_SERVICES[destinationCode.toUpperCase()] ?? [];
+  const visaNotice = getVisaNotice(destinationCode);
 
   return (
     <>
@@ -760,6 +779,31 @@ function DestinationTipsSection({
         );
       })}
 
+      {/* ── Visa / Entry Notice ──────────────────────── */}
+      {visaNotice && (
+        <div className="rounded-2xl overflow-hidden shadow-sm"
+          style={{ background: visaNotice.urgency === 'required' ? 'linear-gradient(135deg, #7F1D1D 0%, #991B1B 100%)' : 'linear-gradient(135deg, #78350F 0%, #92400E 100%)' }}>
+          <div className="px-5 py-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl flex-shrink-0 mt-0.5">⚠️</span>
+              <div className="flex-1">
+                <p className="text-base font-extrabold text-white">{visaNotice.title}</p>
+                <p className="text-xs font-bold mt-1" style={{ color: '#FCA5A5' }}>{visaNotice.requirement}</p>
+                <p className="text-xs mt-2 leading-relaxed" style={{ color: '#FEE2E2' }}>{visaNotice.description}</p>
+                {visaNotice.deadline && (
+                  <p className="text-xs mt-2 font-semibold" style={{ color: '#FCD34D' }}>⏱ {visaNotice.deadline}</p>
+                )}
+                <a href={visaNotice.applyUrl} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-xl text-xs font-bold transition hover:opacity-90"
+                  style={{ background: '#DC2626', color: '#fff' }}>
+                  Apply now →
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Destination tips ─────────────────────────── */}
       {(guide || arrival) && (
         <div className="rounded-2xl overflow-hidden shadow-sm"
@@ -780,142 +824,166 @@ function DestinationTipsSection({
             )}
           </div>
 
-          <div className="px-6 py-5 space-y-5">
-            {/* Getting there */}
+          <div className="px-6 py-5 space-y-6">
+            {/* ── Getting from airport ───────────────────── */}
             {arrival && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#6EE7B7' }}>
+                <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#6EE7B7' }}>
                   Getting from {destinationCode}
                 </p>
+                <p className="text-xs mb-4" style={{ color: '#A7F3D0' }}>
+                  {arrival.rideShare.pickupNote} · <span className="font-semibold text-white">{arrival.rideShare.estimatedCost}</span>
+                </p>
+
+                {/* ── Individual ride-share app cards ─────── */}
                 <div className="space-y-3">
-                  {/* Ride share */}
-                  <div className="rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.25)' }}>
-                    <div className="flex items-start gap-3">
-                      <span className="text-xl mt-0.5">🚗</span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="text-sm font-bold text-white">
-                            {arrival.rideShare.apps.join(' / ')}
-                          </p>
-                          {arrival.rideShare.apps.map(app => (
-                            <span key={app} className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                              style={{ background: arrival.rideShare.apps[0] === 'Grab' ? '#00B14F' : '#1D9E75', color: '#fff' }}>
-                              {app}
-                            </span>
-                          ))}
+                  {rideApps.map(appName => {
+                    const meta = getAppMeta(appName);
+                    const initial = appName[0].toUpperCase();
+                    return (
+                      <a key={appName} href={meta.downloadUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-start gap-4 rounded-2xl p-4 transition hover:opacity-90"
+                        style={{ background: meta.bgColor, border: `1.5px solid ${meta.borderColor}` }}>
+                        {/* App icon */}
+                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-black flex-shrink-0"
+                          style={{ background: meta.borderColor, color: '#fff', backdropFilter: 'blur(8px)' }}>
+                          {initial}
                         </div>
-                        <p className="text-xs" style={{ color: '#A7F3D0' }}>{arrival.rideShare.pickupNote}</p>
-                        <p className="text-xs font-semibold mt-1 text-white">{arrival.rideShare.estimatedCost}</p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-base font-extrabold text-white">{appName}</p>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                              style={{ background: meta.borderColor, color: '#fff' }}>
+                              {meta.tagline}
+                            </span>
+                          </div>
+                          <p className="text-xs mt-1.5 leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                            {meta.description}
+                          </p>
+                          <span className="inline-flex items-center gap-1 mt-2.5 text-xs font-bold px-3 py-1.5 rounded-xl"
+                            style={{ background: 'rgba(255,255,255,0.12)', color: '#fff' }}>
+                            Download app →
+                          </span>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+
+                {/* ── Limo / VIP section ──────────────────── */}
+                {limoServices.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-xs font-bold uppercase tracking-widest mb-3 mt-2" style={{ color: '#FCD34D' }}>
+                      VIP &amp; Chauffeur Transfers
+                    </p>
+                    <div className="space-y-3">
+                      {limoServices.map(limo => (
+                        <a key={limo.name} href={limo.url} target="_blank" rel="noopener noreferrer"
+                          className="flex items-start gap-4 rounded-2xl p-4 transition hover:opacity-90"
+                          style={{ background: 'rgba(0,0,0,0.4)', border: '1.5px solid rgba(253,211,77,0.25)' }}>
+                          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0"
+                            style={{ background: 'rgba(253,211,77,0.12)', border: '1px solid rgba(253,211,77,0.25)' }}>
+                            🚘
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-base font-extrabold text-white">{limo.name}</p>
+                            <p className="text-xs font-semibold mt-0.5" style={{ color: '#FCD34D' }}>{limo.tagline}</p>
+                            <p className="text-xs mt-1.5 leading-relaxed" style={{ color: 'rgba(255,255,255,0.70)' }}>
+                              {limo.description}
+                            </p>
+                            <p className="text-xs font-bold mt-2" style={{ color: '#86EFAC' }}>{limo.estimatedCost}</p>
+                            <span className="inline-flex items-center gap-1 mt-2 text-xs font-bold px-3 py-1.5 rounded-xl"
+                              style={{ background: 'rgba(253,211,77,0.15)', color: '#FCD34D' }}>
+                              Book now →
+                            </span>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Transit card ────────────────────────── */}
+                {arrival.transit && (
+                  <div className="mt-3 rounded-2xl p-4" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(167,243,208,0.15)' }}>
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'rgba(110,231,183,0.12)' }}>
+                        <span className="text-lg">🚇</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-white">{arrival.transit.name}</p>
+                        <p className="text-xs font-semibold mt-0.5" style={{ color: '#6EE7B7' }}>
+                          {arrival.transit.cost} · {arrival.transit.time}
+                        </p>
+                        {arrival.transit.note && (
+                          <p className="text-xs mt-1 leading-relaxed" style={{ color: '#A7F3D0' }}>{arrival.transit.note}</p>
+                        )}
                       </div>
                     </div>
                   </div>
+                )}
 
-                  {/* Transit */}
-                  {arrival.transit && (
-                    <div className="rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.25)' }}>
-                      <div className="flex items-start gap-3">
-                        <span className="text-xl mt-0.5">🚇</span>
-                        <div className="flex-1">
-                          <p className="text-sm font-bold text-white">{arrival.transit.name}</p>
-                          <p className="text-xs font-semibold mt-0.5" style={{ color: '#6EE7B7' }}>
-                            {arrival.transit.cost} · {arrival.transit.time}
-                          </p>
-                          {arrival.transit.note && (
-                            <p className="text-xs mt-1" style={{ color: '#A7F3D0' }}>{arrival.transit.note}</p>
-                          )}
-                        </div>
+                {/* ── Watch out ───────────────────────────── */}
+                {arrival.watchOut && (
+                  <div className="mt-3 flex gap-3 items-start rounded-xl px-4 py-3"
+                    style={{ background: 'rgba(253,211,77,0.08)', border: '1px solid rgba(253,211,77,0.2)' }}>
+                    <span className="text-base flex-shrink-0 mt-0.5">⚠️</span>
+                    <p className="text-xs leading-relaxed" style={{ color: '#FCD34D' }}>{arrival.watchOut}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Travel Essentials ─────────────────────── */}
+            {(arrival?.sim || showVpnPromo) && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#6EE7B7' }}>
+                  Travel Essentials
+                </p>
+                <div className="space-y-3">
+                  {/* SIM card tip */}
+                  {arrival?.sim && (
+                    <div className="flex items-start gap-3 rounded-2xl p-4"
+                      style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(167,243,208,0.15)' }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'rgba(110,231,183,0.12)' }}>
+                        <span className="text-lg">📱</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white">SIM Card</p>
+                        <p className="text-xs mt-1 leading-relaxed" style={{ color: '#A7F3D0' }}>{arrival.sim}</p>
                       </div>
                     </div>
                   )}
 
-                  {/* Watch out */}
-                  {arrival.watchOut && (
-                    <div className="flex gap-2 items-start px-1">
-                      <span className="text-sm mt-0.5">⚠️</span>
-                      <p className="text-xs" style={{ color: '#FCD34D' }}>{arrival.watchOut}</p>
-                    </div>
-                  )}
-
-                  {/* SIM tip */}
-                  {arrival.sim && (
-                    <div className="flex gap-2 items-start px-1">
-                      <span className="text-sm mt-0.5">📱</span>
-                      <p className="text-xs" style={{ color: '#A7F3D0' }}>{arrival.sim}</p>
-                    </div>
-                  )}
-
-                  {/* NordVPN promo for China destinations */}
+                  {/* NordVPN promo — China only */}
                   {showVpnPromo && (
                     <a href="https://go.nordvpn.net/aff_c?offer_id=15&aff_id=151019&url_id=902" target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-3 rounded-xl px-4 py-3.5 transition hover:opacity-90"
+                      className="flex items-start gap-3 rounded-2xl px-4 py-4 transition hover:opacity-90"
                       style={{ background: 'rgba(74,0,224,0.22)', border: '1.5px solid rgba(139,92,246,0.5)' }}>
-                      <span className="text-xl">🔒</span>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'rgba(139,92,246,0.2)' }}>
+                        <span className="text-lg">🔒</span>
+                      </div>
                       <div className="flex-1">
-                        <p className="text-sm font-extrabold text-white">Get NordVPN before you land — required for China</p>
-                        <p className="text-xs mt-0.5" style={{ color: '#C4B5FD' }}>Google, WhatsApp, Instagram &amp; most Western apps are blocked in China. You <strong style={{ color: '#fff' }}>cannot download a VPN once inside China</strong> — install it now.</p>
-                        <p className="text-xs mt-1.5 font-bold" style={{ color: '#A78BFA' }}>Get NordVPN →  usually 70% off + 3 months free</p>
+                        <p className="text-base font-extrabold text-white">Get NordVPN — required for China</p>
+                        <p className="text-xs mt-1 leading-relaxed" style={{ color: '#C4B5FD' }}>
+                          Google, WhatsApp, Instagram &amp; most Western apps are blocked in China.{' '}
+                          <strong style={{ color: '#fff' }}>You cannot download a VPN once inside China</strong> — install it now.
+                        </p>
+                        <span className="inline-flex items-center gap-1 mt-2.5 text-xs font-bold px-3 py-1.5 rounded-xl"
+                          style={{ background: 'rgba(139,92,246,0.35)', color: '#E9D5FF' }}>
+                          Get NordVPN — usually 70% off + 3 months free →
+                        </span>
                       </div>
                     </a>
-                  )}
-
-                  {/* Ride-share promos */}
-                  {(showUberPromo || showLyftPromo || showBoltPromo || showGrabPromo) && (
-                    <div className="space-y-2 pt-1">
-                      {showGrabPromo && (
-                        <a href="https://www.grab.com/sg/download/" target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-3 rounded-xl px-4 py-3 transition hover:opacity-90"
-                          style={{ background: 'rgba(0,177,79,0.14)', border: '1px solid rgba(0,177,79,0.3)' }}>
-                          <span className="text-lg">🟢</span>
-                          <div className="flex-1">
-                            <p className="text-xs font-bold text-white">Download Grab before you land</p>
-                            <p className="text-[11px]" style={{ color: '#94A3B8' }}>The dominant ride, food & delivery app across SE Asia — set up your account now to avoid airport taxi queues.</p>
-                          </div>
-                          <span className="text-xs" style={{ color: '#94A3B8' }}>→</span>
-                        </a>
-                      )}
-                      {showUberPromo && (
-                        <a href="https://r.uber.com/first-trip" target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-3 rounded-xl px-4 py-3 transition hover:opacity-90"
-                          style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                          <span className="text-lg font-black text-white" style={{ fontFamily: 'sans-serif' }}>U</span>
-                          <div className="flex-1">
-                            <p className="text-xs font-bold text-white">New to Uber? Get $10 off your first ride</p>
-                            <p className="text-[11px]" style={{ color: '#94A3B8' }}>Tap to open Uber · use promo code at sign-up</p>
-                          </div>
-                          <span className="text-xs" style={{ color: '#94A3B8' }}>→</span>
-                        </a>
-                      )}
-                      {showLyftPromo && (
-                        <a href="https://www.lyft.com/invite/cheapstay" target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-3 rounded-xl px-4 py-3 transition hover:opacity-90"
-                          style={{ background: 'rgba(234,0,140,0.12)', border: '1px solid rgba(234,0,140,0.2)' }}>
-                          <span className="text-lg">🩷</span>
-                          <div className="flex-1">
-                            <p className="text-xs font-bold text-white">New to Lyft? 50% off your first 2 rides</p>
-                            <p className="text-[11px]" style={{ color: '#94A3B8' }}>US only · tap to open Lyft</p>
-                          </div>
-                          <span className="text-xs" style={{ color: '#94A3B8' }}>→</span>
-                        </a>
-                      )}
-                      {showBoltPromo && (
-                        <a href="https://bolt.eu/en/download/" target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-3 rounded-xl px-4 py-3 transition hover:opacity-90"
-                          style={{ background: 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.2)' }}>
-                          <span className="text-lg">⚡</span>
-                          <div className="flex-1">
-                            <p className="text-xs font-bold text-white">Bolt — often cheaper than Uber in Europe</p>
-                            <p className="text-[11px]" style={{ color: '#94A3B8' }}>Download Bolt before landing — active in 45+ European countries, typically 20–30% cheaper.</p>
-                          </div>
-                          <span className="text-xs" style={{ color: '#94A3B8' }}>→</span>
-                        </a>
-                      )}
-                    </div>
                   )}
                 </div>
               </div>
             )}
 
-            {/* City tips from layover guide */}
+            {/* ── City tips from layover guide ─────────── */}
             {guide && guide.tips.length > 0 && (
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#6EE7B7' }}>
