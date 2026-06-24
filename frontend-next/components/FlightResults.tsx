@@ -667,7 +667,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       if (idx === 0 && (key === 'email' || key === 'phoneNumber')) return { ...f, [key]: val };
       return f;
     }));
-    setFormErrors(es => es.map((e, i) => i === idx ? { ...e, [key]: '' } : e));
+    // Remove the key entirely (not just set to '') so hasAnyError check works correctly
+    setFormErrors(es => es.map((e, i) => {
+      if (i !== idx) return e;
+      const { [key]: _removed, ...rest } = e;
+      return rest as Partial<PassengerForm>;
+    }));
   }
   function updateCard(key: keyof CardForm, val: string) {
     setCardForm(f => ({ ...f, [key]: val }));
@@ -677,15 +682,34 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   function selectPassportForPax(idx: number, p: SavedPassport) {
     setSelectedPassportIds(ids => ids.map((id, i) => i === idx ? p.id : id));
     setForms(fs => fs.map((f, i) => i === idx ? { ...f, passportNumber: p.passportNumber, passportExpiry: p.passportExpiry, passportCountry: p.country } : f));
-    setFormErrors(es => es.map((e, i) => i === idx ? { ...e, passportNumber: '', passportExpiry: '', passportCountry: '' } : e));
+    setFormErrors(es => es.map((e, i) => { if (i !== idx) return e; const { passportNumber: _a, passportExpiry: _b, passportCountry: _c, ...rest } = e; return rest as Partial<PassengerForm>; }));
   }
 
   function validateForms(): boolean {
+    const depDate = selectedOffer?.segments[0]?.depAt ? new Date(selectedOffer.segments[0].depAt) : null;
+
     const allErrs = forms.map((form, idx) => {
       const errs: Partial<PassengerForm> = {};
       if (!form.givenName.trim())       errs.givenName = 'Required';
       if (!form.familyName.trim())      errs.familyName = 'Required';
-      if (!form.bornOn)                 errs.bornOn = 'Required';
+
+      if (!form.bornOn) {
+        errs.bornOn = 'Required';
+      } else if (depDate) {
+        const born = new Date(form.bornOn);
+        const ageYears = (depDate.getTime() - born.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+        const paxType = selectedOffer?.passengers?.[idx]?.type ?? 'adult';
+        if (ageYears < 0) {
+          errs.bornOn = 'Date of birth cannot be after the travel date';
+        } else if (paxType === 'infant_without_seat' && ageYears >= 2) {
+          errs.bornOn = 'Infant must be under 2 years old at time of travel';
+        } else if (paxType === 'child' && (ageYears < 2 || ageYears >= 12)) {
+          errs.bornOn = 'Child must be 2–11 years old at time of travel';
+        } else if (paxType === 'adult' && ageYears < 12) {
+          errs.bornOn = 'Adult passenger must be 12 or older at time of travel';
+        }
+      }
+
       if (!form.passportNumber.trim())  errs.passportNumber = 'Required';
       if (!form.passportExpiry)         errs.passportExpiry = 'Required';
       if (!form.passportCountry.trim()) errs.passportCountry = 'Required';
@@ -1043,7 +1067,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         </div>
                         <div className="col-span-3">
                           <Field label="Date of birth *">
-                            <input type="date" value={paxForm.bornOn} onChange={e => updatePassenger(idx, 'bornOn', e.target.value)} className={inputCls} />
+                            <input type="date" value={paxForm.bornOn} onChange={e => updatePassenger(idx, 'bornOn', e.target.value)}
+                              className={inputCls + (paxErrors.bornOn ? ' border-red-400' : '')} />
                             {paxErrors.bornOn && <p className="text-xs text-red-500 mt-0.5">{paxErrors.bornOn}</p>}
                           </Field>
                         </div>
@@ -1080,7 +1105,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         </Field>
                       </div>
 
-                      {idx === 0 && (
+                      {idx === 0 ? (
                         <>
                           <Field label="Email *">
                             <input type="email" value={paxForm.email} onChange={e => updatePassenger(idx, 'email', e.target.value)} placeholder="Confirmation sent here" className={inputCls} />
@@ -1093,6 +1118,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             </Field>
                           </div>
                         </>
+                      ) : (
+                        <p className="text-[11px] text-gray-400 mt-1">
+                          📧 Confirmation will be sent to {forms[0].email || 'lead passenger email'}
+                        </p>
                       )}
                     </div>
                   );
