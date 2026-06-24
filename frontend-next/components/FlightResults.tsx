@@ -147,12 +147,16 @@ function fmtExpiry(v: string) {
 /* ─── Credit card affiliate offers ──────────────────────────────────────── */
 interface CardOffer {
   name: string;
-  issuer: string;       // used for badge colouring
-  icon: string;         // emoji
-  headline: string;     // "Earn 2x miles on United flights"
-  bonus: string;        // "60,000 bonus miles after $3k spend"
+  issuer: string;
+  icon: string;         // emoji fallback
+  cardArt?: string;     // path under /cards/ for real card image
+  // CSS gradient card art fallback (used when no cardArt image)
+  cardGradient?: string;
+  cardTextColor?: string;
+  headline: string;
+  bonus: string;
   url: string;
-  highlight?: string;   // pill label, e.g. "Best for United"
+  highlight?: string;
 }
 
 const CARD_DB: Record<string, CardOffer> = {
@@ -160,6 +164,7 @@ const CARD_DB: Record<string, CardOffer> = {
     name: 'Chase Sapphire Preferred®',
     issuer: 'chase',
     icon: '💎',
+    cardArt: '/cards/chase-sapphire.png',
     headline: 'Earn 3x points on travel · transfer to 14 airlines 1:1',
     bonus: '60,000 bonus points after $4k spend in 3 months',
     url: 'https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred',
@@ -169,6 +174,8 @@ const CARD_DB: Record<string, CardOffer> = {
     name: 'Chase Sapphire Reserve®',
     issuer: 'chase',
     icon: '🖤',
+    cardGradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+    cardTextColor: '#C4A84F',
     headline: 'Earn 3x on travel + $300 travel credit · Priority Pass lounge',
     bonus: '60,000 bonus points after $4k spend in 3 months',
     url: 'https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve',
@@ -178,6 +185,8 @@ const CARD_DB: Record<string, CardOffer> = {
     name: 'United℠ Explorer Card',
     issuer: 'chase',
     icon: '✈️',
+    cardGradient: 'linear-gradient(135deg, #003087 0%, #0052a3 60%, #1a6fc4 100%)',
+    cardTextColor: '#ffffff',
     headline: 'Earn 2x miles on United · free first checked bag',
     bonus: '60,000 bonus miles after $3k spend',
     url: 'https://creditcards.chase.com/travel-credit-cards/united/explorer',
@@ -187,6 +196,8 @@ const CARD_DB: Record<string, CardOffer> = {
     name: 'United Club℠ Infinite Card',
     issuer: 'chase',
     icon: '🛋️',
+    cardGradient: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #003087 100%)',
+    cardTextColor: '#C4A84F',
     headline: '4x miles on United + United Club lounge membership',
     bonus: '80,000 bonus miles after $5k spend',
     url: 'https://creditcards.chase.com/travel-credit-cards/united/club-infinite',
@@ -196,6 +207,8 @@ const CARD_DB: Record<string, CardOffer> = {
     name: 'The Platinum Card® from Amex',
     issuer: 'amex',
     icon: '⬛',
+    cardGradient: 'linear-gradient(135deg, #8e9eab 0%, #b8c6cf 30%, #d4dfe6 60%, #a8b8c3 100%)',
+    cardTextColor: '#1a1a1a',
     headline: '5x points on flights · transfer to 20+ airlines · 1,400+ lounges',
     bonus: '80,000 Membership Rewards points after $8k spend',
     url: 'https://www.americanexpress.com/us/credit-cards/card/platinum/',
@@ -205,6 +218,7 @@ const CARD_DB: Record<string, CardOffer> = {
     name: 'Amex Gold Card®',
     issuer: 'amex',
     icon: '🟡',
+    cardArt: '/cards/amex-gold.png',
     headline: '3x points on flights · transfer to Delta, Air France, and more',
     bonus: '60,000 Membership Rewards points after $6k spend',
     url: 'https://www.americanexpress.com/us/credit-cards/card/gold-card/',
@@ -213,6 +227,8 @@ const CARD_DB: Record<string, CardOffer> = {
     name: 'Delta SkyMiles® Gold Amex',
     issuer: 'amex',
     icon: '🔵',
+    cardGradient: 'linear-gradient(135deg, #003366 0%, #004080 50%, #0059b3 100%)',
+    cardTextColor: '#E8B84B',
     headline: '2x miles on Delta purchases · free first checked bag',
     bonus: '40,000 bonus miles after $2k spend',
     url: 'https://www.americanexpress.com/us/credit-cards/card/delta-skymiles-gold-american-express-card/',
@@ -222,6 +238,8 @@ const CARD_DB: Record<string, CardOffer> = {
     name: 'Delta SkyMiles® Platinum Amex',
     issuer: 'amex',
     icon: '🔷',
+    cardGradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #003366 100%)',
+    cardTextColor: '#C0C0C0',
     headline: '3x miles on Delta · companion certificate · upgrade priority',
     bonus: '50,000 bonus miles after $3k spend',
     url: 'https://www.americanexpress.com/us/credit-cards/card/delta-skymiles-platinum-american-express-card/',
@@ -231,15 +249,19 @@ const CARD_DB: Record<string, CardOffer> = {
     name: 'Citi® / AAdvantage® Platinum Select®',
     issuer: 'citi',
     icon: '🔴',
+    cardGradient: 'linear-gradient(135deg, #C00 0%, #e00020 50%, #cc0000 100%)',
+    cardTextColor: '#ffffff',
     headline: '2x miles on American Airlines · free first checked bag',
     bonus: '50,000 bonus miles after $2.5k spend',
     url: 'https://www.citi.com/credit-cards/citi-aadvantage-platinum-select-credit-card',
     highlight: 'American Airlines',
   },
   barclays_aviator: {
-    name: 'AAdvantage® Aviator® Red World Elite',
+    name: 'AAdvantage® Aviator® Red',
     issuer: 'barclays',
     icon: '🔺',
+    cardGradient: 'linear-gradient(135deg, #8B0000 0%, #c0392b 50%, #a93226 100%)',
+    cardTextColor: '#ffffff',
     headline: '2x miles on American Airlines · companion certificate',
     bonus: '60,000 bonus miles after first purchase',
     url: 'https://cards.barclaycardus.com/banking/cards/aadvantage-aviator-red-world-elite-mastercard/',
@@ -249,6 +271,8 @@ const CARD_DB: Record<string, CardOffer> = {
     name: 'Southwest Rapid Rewards® Priority',
     issuer: 'chase',
     icon: '🟧',
+    cardGradient: 'linear-gradient(135deg, #304CB2 0%, #1a2d6e 40%, #E31837 100%)',
+    cardTextColor: '#ffffff',
     headline: '3x points on Southwest · 7,500 bonus points each anniversary',
     bonus: '50,000 bonus points after $1k spend',
     url: 'https://creditcards.chase.com/travel-credit-cards/southwest-airlines/priority',
@@ -258,6 +282,8 @@ const CARD_DB: Record<string, CardOffer> = {
     name: 'British Airways Visa Signature®',
     issuer: 'chase',
     icon: '🇬🇧',
+    cardGradient: 'linear-gradient(135deg, #002147 0%, #003580 50%, #004aad 100%)',
+    cardTextColor: '#ffffff',
     headline: '3x Avios on BA · works on American Airlines + Iberia',
     bonus: '85,000 Avios after $5k spend in 3 months',
     url: 'https://creditcards.chase.com/travel-credit-cards/british-airways',
@@ -1910,17 +1936,47 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     </div>
                     <div className="px-3 pb-3 space-y-2">
                       {cards.map((card, i) => {
-                        const style = ISSUER_STYLE[card.issuer] ?? { bg: '#F1F5F9', color: '#475569' };
+                        const issuerStyle = ISSUER_STYLE[card.issuer] ?? { bg: '#F1F5F9', color: '#475569' };
                         return (
                           <a key={i} href={card.url} target="_blank" rel="noopener noreferrer sponsored"
                             className="flex items-start gap-3 bg-white rounded-xl px-3 py-3 shadow-sm transition hover:shadow-md"
                             style={{ border: '1px solid #E0E7FF' }}>
-                            <span className="text-2xl mt-0.5 flex-shrink-0">{card.icon}</span>
+                            {/* Card art — real image or CSS gradient card */}
+                            <div className="flex-shrink-0 rounded-lg overflow-hidden shadow-md"
+                              style={{ width: 72, height: 46 }}>
+                              {card.cardArt ? (
+                                <img
+                                  src={card.cardArt}
+                                  alt={card.name}
+                                  className="w-full h-full object-cover"
+                                  onError={e => {
+                                    // Fallback to gradient on load error
+                                    const t = e.currentTarget;
+                                    t.style.display = 'none';
+                                    if (t.parentElement) {
+                                      t.parentElement.style.background = card.cardGradient ?? '#1A3A5C';
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full relative flex flex-col justify-between p-1.5"
+                                  style={{ background: card.cardGradient ?? '#1A3A5C' }}>
+                                  {/* Chip */}
+                                  <div className="w-5 h-3.5 rounded-sm opacity-80"
+                                    style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #F0E68C 50%, #B8960C 100%)' }} />
+                                  {/* Card name */}
+                                  <p className="text-[7px] font-bold leading-none truncate"
+                                    style={{ color: card.cardTextColor ?? '#fff' }}>
+                                    {card.name.replace(/®/g, '').split(' ').slice(0, 3).join(' ')}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <p className="text-[11px] font-extrabold text-gray-900 leading-snug">{card.name}</p>
                                 {card.highlight && (
-                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: style.bg, color: style.color }}>
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: issuerStyle.bg, color: issuerStyle.color }}>
                                     {card.highlight}
                                   </span>
                                 )}
