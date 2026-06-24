@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import VisaBanner from '@/components/VisaBanner';
 import { getLayoverGuide, parseLayoverMinutes, LAYOVER_GUIDE_THRESHOLD_MIN } from '@/lib/layover-guides';
 import { flagEmoji } from '@/lib/visa-data';
+import { createClient } from '@/lib/supabase/client';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 interface SegmentAmenity { desc: string; cost: string }
@@ -588,6 +589,32 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       setConfirmation({ reference: order.bookingReference, amount: grossAmount, currency: finalOffer.totalCurrency });
       setBookStep('confirmed');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Save booking client-side — avoids server-side session issues
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        const fs = finalOffer.segments[0];
+        const ls = finalOffer.segments[finalOffer.segments.length - 1];
+        await supabase.from('flight_bookings').insert({
+          user_id: user?.id ?? null,
+          passenger_email: forms[0]?.email ?? null,
+          duffel_order_id: order.orderId,
+          booking_reference: order.bookingReference,
+          status: 'confirmed',
+          origin_code: fs.depCode,
+          origin_city: fs.depCity,
+          destination_code: ls.arrCode,
+          destination_city: ls.arrCity,
+          departure_at: fs.depAt,
+          arrival_at: ls.arrAt,
+          airline: fs.airline,
+          total_amount: grossAmount,
+          currency: finalOffer.totalCurrency,
+          passengers_count: forms.length,
+          passenger_names: forms.map(f => `${f.givenName} ${f.familyName}`),
+        });
+      } catch { /* best-effort */ }
     } catch (err) {
       setBookingError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
     } finally {

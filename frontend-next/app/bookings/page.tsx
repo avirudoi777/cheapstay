@@ -68,14 +68,16 @@ export default function BookingsPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       setAuthChecked(true);
       if (!user) { router.push('/auth'); return; }
-      fetch('/api/bookings')
-        .then(r => r.json())
-        .then(d => { if (d.bookings) setBookings(d.bookings); })
-        .catch(() => {})
-        .finally(() => setLoading(false));
+      // Query Supabase directly — avoids server-side auth issues with the API route
+      const { data } = await supabase
+        .from('flight_bookings')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (data) setBookings(data);
+      setLoading(false);
     });
   }, [router]);
 
