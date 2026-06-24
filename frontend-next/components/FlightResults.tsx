@@ -739,20 +739,20 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     setBooking(true); setBookingError('');
 
     try {
+      const offer = selectedOffer;
+      const extrasTotal = selectedServices.reduce((sum, ss) => {
+        const svc = offer.availableServices.find(s => s.id === ss.serviceId);
+        return sum + (svc ? svc.totalAmount * ss.quantity : 0);
+      }, 0);
       let paymentIntentId = '';
-      let grossAmount = calcGross(selectedOffer.totalAmount);
+      let grossAmount = calcGross(offer.totalAmount, extrasTotal);
 
       if (!duffelTestMode) {
         // Live mode: create payment intent + confirm card
-        const extrasTotal = selectedServices.reduce((sum, ss) => {
-          const svc = selectedOffer.availableServices.find(s => s.id === ss.serviceId);
-          return sum + (svc ? svc.totalAmount * ss.quantity : 0);
-        }, 0);
-        grossAmount = calcGross(selectedOffer.totalAmount + extrasTotal);
         const piRes = await fetch('/api/flights/duffel-payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: (selectedOffer.totalAmount + extrasTotal).toFixed(2), currency: selectedOffer.totalCurrency }),
+          body: JSON.stringify({ amount: (offer.totalAmount + extrasTotal).toFixed(2), currency: offer.totalCurrency }),
         });
         const pi = await piRes.json();
         if (pi.error) throw new Error(pi.detail || pi.error);
@@ -775,37 +775,18 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         paymentIntentId = pi.paymentIntentId;
       }
 
-      // Get freshest offer right before creating the order
-      let finalOffer = selectedOffer;
-      try {
-        const firstSeg = selectedOffer.segments[0];
-        const lastSeg = selectedOffer.segments[selectedOffer.segments.length - 1];
-        const freshRes = await fetch('/api/flights/duffel-search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ origin: firstSeg.depCode, destination: lastSeg.arrCode, departureDate: firstSeg.depAt.slice(0, 10), adults, children, infants, cabinClass }),
-        });
-        const freshJson = await freshRes.json();
-        if (freshJson.offers?.length) {
-          finalOffer = (freshJson.offers as DuffelOffer[]).find((o: DuffelOffer) =>
-            o.segments[0].airlineCode === firstSeg.airlineCode &&
-            o.segments[0].depCode === firstSeg.depCode &&
-            o.segments[o.segments.length - 1].arrCode === lastSeg.arrCode
-          ) ?? freshJson.offers[0];
-          setSelectedOffer(finalOffer);
-        }
-      } catch { /* keep existing offer if refresh fails */ }
-
+      // Book the offer that was presented to the user — no re-search, which
+      // would create a new offer_request and invalidate this offer's ID in Duffel
       const orderRes = await fetch('/api/flights/duffel-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          offerId: finalOffer.id,
+          offerId: offer.id,
           paymentIntentId,
-          amount: finalOffer.totalAmount.toFixed(2),
-          currency: finalOffer.totalCurrency,
-          passengers: forms.map((f, i) => ({ ...f, passengerId: finalOffer.passengerIds[i] })),
-          services: selectedServices.filter(s => finalOffer.availableServices.some(a => a.id === s.serviceId)),
+          amount: offer.totalAmount.toFixed(2),
+          currency: offer.totalCurrency,
+          passengers: forms.map((f, i) => ({ ...f, passengerId: offer.passengerIds[i] })),
+          services: selectedServices.filter(s => offer.availableServices.some(a => a.id === s.serviceId)),
         }),
       });
       const order = await orderRes.json();
@@ -813,7 +794,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         throw new Error(order.detail || order.error);
       }
 
-      setConfirmation({ reference: order.bookingReference, amount: grossAmount, currency: finalOffer.totalCurrency });
+      setConfirmation({ reference: order.bookingReference, amount: grossAmount, currency: offer.totalCurrency });
       setBookStep('confirmed');
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -821,8 +802,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        const fs = finalOffer.segments[0];
-        const ls = finalOffer.segments[finalOffer.segments.length - 1];
+        const fs = offer.segments[0];
+        const ls = offer.segments[offer.segments.length - 1];
         await supabase.from('flight_bookings').insert({
           user_id: user?.id ?? null,
           passenger_email: forms[0]?.email ?? null,
@@ -837,7 +818,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           arrival_at: ls.arrAt,
           airline: fs.airline,
           total_amount: grossAmount,
-          currency: finalOffer.totalCurrency,
+          currency: offer.totalCurrency,
           passengers_count: forms.length,
           passenger_names: forms.map(f => `${f.givenName} ${f.familyName}`),
         });

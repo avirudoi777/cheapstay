@@ -367,6 +367,19 @@ if (runUnit) {
     assert('IL flag emoji correct',  flagEmoji('IL') === '🇮🇱');
   });
 
+  // ── No pre-booking re-search (was causing Duffel 502 "retrieve offer again") ─
+  await section('confirmBooking — no pre-booking re-search', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+
+    // The refresh-before-booking block must NOT exist
+    assert('no pre-booking duffel-search call inside confirmBooking',
+      !src.includes('Get freshest offer right before creating the order'));
+    assert('confirmBooking uses offer.id directly (no finalOffer variable)',
+      !src.includes('finalOffer'));
+    assert('offerId comes from original selectedOffer',
+      src.includes("offerId: offer.id,"));
+  });
+
   // ── Payment step: passenger forms hidden (not gated check) ─────────────────
   await section('Payment step — passenger forms gated by bookStep', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
