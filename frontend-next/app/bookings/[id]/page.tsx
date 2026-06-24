@@ -504,8 +504,14 @@ export default function ManageBookingPage() {
                 </div>
               )}
 
-              {/* Get live quote */}
+              {/* Get live quote — only show if policy allows or is unknown */}
               {!cancelQuote ? (
+                cp?.allowed === false ? (
+                  <div className="rounded-xl px-4 py-3" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+                    <p className="text-sm font-bold" style={{ color: '#DC2626' }}>Cancellation not available</p>
+                    <p className="text-xs text-gray-500 mt-0.5">This fare is non-refundable. No refund will be issued if cancelled.</p>
+                  </div>
+                ) : (
                 <div>
                   <button onClick={getQuote} disabled={quoteLoading}
                     className="w-full py-3 rounded-xl text-sm font-bold transition disabled:opacity-50"
@@ -517,6 +523,7 @@ export default function ManageBookingPage() {
                     Gets the current refund amount from the airline. No commitment yet.
                   </p>
                 </div>
+                )
               ) : (
                 <div className="space-y-3">
                   {/* Refund quote */}
@@ -640,6 +647,10 @@ function DestinationTipsSection({
   const showBoltPromo = rideApps.includes('Bolt');
   const showGrabPromo = rideApps.includes('Grab');
 
+  // China-specific: show NordVPN promo for CN destinations
+  const CHINA_AIRPORTS = new Set(['PEK', 'PVG', 'SHA', 'CAN', 'SZX', 'CTU', 'XIY', 'HGH', 'WUH', 'CKG', 'KMG', 'MFM', 'HKG']);
+  const showVpnPromo = CHINA_AIRPORTS.has(destinationCode.toUpperCase());
+
   return (
     <>
       {/* ── Origin airport lounge info ───────────────── */}
@@ -665,7 +676,7 @@ function DestinationTipsSection({
               </div>
             </div>
             {/* Lounge access CTA */}
-            <a href="https://www.dragonpass.com/en-gb/member-lounge/" target="_blank" rel="noopener noreferrer"
+            <a href="https://www.dragonpass.com/en-gb/" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-3 rounded-xl p-4 transition hover:opacity-90"
               style={{ background: 'rgba(29,158,117,0.15)', border: '1px solid rgba(29,158,117,0.3)' }}>
               <span className="text-2xl">🎫</span>
@@ -831,6 +842,20 @@ function DestinationTipsSection({
                       <span className="text-sm mt-0.5">📱</span>
                       <p className="text-xs" style={{ color: '#A7F3D0' }}>{arrival.sim}</p>
                     </div>
+                  )}
+
+                  {/* NordVPN promo for China destinations */}
+                  {showVpnPromo && (
+                    <a href="https://go.nordvpn.net/aff_c?offer_id=15&aff_id=151019&url_id=902" target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-3 rounded-xl px-4 py-3.5 transition hover:opacity-90"
+                      style={{ background: 'rgba(74,0,224,0.22)', border: '1.5px solid rgba(139,92,246,0.5)' }}>
+                      <span className="text-xl">🔒</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-extrabold text-white">Get NordVPN before you land — required for China</p>
+                        <p className="text-xs mt-0.5" style={{ color: '#C4B5FD' }}>Google, WhatsApp, Instagram &amp; most Western apps are blocked in China. You <strong style={{ color: '#fff' }}>cannot download a VPN once inside China</strong> — install it now.</p>
+                        <p className="text-xs mt-1.5 font-bold" style={{ color: '#A78BFA' }}>Get NordVPN →  usually 70% off + 3 months free</p>
+                      </div>
+                    </a>
                   )}
 
                   {/* Ride-share promos */}

@@ -1126,13 +1126,46 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
               {/* China travel tips banner */}
               {bookStep === 'passenger' && AIRPORT_COUNTRY[toCode.toUpperCase()] === 'CN' && (
-                <div className="rounded-2xl p-4 space-y-2" style={{ background: '#FFFBEB', border: '1px solid #FCD34D' }}>
-                  <p className="text-sm font-extrabold" style={{ color: '#92400E' }}>🇨🇳 Travelling to China — important tips</p>
-                  <div className="space-y-1.5 text-xs" style={{ color: '#78350F' }}>
-                    <p>💳 <strong>Cash & payments:</strong> Most shops, restaurants, and taxis in China only accept WeChat Pay or Alipay — credit cards are rarely accepted outside of 5-star hotels. Link your card to WeChat Pay before you land.</p>
-                    <p>🔒 <strong>VPN:</strong> Google, WhatsApp, Instagram, and most Western apps are blocked. Download and activate a VPN <em>before</em> you arrive — you can&apos;t download one once you&apos;re inside China.</p>
-                    <p>📱 <strong>Must-have apps:</strong> WeChat (messaging + payments), DiDi (rides), Baidu Maps (works without VPN), Alipay (backup payments).</p>
-                    <p>💵 <strong>ATMs:</strong> UnionPay ATMs accept Visa/Mastercard. ICBC and Bank of China ATMs at airports are the most reliable for international cards.</p>
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a0533 0%, #0f172a 100%)', border: '1.5px solid rgba(139,92,246,0.4)' }}>
+                  <div className="px-5 pt-4 pb-2">
+                    <p className="text-base font-extrabold text-white">🇨🇳 Flying to China — read before you land</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#C4B5FD' }}>These are things most travellers only learn the hard way.</p>
+                  </div>
+                  <div className="px-5 pb-4 space-y-3 mt-2">
+                    {/* VPN — most critical */}
+                    <a href="https://go.nordvpn.net/aff_c?offer_id=15&aff_id=151019&url_id=902" target="_blank" rel="noopener noreferrer"
+                      className="flex items-start gap-3 rounded-xl px-4 py-3.5 transition hover:opacity-90"
+                      style={{ background: 'rgba(74,0,224,0.25)', border: '1.5px solid rgba(139,92,246,0.5)' }}>
+                      <span className="text-xl mt-0.5">🔒</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-extrabold text-white">Get NordVPN now — before you fly</p>
+                        <p className="text-xs mt-0.5" style={{ color: '#C4B5FD' }}>Google, WhatsApp, Instagram &amp; most Western apps are blocked. <strong className="text-white">You cannot download a VPN once inside China.</strong> Install it on your phone before boarding.</p>
+                        <p className="text-xs mt-1.5 font-bold" style={{ color: '#A78BFA' }}>Get NordVPN → usually 70% off + 3 months free</p>
+                      </div>
+                    </a>
+                    <div className="space-y-2.5">
+                      <div className="flex gap-3">
+                        <span className="text-base mt-0.5">💳</span>
+                        <div>
+                          <p className="text-sm font-bold text-white">Cash &amp; payments</p>
+                          <p className="text-xs mt-0.5" style={{ color: '#A7F3D0' }}>Most shops, restaurants, and taxis only accept WeChat Pay or Alipay — credit cards rarely work outside 5-star hotels. Link your international card to WeChat Pay before you land.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <span className="text-base mt-0.5">📱</span>
+                        <div>
+                          <p className="text-sm font-bold text-white">Must-have apps</p>
+                          <p className="text-xs mt-0.5" style={{ color: '#A7F3D0' }}>WeChat (messaging + payments), DiDi (rides — only Uber-like option), Baidu Maps (works without VPN), Alipay (backup payments).</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <span className="text-base mt-0.5">💵</span>
+                        <div>
+                          <p className="text-sm font-bold text-white">ATMs</p>
+                          <p className="text-xs mt-0.5" style={{ color: '#A7F3D0' }}>ICBC and Bank of China ATMs at airports accept Visa/Mastercard. Withdraw enough cash for your first day.</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
