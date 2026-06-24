@@ -10,7 +10,9 @@ interface PassportRaw {
   number_enc: string;
   expiry: string;
 }
-interface TravelerProfileRaw {
+interface CompanionRaw {
+  id: string;
+  nickname: string;
   title?: string;
   given_name?: string;
   family_name?: string;
@@ -19,8 +21,40 @@ interface TravelerProfileRaw {
   phone?: string;
   passports?: PassportRaw[];
 }
+interface TravelerProfileRaw {
+  title?: string;
+  given_name?: string;
+  family_name?: string;
+  gender?: string;
+  born_on_enc?: string;
+  phone?: string;
+  passports?: PassportRaw[];
+  companions?: CompanionRaw[];
+}
 
-/* ── GET: fetch & decrypt traveler profile ───────────────────────────────── */
+function decodePassports(passports: PassportRaw[] = []) {
+  return passports.slice(0, 3).map(p => ({
+    id: p.id,
+    country: p.country ?? '',
+    label: p.label ?? p.country ?? '',
+    passportNumber: p.number_enc ? (decryptField(p.number_enc) || '') : '',
+    passportExpiry: p.expiry ?? '',
+  }));
+}
+
+function encodePassports(
+  passports: { id?: string; country: string; label: string; passportNumber: string; passportExpiry: string }[]
+): PassportRaw[] {
+  return (passports ?? []).slice(0, 3).map(p => ({
+    id: p.id || randomUUID(),
+    country: (p.country ?? '').toUpperCase(),
+    label: p.label || (p.country ?? '').toUpperCase(),
+    number_enc: p.passportNumber ? encryptField(p.passportNumber) : '',
+    expiry: p.passportExpiry ?? '',
+  }));
+}
+
+/* ── GET: fetch & decrypt traveler profile + companions ─────────────────── */
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -34,12 +68,16 @@ export async function GET() {
 
   const raw = ((row?.traveler_profile ?? {}) as TravelerProfileRaw);
 
-  const passports = (raw.passports ?? []).slice(0, 3).map(p => ({
-    id: p.id,
-    country: p.country ?? '',
-    label: p.label ?? p.country ?? '',
-    passportNumber: p.number_enc ? (decryptField(p.number_enc) || '') : '',
-    passportExpiry: p.expiry ?? '',
+  const companions = (raw.companions ?? []).map(c => ({
+    id: c.id,
+    nickname: c.nickname ?? '',
+    title:      c.title ?? 'mr',
+    givenName:  c.given_name ?? '',
+    familyName: c.family_name ?? '',
+    gender:     c.gender ?? 'm',
+    bornOn:     c.born_on_enc ? (decryptField(c.born_on_enc) || '') : '',
+    phone:      c.phone ?? '',
+    passports:  decodePassports(c.passports),
   }));
 
   return NextResponse.json({
@@ -49,12 +87,13 @@ export async function GET() {
     gender:     raw.gender ?? 'm',
     bornOn:     raw.born_on_enc ? (decryptField(raw.born_on_enc) || '') : '',
     phone:      raw.phone ?? '',
-    passports,
+    passports:  decodePassports(raw.passports),
     email:      user.email ?? '',
+    companions,
   });
 }
 
-/* ── POST: encrypt & save traveler profile ───────────────────────────────── */
+/* ── POST: encrypt & save traveler profile + companions ─────────────────── */
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
@@ -65,26 +104,34 @@ export async function POST(req: NextRequest) {
       title: string; givenName: string; familyName: string; gender: string;
       bornOn: string; phone: string;
       passports: { id?: string; country: string; label: string; passportNumber: string; passportExpiry: string }[];
+      companions?: {
+        id?: string; nickname: string; title: string; givenName: string; familyName: string;
+        gender: string; bornOn: string; phone: string;
+        passports: { id?: string; country: string; label: string; passportNumber: string; passportExpiry: string }[];
+      }[];
     };
 
-    // Encryption key check — trim whitespace in case of copy-paste issues
     const encKey = (process.env.PROFILE_ENCRYPTION_KEY ?? '').trim();
     if (!encKey) {
       return NextResponse.json({ error: 'PROFILE_ENCRYPTION_KEY is empty in Vercel env vars.' }, { status: 500 });
     }
     if (encKey.length !== 64) {
       return NextResponse.json(
-        { error: `PROFILE_ENCRYPTION_KEY is ${encKey.length} chars — needs to be exactly 64. Check for extra spaces or missing characters in Vercel.` },
+        { error: `PROFILE_ENCRYPTION_KEY is ${encKey.length} chars — needs to be exactly 64.` },
         { status: 500 }
       );
     }
 
-    const passports: PassportRaw[] = (body.passports ?? []).slice(0, 3).map(p => ({
-      id: p.id || randomUUID(),
-      country: (p.country ?? '').toUpperCase(),
-      label: p.label || (p.country ?? '').toUpperCase(),
-      number_enc: p.passportNumber ? encryptField(p.passportNumber) : '',
-      expiry: p.passportExpiry ?? '',
+    const companions: CompanionRaw[] = (body.companions ?? []).map(c => ({
+      id: c.id || randomUUID(),
+      nickname: c.nickname || `${c.givenName} ${c.familyName}`.trim(),
+      title:       c.title || 'mr',
+      given_name:  c.givenName || undefined,
+      family_name: c.familyName || undefined,
+      gender:      c.gender || 'm',
+      born_on_enc: c.bornOn ? encryptField(c.bornOn) : undefined,
+      phone:       c.phone || undefined,
+      passports:   encodePassports(c.passports ?? []),
     }));
 
     const travelerProfile: TravelerProfileRaw = {
@@ -94,7 +141,8 @@ export async function POST(req: NextRequest) {
       gender:      body.gender || 'm',
       born_on_enc: body.bornOn ? encryptField(body.bornOn) : undefined,
       phone:       body.phone || undefined,
-      passports,
+      passports:   encodePassports(body.passports ?? []),
+      companions,
     };
 
     const { error } = await supabase

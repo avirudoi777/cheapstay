@@ -72,9 +72,14 @@ interface CardForm {
 interface SavedPassport {
   id: string; country: string; label: string; passportNumber: string; passportExpiry: string;
 }
+interface CompanionProfile {
+  id: string; nickname: string; title: string; givenName: string; familyName: string;
+  gender: string; bornOn: string; phone: string; passports: SavedPassport[];
+}
 interface TravelerProfile {
   title: string; givenName: string; familyName: string; gender: string;
   bornOn: string; phone: string; passports: SavedPassport[]; email: string;
+  companions?: CompanionProfile[];
 }
 
 interface Props {
@@ -1012,6 +1017,37 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           </div>
                         );
                       })()}
+
+                      {/* Fill from saved companion (passenger 2+) */}
+                      {idx > 0 && savedProfile?.companions && savedProfile.companions.length > 0 && (
+                        <div className="mb-4">
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Fill from saved traveler</label>
+                          <div className="flex gap-2 flex-wrap">
+                            {savedProfile.companions.map(c => (
+                              <button key={c.id} type="button"
+                                onClick={() => {
+                                  const best = c.passports.find(p => p.country === destCountry) ?? c.passports[0];
+                                  updatePassenger(idx, 'title', c.title || 'mr');
+                                  updatePassenger(idx, 'givenName', c.givenName);
+                                  updatePassenger(idx, 'familyName', c.familyName);
+                                  updatePassenger(idx, 'gender', c.gender || 'm');
+                                  updatePassenger(idx, 'bornOn', c.bornOn || '');
+                                  updatePassenger(idx, 'phoneNumber', c.phone || '');
+                                  if (best) {
+                                    updatePassenger(idx, 'passportNumber', best.passportNumber || '');
+                                    updatePassenger(idx, 'passportExpiry', best.passportExpiry || '');
+                                    updatePassenger(idx, 'passportCountry', best.country || '');
+                                  }
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition hover:opacity-80"
+                                style={{ background: '#F0FDF4', border: '1px solid #86EFAC', color: '#15803D' }}>
+                                <span>{(c.givenName[0] || '?').toUpperCase()}</span>
+                                {c.givenName} {c.familyName}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Gender */}
                       <div className="mb-4">

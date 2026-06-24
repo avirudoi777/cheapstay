@@ -14,6 +14,23 @@ interface TravPassport {
   passportExpiry: string;
 }
 
+interface CompanionData {
+  id: string;
+  nickname: string;
+  title: string;
+  givenName: string;
+  familyName: string;
+  gender: string;
+  bornOn: string;
+  phone: string;
+  passports: TravPassport[];
+}
+
+const EMPTY_COMPANION: CompanionData = {
+  id: '', nickname: '', title: 'mr', givenName: '', familyName: '',
+  gender: 'm', bornOn: '', phone: '', passports: [],
+};
+
 const STYLES = [
   { id: 'beach',     label: 'Beach & Islands',   icon: '🏖️' },
   { id: 'city',      label: 'City Breaks',        icon: '🏙️' },
@@ -65,6 +82,9 @@ export default function AccountPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   // Traveler profile — passports (up to 3)
   const [travPassports, setTravPassports] = useState<TravPassport[]>([]);
+  // Travel companions
+  const [companions, setCompanions] = useState<CompanionData[]>([]);
+  const [companionForm, setCompanionForm] = useState<CompanionData | null>(null); // null = closed, {} = add new
 
   useEffect(() => {
     const supabase = createClient();
@@ -111,6 +131,7 @@ export default function AccountPage() {
           if (tp.phone)      setPhoneNumber(tp.phone);
           // Use saved passports if available, otherwise fall back to legacy nationality chips
           setTravPassports(tp.passports?.length ? tp.passports : legacyPassports);
+          if (tp.companions?.length) setCompanions(tp.companions);
         } else {
           // API unavailable (traveler_profile column may not exist yet) — load legacy
           if (legacyPassports.length) setTravPassports(legacyPassports);
@@ -190,7 +211,7 @@ export default function AccountPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: travTitle, givenName, familyName, gender: travGender,
-          bornOn, phone: phoneNumber, passports: travPassports,
+          bornOn, phone: phoneNumber, passports: travPassports, companions,
         }),
       });
       if (!tpSaveRes.ok) {
@@ -427,6 +448,111 @@ export default function AccountPage() {
             </div>
           </div>
 
+        </div>
+
+        {/* Travel companions */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
+          <h3 className="text-sm font-bold text-navy mb-1 flex items-center gap-2">
+            <span>👨‍👩‍👧</span> Travel companions
+          </h3>
+          <p className="text-xs text-gray-400 mb-4">Save profiles for family members or frequent travel partners — auto-fills their details during booking</p>
+
+          {companions.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {companions.map(c => (
+                <div key={c.id} className="flex items-center gap-3 rounded-xl border border-gray-100 px-4 py-3">
+                  <div className="w-8 h-8 rounded-full bg-teal/10 flex items-center justify-center text-sm font-bold text-teal flex-shrink-0">
+                    {(c.givenName[0] || c.nickname[0] || '?').toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 capitalize">{c.givenName} {c.familyName}</p>
+                    {c.nickname && c.nickname !== `${c.givenName} ${c.familyName}`.trim() && (
+                      <p className="text-xs text-gray-400">{c.nickname}</p>
+                    )}
+                    {c.bornOn && <p className="text-xs text-gray-400">{new Date(c.bornOn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>}
+                  </div>
+                  <button onClick={() => setCompanionForm({ ...c })}
+                    className="text-xs text-teal font-semibold px-2 py-1 rounded-lg hover:bg-teal/5 transition">Edit</button>
+                  <button onClick={() => setCompanions(prev => prev.filter(x => x.id !== c.id))}
+                    className="text-xs text-red-400 font-semibold px-2 py-1 rounded-lg hover:bg-red-50 transition">Remove</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {companionForm !== null ? (
+            <div className="rounded-xl border border-teal/30 bg-teal/5 p-4 space-y-3">
+              <p className="text-xs font-bold text-teal uppercase tracking-wide">{companionForm.id ? 'Edit companion' : 'Add companion'}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Title</label>
+                  <select value={companionForm.title} onChange={e => setCompanionForm(f => f && ({ ...f, title: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 appearance-none">
+                    <option value="mr">Mr</option><option value="ms">Ms</option>
+                    <option value="mrs">Mrs</option><option value="miss">Miss</option><option value="dr">Dr</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Gender</label>
+                  <select value={companionForm.gender} onChange={e => setCompanionForm(f => f && ({ ...f, gender: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 appearance-none">
+                    <option value="m">Male</option><option value="f">Female</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">First name</label>
+                  <input value={companionForm.givenName} onChange={e => setCompanionForm(f => f && ({ ...f, givenName: e.target.value }))}
+                    placeholder="As on passport"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Last name</label>
+                  <input value={companionForm.familyName} onChange={e => setCompanionForm(f => f && ({ ...f, familyName: e.target.value }))}
+                    placeholder="As on passport"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Date of birth</label>
+                <input type="date" value={companionForm.bornOn} onChange={e => setCompanionForm(f => f && ({ ...f, bornOn: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Phone (optional)</label>
+                <input type="tel" value={companionForm.phone} onChange={e => setCompanionForm(f => f && ({ ...f, phone: e.target.value }))}
+                  placeholder="+1 555 000 0000"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => {
+                  if (!companionForm.givenName || !companionForm.familyName) return;
+                  const id = companionForm.id || crypto.randomUUID();
+                  const updated = { ...companionForm, id, nickname: companionForm.nickname || `${companionForm.givenName} ${companionForm.familyName}`.trim() };
+                  setCompanions(prev => {
+                    const idx = prev.findIndex(c => c.id === id);
+                    return idx >= 0 ? prev.map(c => c.id === id ? updated : c) : [...prev, updated];
+                  });
+                  setCompanionForm(null);
+                }}
+                  className="flex-1 py-2 rounded-xl text-sm font-bold text-white transition"
+                  style={{ background: '#1D9E75' }}>
+                  Save companion
+                </button>
+                <button onClick={() => setCompanionForm(null)}
+                  className="py-2 px-4 rounded-xl text-sm font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setCompanionForm({ ...EMPTY_COMPANION })}
+              className="w-full py-2.5 rounded-xl border border-dashed border-gray-300 text-sm font-semibold text-gray-500 hover:border-teal hover:text-teal transition">
+              + Add companion
+            </button>
+          )}
+          <p className="text-xs text-gray-400 mt-3 text-center">Companions are saved when you click &quot;Save changes&quot; below</p>
         </div>
 
         {/* Travel style */}

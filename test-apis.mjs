@@ -471,6 +471,32 @@ if (runUnit) {
       src.includes('dragonpass.com') || src.includes('collinsonflex.com') || src.includes('lounge'));
   });
 
+  // ── Travel companions ──────────────────────────────────────────────────────
+  await section('Travel companions — API saves and loads companions array', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/profile/traveler/route.ts'), 'utf8');
+    assert('GET returns companions array', src.includes('companions'));
+    assert('POST accepts companions in body', src.includes('body.companions'));
+    assert('companion DOB is encrypted', src.includes('born_on_enc') && src.includes('encryptField'));
+    assert('companion passport numbers are encrypted', src.includes('encodePassports'));
+    assert('companion DOB is decrypted on GET', src.includes('decryptField'));
+  });
+
+  await section('Travel companions — account page saves companions with profile', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/account/page.tsx'), 'utf8');
+    assert('companions state exists', src.includes('companions'));
+    assert('companions included in save payload', src.includes('companions,'));
+    assert('companions loaded from API response', src.includes('tp.companions'));
+    assert('add/remove companion UI present', src.includes('Add companion') && src.includes('Remove'));
+  });
+
+  await section('Travel companions — booking flow auto-fills pax 2+ from companions', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert('CompanionProfile interface defined', src.includes('CompanionProfile'));
+    assert('TravelerProfile includes companions', src.includes('companions?: CompanionProfile[]'));
+    assert('companion fill button shown for idx > 0', src.includes('idx > 0') && src.includes('savedProfile.companions'));
+    assert('companion fills all passenger fields', src.includes("updatePassenger(idx, 'givenName', c.givenName)"));
+  });
+
   // ── Vercel Analytics removed (was causing Cloudflare 404 + infinite loop) ───
   await section('Vercel Analytics — removed to stop Cloudflare /_vercel/ 404 loop', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/layout.tsx'), 'utf8');
