@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { getLayoverGuide } from '@/lib/layover-guides';
+import { getArrivalTips } from '@/lib/arrival-tips';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -580,9 +582,218 @@ export default function ManageBookingPage() {
           </Section>
         )}
 
+        {/* ── Destination tips ────────────────────────────────────────── */}
+        <DestinationTipsSection
+          destinationCode={booking.destination_code}
+          destinationCity={booking.destination_city}
+          order={order}
+        />
+
         <div className="pb-8" />
       </div>
     </div>
+  );
+}
+
+// ── Destination tips section ──────────────────────────────────────────────────
+
+function DestinationTipsSection({
+  destinationCode,
+  destinationCity,
+  order,
+}: {
+  destinationCode: string;
+  destinationCity: string;
+  order: DuffelOrder | null;
+}) {
+  const guide = getLayoverGuide(destinationCode);
+  const arrival = getArrivalTips(destinationCode);
+
+  // Detect layovers: intermediate airports between segments
+  const layovers: { code: string; name: string; durationMin: number }[] = [];
+  if (order) {
+    for (const slice of order.slices) {
+      const segs = slice.segments;
+      for (let i = 0; i < segs.length - 1; i++) {
+        const dep = new Date(segs[i + 1].departing_at).getTime();
+        const arr = new Date(segs[i].arriving_at).getTime();
+        const durationMin = Math.round((dep - arr) / 60000);
+        layovers.push({
+          code: segs[i + 1].origin.iata_code,
+          name: segs[i + 1].origin.city_name ?? segs[i + 1].origin.name,
+          durationMin,
+        });
+      }
+    }
+  }
+
+  if (!guide && !arrival && layovers.length === 0) return null;
+
+  return (
+    <>
+      {/* ── Layover tips ─────────────────────────────── */}
+      {layovers.map(lv => {
+        const lvGuide = getLayoverGuide(lv.code);
+        if (!lvGuide) return null;
+        const h = Math.floor(lv.durationMin / 60);
+        const m = lv.durationMin % 60;
+        const durationStr = h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''}` : `${m}m`;
+        return (
+          <div key={lv.code} className="rounded-2xl overflow-hidden shadow-sm"
+            style={{ background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)' }}>
+            <div className="px-6 pt-5 pb-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">{lvGuide.flag}</span>
+                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94A3B8' }}>
+                  Layover · {lv.code} · {durationStr}
+                </p>
+              </div>
+              <p className="text-xl font-extrabold text-white">{lvGuide.city}</p>
+              <p className="text-xs mt-1" style={{ color: '#64748B' }}>{lvGuide.airport}</p>
+            </div>
+
+            {lvGuide.transitVisa && (
+              <div className="mx-6 mb-3 rounded-lg px-3 py-2" style={{ background: '#0F2722' }}>
+                <p className="text-xs font-semibold" style={{ color: '#34D399' }}>
+                  ✈ Visa: {lvGuide.transitVisa}
+                </p>
+              </div>
+            )}
+
+            <div className="px-6 pb-5 space-y-3">
+              {lvGuide.tips.slice(0, lv.durationMin < 180 ? 2 : 4).map((tip, i) => (
+                <div key={i} className="flex gap-3">
+                  <span className="text-base flex-shrink-0 mt-0.5">{tip.icon}</span>
+                  <div>
+                    <p className="text-sm font-bold" style={{ color: '#E2E8F0' }}>{tip.title}</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>{tip.desc}</p>
+                  </div>
+                </div>
+              ))}
+              {lvGuide.lounges && (
+                <div className="flex gap-3 pt-1 border-t border-slate-700">
+                  <span className="text-base flex-shrink-0 mt-0.5">🛋️</span>
+                  <div>
+                    <p className="text-xs font-bold" style={{ color: '#E2E8F0' }}>Lounges</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>{lvGuide.lounges}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* ── Destination tips ─────────────────────────── */}
+      {(guide || arrival) && (
+        <div className="rounded-2xl overflow-hidden shadow-sm"
+          style={{ background: 'linear-gradient(135deg, #0C4A2A 0%, #064E3B 100%)' }}>
+          {/* Header */}
+          <div className="px-6 pt-5 pb-4 border-b border-emerald-900">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">{guide?.flag ?? '🌍'}</span>
+              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#6EE7B7' }}>
+                Destination Tips
+              </p>
+            </div>
+            <p className="text-2xl font-extrabold text-white">{destinationCity}</p>
+            {arrival?.cityIntro && (
+              <p className="text-sm mt-2 leading-relaxed" style={{ color: '#A7F3D0' }}>
+                {arrival.cityIntro}
+              </p>
+            )}
+          </div>
+
+          <div className="px-6 py-5 space-y-5">
+            {/* Getting there */}
+            {arrival && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#6EE7B7' }}>
+                  Getting from {destinationCode}
+                </p>
+                <div className="space-y-3">
+                  {/* Ride share */}
+                  <div className="rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.25)' }}>
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl mt-0.5">🚗</span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-sm font-bold text-white">
+                            {arrival.rideShare.apps.join(' / ')}
+                          </p>
+                          {arrival.rideShare.apps.map(app => (
+                            <span key={app} className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                              style={{ background: arrival.rideShare.apps[0] === 'Grab' ? '#00B14F' : '#1D9E75', color: '#fff' }}>
+                              {app}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-xs" style={{ color: '#A7F3D0' }}>{arrival.rideShare.pickupNote}</p>
+                        <p className="text-xs font-semibold mt-1 text-white">{arrival.rideShare.estimatedCost}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Transit */}
+                  {arrival.transit && (
+                    <div className="rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.25)' }}>
+                      <div className="flex items-start gap-3">
+                        <span className="text-xl mt-0.5">🚇</span>
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-white">{arrival.transit.name}</p>
+                          <p className="text-xs font-semibold mt-0.5" style={{ color: '#6EE7B7' }}>
+                            {arrival.transit.cost} · {arrival.transit.time}
+                          </p>
+                          {arrival.transit.note && (
+                            <p className="text-xs mt-1" style={{ color: '#A7F3D0' }}>{arrival.transit.note}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Watch out */}
+                  {arrival.watchOut && (
+                    <div className="flex gap-2 items-start px-1">
+                      <span className="text-sm mt-0.5">⚠️</span>
+                      <p className="text-xs" style={{ color: '#FCD34D' }}>{arrival.watchOut}</p>
+                    </div>
+                  )}
+
+                  {/* SIM tip */}
+                  {arrival.sim && (
+                    <div className="flex gap-2 items-start px-1">
+                      <span className="text-sm mt-0.5">📱</span>
+                      <p className="text-xs" style={{ color: '#A7F3D0' }}>{arrival.sim}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* City tips from layover guide */}
+            {guide && guide.tips.length > 0 && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#6EE7B7' }}>
+                  Local Know-How
+                </p>
+                <div className="space-y-3">
+                  {guide.tips.map((tip, i) => (
+                    <div key={i} className="flex gap-3">
+                      <span className="text-base flex-shrink-0 mt-0.5">{tip.icon}</span>
+                      <div>
+                        <p className="text-sm font-bold text-white">{tip.title}</p>
+                        <p className="text-xs mt-0.5" style={{ color: '#A7F3D0' }}>{tip.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
