@@ -350,9 +350,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
   // Pre-fetch surrounding date prices in the background once main results arrive
   useEffect(() => {
-    if (!offers.length) return;
+    if (!offers.length || !depart) return;
+    const base = new Date(depart + 'T12:00:00Z');
+    if (isNaN(base.getTime())) return;
     [-2, -1, 1, 2].forEach(offset => {
-      const d = new Date(depart + 'T12:00:00Z');
+      const d = new Date(base);
       d.setUTCDate(d.getUTCDate() + offset);
       const iso = d.toISOString().slice(0, 10);
       if (prefetchingDates.current.has(iso)) return;
@@ -622,7 +624,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     }
   }
 
-  const departLabel = new Date(depart + 'T12:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  const departDate = depart ? new Date(depart + 'T12:00') : null;
+  const departLabel = departDate && !isNaN(departDate.getTime())
+    ? departDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+    : '';
 
   /* ── BOOKING VIEW ──────────────────────────────────────────────────────── */
   if (selectedOffer && bookStep !== 'confirmed') {
@@ -1817,8 +1822,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
       {/* Date price strip */}
       {(() => {
+        const baseDate = depart ? new Date(depart + 'T12:00:00Z') : null;
+        if (!baseDate || isNaN(baseDate.getTime())) return null;
         const chips = [-2, -1, 0, 1, 2].map(offset => {
-          const d = new Date(depart + 'T12:00:00Z');
+          const d = new Date(baseDate);
           d.setUTCDate(d.getUTCDate() + offset);
           const iso = d.toISOString().slice(0, 10);
           const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });

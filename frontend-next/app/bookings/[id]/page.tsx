@@ -586,6 +586,7 @@ export default function ManageBookingPage() {
         <DestinationTipsSection
           destinationCode={booking.destination_code}
           destinationCity={booking.destination_city}
+          originCode={booking.origin_code}
           order={order}
         />
 
@@ -600,14 +601,17 @@ export default function ManageBookingPage() {
 function DestinationTipsSection({
   destinationCode,
   destinationCity,
+  originCode,
   order,
 }: {
   destinationCode: string;
   destinationCity: string;
+  originCode: string;
   order: DuffelOrder | null;
 }) {
   const guide = getLayoverGuide(destinationCode);
   const arrival = getArrivalTips(destinationCode);
+  const originGuide = getLayoverGuide(originCode);
 
   // Detect layovers: intermediate airports between segments
   const layovers: { code: string; name: string; durationMin: number }[] = [];
@@ -627,10 +631,71 @@ function DestinationTipsSection({
     }
   }
 
-  if (!guide && !arrival && layovers.length === 0) return null;
+  if (!guide && !arrival && !originGuide && layovers.length === 0) return null;
+
+  // Detect ride-share apps for destination to show promo
+  const rideApps = arrival?.rideShare.apps ?? [];
+  const showUberPromo = rideApps.includes('Uber');
+  const showLyftPromo = rideApps.includes('Lyft');
+  const showBoltPromo = rideApps.includes('Bolt');
+  const showGrabPromo = rideApps.includes('Grab');
 
   return (
     <>
+      {/* ── Origin airport lounge info ───────────────── */}
+      {originGuide && originGuide.lounges && (
+        <div className="rounded-2xl overflow-hidden shadow-sm"
+          style={{ background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)' }}>
+          <div className="px-6 pt-5 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">{originGuide.flag}</span>
+              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94A3B8' }}>
+                Before you fly · {originCode}
+              </p>
+            </div>
+            <p className="text-xl font-extrabold text-white">Lounges in {originGuide.city}</p>
+            <p className="text-xs mt-1" style={{ color: '#64748B' }}>{originGuide.airport}</p>
+          </div>
+          <div className="px-6 pb-5 space-y-4">
+            <div className="flex gap-3">
+              <span className="text-base flex-shrink-0 mt-0.5">🛋️</span>
+              <div>
+                <p className="text-sm font-bold" style={{ color: '#E2E8F0' }}>Available lounges</p>
+                <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>{originGuide.lounges}</p>
+              </div>
+            </div>
+            {/* Lounge access CTA */}
+            <a href="https://www.loungebuddy.com" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-xl p-4 transition hover:opacity-90"
+              style={{ background: 'rgba(29,158,117,0.15)', border: '1px solid rgba(29,158,117,0.3)' }}>
+              <span className="text-2xl">🎫</span>
+              <div className="flex-1">
+                <p className="text-sm font-bold" style={{ color: '#34D399' }}>Buy lounge access — from $35</p>
+                <p className="text-xs mt-0.5" style={{ color: '#6EE7B7' }}>
+                  LoungeBuddy lets you book day-pass access to premium airport lounges in 100+ airports. No membership needed.
+                </p>
+              </div>
+              <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: '#1D9E75', color: '#fff' }}>
+                Book →
+              </span>
+            </a>
+            {/* Priority Pass upsell */}
+            <a href="https://www.prioritypass.com" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-xl p-4 transition hover:opacity-90"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <span className="text-2xl">✈️</span>
+              <div className="flex-1">
+                <p className="text-sm font-bold" style={{ color: '#E2E8F0' }}>Priority Pass — unlimited lounge access</p>
+                <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>
+                  Fly frequently? Priority Pass gives unlimited access to 1,300+ lounges worldwide for ~$99/year.
+                </p>
+              </div>
+              <span className="text-xs font-bold" style={{ color: '#94A3B8' }}>→</span>
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* ── Layover tips ─────────────────────────────── */}
       {layovers.map(lv => {
         const lvGuide = getLayoverGuide(lv.code);
@@ -765,6 +830,60 @@ function DestinationTipsSection({
                     <div className="flex gap-2 items-start px-1">
                       <span className="text-sm mt-0.5">📱</span>
                       <p className="text-xs" style={{ color: '#A7F3D0' }}>{arrival.sim}</p>
+                    </div>
+                  )}
+
+                  {/* Ride-share promos */}
+                  {(showUberPromo || showLyftPromo || showBoltPromo || showGrabPromo) && (
+                    <div className="space-y-2 pt-1">
+                      {showGrabPromo && (
+                        <a href="https://www.grab.com/sg/download/" target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-3 rounded-xl px-4 py-3 transition hover:opacity-90"
+                          style={{ background: 'rgba(0,177,79,0.14)', border: '1px solid rgba(0,177,79,0.3)' }}>
+                          <span className="text-lg">🟢</span>
+                          <div className="flex-1">
+                            <p className="text-xs font-bold text-white">Download Grab before you land</p>
+                            <p className="text-[11px]" style={{ color: '#94A3B8' }}>The dominant ride, food & delivery app across SE Asia — set up your account now to avoid airport taxi queues.</p>
+                          </div>
+                          <span className="text-xs" style={{ color: '#94A3B8' }}>→</span>
+                        </a>
+                      )}
+                      {showUberPromo && (
+                        <a href="https://r.uber.com/first-trip" target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-3 rounded-xl px-4 py-3 transition hover:opacity-90"
+                          style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                          <span className="text-lg font-black text-white" style={{ fontFamily: 'sans-serif' }}>U</span>
+                          <div className="flex-1">
+                            <p className="text-xs font-bold text-white">New to Uber? Get $10 off your first ride</p>
+                            <p className="text-[11px]" style={{ color: '#94A3B8' }}>Tap to open Uber · use promo code at sign-up</p>
+                          </div>
+                          <span className="text-xs" style={{ color: '#94A3B8' }}>→</span>
+                        </a>
+                      )}
+                      {showLyftPromo && (
+                        <a href="https://www.lyft.com/invite/cheapstay" target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-3 rounded-xl px-4 py-3 transition hover:opacity-90"
+                          style={{ background: 'rgba(234,0,140,0.12)', border: '1px solid rgba(234,0,140,0.2)' }}>
+                          <span className="text-lg">🩷</span>
+                          <div className="flex-1">
+                            <p className="text-xs font-bold text-white">New to Lyft? 50% off your first 2 rides</p>
+                            <p className="text-[11px]" style={{ color: '#94A3B8' }}>US only · tap to open Lyft</p>
+                          </div>
+                          <span className="text-xs" style={{ color: '#94A3B8' }}>→</span>
+                        </a>
+                      )}
+                      {showBoltPromo && (
+                        <a href="https://bolt.eu/en/download/" target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-3 rounded-xl px-4 py-3 transition hover:opacity-90"
+                          style={{ background: 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.2)' }}>
+                          <span className="text-lg">⚡</span>
+                          <div className="flex-1">
+                            <p className="text-xs font-bold text-white">Bolt — often cheaper than Uber in Europe</p>
+                            <p className="text-[11px]" style={{ color: '#94A3B8' }}>Download Bolt before landing — active in 45+ European countries, typically 20–30% cheaper.</p>
+                          </div>
+                          <span className="text-xs" style={{ color: '#94A3B8' }}>→</span>
+                        </a>
+                      )}
                     </div>
                   )}
                 </div>

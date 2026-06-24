@@ -441,10 +441,16 @@ interface FlightSearchBarProps {
   onSearch: (from: string, to: string, depart: string, ret: string, adults: number, children: number, infants: number, cabinClass: CabinClass) => void;
 }
 
+function defaultDepartDate() {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  return d.toISOString().split('T')[0];
+}
+
 export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [depart, setDepart] = useState('');
+  const [depart, setDepart] = useState(defaultDepartDate);
   const [ret, setRet] = useState('');
   const [tripType, setTripType] = useState<'round' | 'oneway'>('round');
   const [adults, setAdults] = useState(1);
@@ -577,7 +583,8 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
         )}
       </div>
       <button type="button" onClick={handleSearch}
-        className="w-full py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
+        disabled={!from || !to || !depart}
+        className="w-full py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
         style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
         Search Flights →
       </button>

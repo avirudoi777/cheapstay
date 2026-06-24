@@ -388,7 +388,7 @@ const TIPS: Record<string, ArrivalTips> = {
   // ── Hong Kong ──────────────────────────────────────────────────────────────
   HKG: {
     rideShare: {
-      apps: ['Uber', 'HKTaxi'],
+      apps: ['Grab', 'Uber', 'HKTaxi'],
       pickupNote: 'Metered taxis are everywhere and honest. Uber available but taxis are often faster at HKG.',
       estimatedCost: 'HKD 300–400 ($38–51) to Kowloon · HKD 350–450 to Central (HK Island)',
     },
@@ -467,7 +467,7 @@ const TIPS: Record<string, ArrivalTips> = {
   },
   IST: {
     rideShare: {
-      apps: ['Uber', 'BiTaksi'],
+      apps: ['Uber', 'Bolt', 'BiTaksi'],
       pickupNote: 'BiTaksi is the local app — more reliable than Uber for Istanbul. Request from the app before exiting arrivals.',
       estimatedCost: '€15–25 to Sultanahmet/Taksim',
     },
@@ -480,6 +480,153 @@ const TIPS: Record<string, ArrivalTips> = {
     cityIntro: 'Istanbul spans two continents and 2,500 years of history. Hagia Sophia, the Grand Bazaar, the Bosphorus ferry, and the best döner of your life — all within a few kilometres of each other.',
     watchOut: 'Turkish lira fluctuates — withdraw TRY from ATMs for the best rate. Most tourist sites accept card but markets prefer cash.',
     sim: 'Turkcell in arrivals: ₺300 for a tourist SIM with good data.',
+  },
+
+  // ── More Southeast Asia ────────────────────────────────────────────────────
+  KUL: {
+    rideShare: {
+      apps: ['Grab', 'Bolt', 'AirAsia Ride'],
+      pickupNote: 'Grab from the official Grab pickup bay (Level 1, KLIA2) or Level 5 (KLIA main). Much cheaper than taxis.',
+      estimatedCost: 'RM 60–90 ($13–20) to central KL · RM 35–50 to Bukit Bintang',
+    },
+    transit: {
+      name: 'KLIA Ekspres',
+      cost: 'RM 55 ($12)',
+      time: '28 min to KL Sentral',
+      note: 'Fastest option into the city. From KL Sentral connect to LRT, MRT, or monorail for your final stop.',
+    },
+    cityIntro: 'Kuala Lumpur is Southeast Asia\'s underrated gem — the Petronas Towers, incredible multicultural food (Malay, Chinese, Indian), and a great base to explore Malaysia. Batu Caves are 30 min away.',
+    watchOut: 'Some taxi drivers at the official counter charge fixed rates 2–3x higher than Grab. Always use the app.',
+    sim: 'Maxis or Celcom tourist SIM in arrivals: RM 30–50 ($7–11) for unlimited data.',
+  },
+  MNL: {
+    rideShare: {
+      apps: ['Grab', 'inDriver'],
+      pickupNote: 'Grab from the official Grab pickup zones (separate from taxis, clearly signed). Book before you exit arrivals.',
+      estimatedCost: '₱300–600 ($5–11) to Makati/BGC · ₱250–400 to Manila city centre',
+    },
+    transit: {
+      name: 'Airport shuttle + MRT',
+      cost: '₱65 + ₱40 MRT',
+      time: '45–90 min to Makati (traffic dependent)',
+      note: 'UBE Express or P2P bus from NAIA to Ayala/BGC. Traffic in Manila is notoriously bad — allow extra time.',
+    },
+    cityIntro: 'Manila is chaotic, vibrant, and full of surprises — incredible street food, a thriving nightlife scene in BGC, historic Intramuros, and the gateway to 7,600+ islands. The people are extraordinarily warm.',
+    watchOut: 'NAIA has a yellow-tag taxi scam — only use Grab or the official fixed-rate airport taxis from the authorised counters.',
+    sim: 'Globe or Smart SIM in arrivals: ₱299 ($5) for a 30-day 30GB SIM — great value.',
+  },
+  CGK: {
+    rideShare: {
+      apps: ['Grab', 'Gojek', 'inDriver'],
+      pickupNote: 'Both Grab and Gojek work well. Pickup zones are outside the arrivals halls — follow the app\'s pickup pin carefully.',
+      estimatedCost: 'IDR 150,000–250,000 ($9–16) to central Jakarta',
+    },
+    transit: {
+      name: 'Airport Rail Link',
+      cost: 'IDR 70,000 ($4.40)',
+      time: '55 min to Sudirman (BNI City) station',
+      note: 'Runs every 15–30 min. Connects to TransJakarta and MRT at BNI City. Fastest way to avoid notorious Jakarta traffic.',
+    },
+    cityIntro: 'Jakarta is 10 million people in constant motion — incredible street food, massive malls, and a nightlife scene concentrated in SCBD/Kemang. The city is vast; pick a neighbourhood and base yourself there.',
+    watchOut: 'Jakarta traffic is severe, especially during rush hours (7–10am, 5–8pm). Always factor at least 60 min extra.',
+    sim: 'Telkomsel or Indosat SIM in arrivals: IDR 50,000–100,000 ($3–6) for a generous data SIM.',
+  },
+  SGN: {
+    rideShare: {
+      apps: ['Grab', 'Be', 'inDriver'],
+      pickupNote: 'Grab from the official Grab zone (exit the terminal, cross to the multi-storey car park, follow signs). Be (formerly Gojek Vietnam) is cheaper.',
+      estimatedCost: '₫150,000–250,000 ($6–10) to District 1/Ben Thanh',
+    },
+    transit: {
+      name: 'Bus 109',
+      cost: '₫20,000 ($0.80)',
+      time: '40–60 min to Ben Thanh Market',
+      note: 'Cheapest option — stops at Ben Thanh Market in D1. Runs 5:30am–1am.',
+    },
+    cityIntro: 'Ho Chi Minh City (Saigon) is Vietnam\'s engine — chaotic, electric, and addictive. Street food is world-class (banh mi, pho, com tam). The Mekong Delta day trip is 2 hours away.',
+    watchOut: 'Motorbike bag-snatching is common in HCMC. Keep bags zipped on the street side and away from the road.',
+    sim: 'Viettel or Vinaphone in arrivals: ₫100,000–200,000 ($4–8) for a month of data.',
+  },
+  HAN: {
+    rideShare: {
+      apps: ['Grab', 'Be'],
+      pickupNote: 'Grab and Be both reliable. Pickup area is outside arrivals — look for app pickup signs.',
+      estimatedCost: '₫200,000–350,000 ($8–14) to Hoan Kiem / Old Quarter',
+    },
+    transit: {
+      name: 'Bus 86',
+      cost: '₫25,000 ($1)',
+      time: '45–60 min to Hanoi Old Quarter',
+      note: 'Runs 5:30am–11:30pm. Stops at Long Bien bus station near the Old Quarter.',
+    },
+    cityIntro: 'Hanoi is Vietnam\'s soul — tree-lined boulevards, the beautiful Old Quarter, Hoan Kiem Lake, and food that rivals anywhere on Earth. Bun cha, pho, and egg coffee are must-tries within 30 min of landing.',
+    watchOut: 'Metered taxis by Mai Linh or G7 are reliable — others may inflate fares. Stick to Grab/Be or these brands.',
+    sim: 'Viettel in arrivals: ₫150,000 ($6) for unlimited data for a month.',
+  },
+
+  // ── Northeast Asia ──────────────────────────────────────────────────────────
+  ICN: {
+    rideShare: {
+      apps: ['Uber', 'Kakao T'],
+      pickupNote: 'Kakao T is the dominant Korean app — download it before landing. Uber also operates. Pickup from the designated zones.',
+      estimatedCost: 'KRW 50,000–80,000 ($37–60) to central Seoul (Hongdae/Myeongdong)',
+    },
+    transit: {
+      name: 'AREX All-Stop or Express',
+      cost: 'KRW 9,500–11,000 ($7–8)',
+      time: '43–51 min to Seoul Station',
+      note: 'AREX Express is non-stop to Seoul Station (43 min, KRW 11,000). All-stop is cheaper and fine if not in a rush.',
+    },
+    cityIntro: 'Seoul is one of the world\'s most exciting cities — K-pop, K-drama, Michelin-starred street food, incredible hiking (Bukhansan National Park 40 min from centre), and next-level tech everywhere.',
+    watchOut: 'T-money transport card can be bought at any convenience store (GS25, CU) — load it up for seamless bus and subway travel.',
+    sim: 'KT or SKT tourist SIM in arrivals: KRW 33,000 ($25) for 30 days unlimited — very fast LTE.',
+  },
+  TPE: {
+    rideShare: {
+      apps: ['Uber', 'LINE Taxi'],
+      pickupNote: 'Uber and LINE Taxi both work. Official metered taxis are also reliable and not overpriced.',
+      estimatedCost: 'TWD 1,100–1,400 ($35–45) to central Taipei',
+    },
+    transit: {
+      name: 'Taoyuan Airport MRT',
+      cost: 'TWD 150–160 ($5)',
+      time: '35 min to Taipei Main Station (Express) or 50 min (Commuter)',
+      note: 'The Express train goes non-stop from T1/T2 to A18 Zhongli, then continues to Taipei Main Station. Very comfortable.',
+    },
+    cityIntro: 'Taipei is compact, incredibly safe, and obsessed with food — night markets (Shilin, Raohe) are world-class. Jiufen village is a stunning day trip. Taiwan is one of the friendliest places on earth.',
+    sim: 'Chunghwa Telecom in arrivals: TWD 300 ($10) for a 5-day unlimited SIM — great coverage across the island.',
+  },
+  PVG: {
+    rideShare: {
+      apps: ['DiDi', 'Uber'],
+      pickupNote: 'DiDi (滴滴) is China\'s dominant app — essential download before landing. Uber operates in China via DiDi partnership. Ride-hailing pickup areas are on Level 1.',
+      estimatedCost: '¥150–250 ($21–35) to Pudong/Lujiazui · ¥180–300 to the Bund',
+    },
+    transit: {
+      name: 'Maglev + Metro',
+      cost: '¥50 + ¥8',
+      time: '7 min Maglev to Longyang, then 40 min metro',
+      note: 'World\'s fastest commercial train — 430km/h to Longyang Rd. Transfer to Line 2 for Lujiazui or Nanjing Rd.',
+    },
+    cityIntro: 'Shanghai is China at its most cosmopolitan — the Bund skyline, French Concession cafes, incredible dumplings (xiao long bao at Din Tai Fung), and a nightlife scene that goes until 6am.',
+    watchOut: 'Google, WhatsApp, and many Western apps are blocked in China — download a VPN before you leave home.',
+    sim: 'China Unicom international SIM in arrivals: ¥100–200 ($14–28) with international data that bypasses the firewall.',
+  },
+  PEK: {
+    rideShare: {
+      apps: ['DiDi'],
+      pickupNote: 'DiDi is the only real option — download it before landing. Ride-hailing zones are clearly marked in the arrivals area.',
+      estimatedCost: '¥100–200 ($14–28) to Sanlitun/Wangfujing · ¥150–250 to Tiananmen',
+    },
+    transit: {
+      name: 'Airport Express Line',
+      cost: '¥25 ($3.50)',
+      time: '15–25 min to Dongzhimen (T3) / Sanyuanqiao (T2)',
+      note: 'Runs 6am–11pm. Connect to Line 2 or Line 10 at Dongzhimen. Much faster than taxis in peak hour.',
+    },
+    cityIntro: 'Beijing is 3,000 years of history overlaid with 21st-century ambition. The Great Wall, Forbidden City, and Temple of Heaven are all here — combined with a thriving hutong cafe scene and remarkable Peking duck.',
+    watchOut: 'Air quality varies — check the AQI app before planning outdoor activities. VPN is essential for accessing Google etc.',
+    sim: 'China Unicom international SIM in T3 arrivals: ¥100–150 for 10–30 days data.',
   },
 };
 
