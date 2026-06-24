@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import VisaBanner from '@/components/VisaBanner';
 import { getLayoverGuide, parseLayoverMinutes, LAYOVER_GUIDE_THRESHOLD_MIN } from '@/lib/layover-guides';
-import { flagEmoji } from '@/lib/visa-data';
+import { flagEmoji, COUNTRIES } from '@/lib/visa-data';
 import { createClient } from '@/lib/supabase/client';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
@@ -783,18 +783,15 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                               else setSelectedPassportIds(ids => ids.map((id, i) => i === idx ? '' : id));
                             }}
                             className={selectCls + ' w-full'}>
-                            {savedProfile.givenName && (
-                              <option value={savedProfile.passports[0]?.id ?? 'profile'}>
-                                {savedProfile.givenName} {savedProfile.familyName}
-                                {savedProfile.passports[0] ? ` — ${flagEmoji(savedProfile.passports[0].country)} ${savedProfile.passports[0].country}` : ''}
-                              </option>
-                            )}
-                            {savedProfile.passports.slice(1).map(p => (
-                              <option key={p.id} value={p.id}>
-                                {savedProfile.givenName} {savedProfile.familyName} — {flagEmoji(p.country)} {p.country} passport{p.country === destCountry ? ' ★ Best' : ''}
-                              </option>
-                            ))}
-                            <option value="">Create new passenger</option>
+                            {savedProfile.passports.map((p, pi) => {
+                              const usedByOther = selectedPassportIds.some((id, i) => i !== idx && id === p.id);
+                              if (usedByOther) return null;
+                              const label = pi === 0 && !savedProfile.passports[1]
+                                ? `${savedProfile.givenName} ${savedProfile.familyName}${p.country ? ` — ${flagEmoji(p.country)} ${p.country}` : ''}`
+                                : `${savedProfile.givenName} ${savedProfile.familyName} — ${flagEmoji(p.country)} ${p.country}${p.country === destCountry ? ' ★ Best' : ''}`;
+                              return <option key={p.id} value={p.id}>{label}</option>;
+                            })}
+                            <option value="">Enter new passenger details</option>
                           </select>
                         </div>
                       )}
@@ -842,33 +839,21 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         </div>
                       </div>
 
-                      {/* Nationality — passport dropdown only when a saved passport is selected; text input otherwise */}
+                      {/* Nationality */}
                       <div className="mb-3">
                         <Field label="Nationality *">
-                          {savedProfile && savedProfile.passports.length > 0 && selectedPassportIds[idx] !== '' && selectedPassportIds[idx] !== '__manual__' ? (
-                            <select
-                              value={selectedPassportIds[idx] ?? ''}
-                              onChange={e => {
-                                if (e.target.value === '__manual__') {
-                                  setSelectedPassportIds(ids => ids.map((id, i) => i === idx ? '__manual__' : id));
-                                  setForms(fs => fs.map((f, i) => i === idx ? { ...f, passportCountry: '', passportNumber: '', passportExpiry: '' } : f));
-                                } else {
-                                  const p = savedProfile.passports.find(p => p.id === e.target.value);
-                                  if (p) selectPassportForPax(idx, p);
-                                }
-                              }}
-                              className={selectCls + ' w-full'}>
-                              {savedProfile.passports.map(p => (
-                                <option key={p.id} value={p.id}>
-                                  {flagEmoji(p.country)} {p.country}{p.country === destCountry ? ' ★ Best for this route' : ''}
-                                </option>
-                              ))}
-                              <option value="__manual__">Enter manually…</option>
-                            </select>
-                          ) : (
-                            <input value={paxForm.passportCountry} onChange={e => updatePassenger(idx, 'passportCountry', e.target.value.toUpperCase())}
-                              placeholder="e.g. US, TH, GB" maxLength={2} className={inputCls} />
-                          )}
+                          <select
+                            value={paxForm.passportCountry}
+                            onChange={e => updatePassenger(idx, 'passportCountry', e.target.value)}
+                            className={selectCls + ' w-full'}
+                            disabled={!!(savedProfile && selectedPassportIds[idx] && selectedPassportIds[idx] !== '__manual__' && selectedPassportIds[idx] !== '')}>
+                            <option value="">Select nationality…</option>
+                            {COUNTRIES.map(c => (
+                              <option key={c.code} value={c.code}>
+                                {flagEmoji(c.code)} {c.name}{c.code === destCountry ? ' ★ Best for this route' : ''}
+                              </option>
+                            ))}
+                          </select>
                           {paxErrors.passportCountry && <p className="text-xs text-red-500 mt-0.5">{paxErrors.passportCountry}</p>}
                         </Field>
                       </div>
@@ -913,6 +898,19 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   </label>
                 </div>
               </div>
+
+              {/* China travel tips banner */}
+              {bookStep === 'passenger' && AIRPORT_COUNTRY[toCode.toUpperCase()] === 'CN' && (
+                <div className="rounded-2xl p-4 space-y-2" style={{ background: '#FFFBEB', border: '1px solid #FCD34D' }}>
+                  <p className="text-sm font-extrabold" style={{ color: '#92400E' }}>🇨🇳 Travelling to China — important tips</p>
+                  <div className="space-y-1.5 text-xs" style={{ color: '#78350F' }}>
+                    <p>💳 <strong>Cash & payments:</strong> Most shops, restaurants, and taxis in China only accept WeChat Pay or Alipay — credit cards are rarely accepted outside of 5-star hotels. Link your card to WeChat Pay before you land.</p>
+                    <p>🔒 <strong>VPN:</strong> Google, WhatsApp, Instagram, and most Western apps are blocked. Download and activate a VPN <em>before</em> you arrive — you can&apos;t download one once you&apos;re inside China.</p>
+                    <p>📱 <strong>Must-have apps:</strong> WeChat (messaging + payments), DiDi (rides), Baidu Maps (works without VPN), Alipay (backup payments).</p>
+                    <p>💵 <strong>ATMs:</strong> UnionPay ATMs accept Visa/Mastercard. ICBC and Bank of China ATMs at airports are the most reliable for international cards.</p>
+                  </div>
+                </div>
+              )}
 
               {/* Baggage included — always visible on passenger step */}
               {bookStep === 'passenger' && (

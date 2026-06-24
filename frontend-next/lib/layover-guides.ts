@@ -380,6 +380,33 @@ const GUIDES: Record<string, LayoverGuide> = {
       { icon: '🎨', title: 'Blue Mustang & airport art', desc: 'DEN is famous for its controversial art — the giant blue horse (Blucifer) outside, plus murals inside the terminal. There\'s even a time capsule not to be opened until 2094.' },
     ],
   },
+
+  // ── China ─────────────────────────────────────────────────────────────────
+  PVG: {
+    airport: 'Shanghai Pudong International Airport',
+    city: 'Shanghai',
+    flag: '🇨🇳',
+    lounges: 'China Eastern Sky Pearl Lounge T2 (CE Business/Elite; pay ~¥200 walk-in); Plaza Premium Lounge T1 & T2 (pay ~¥350, includes buffet and shower); The Bridge Business Lounge T2 (pay ~¥280)',
+    tips: [
+      { icon: '🚄', title: 'Maglev — world\'s fastest train to the city', desc: 'The PVG Maglev hits 430 km/h — 8 minutes to Longyang Rd. Worth it just for the experience. Buy tickets at the station below arrivals; transfer to Line 2 metro for Lujiazui (Bund) or Nanjing Rd.' },
+      { icon: '💳', title: 'Set up WeChat Pay before your layover', desc: 'Almost nothing in Shanghai accepts Visa or Mastercard. WeChat Pay and Alipay are universal. Link an international card to WeChat Pay at the airport before you leave — food stalls, convenience stores, and taxis all use it.' },
+      { icon: '🔒', title: 'VPN: download before you land', desc: 'Google, Instagram, WhatsApp, and most Western apps don\'t work in China. You cannot download a VPN once inside China. Activate it before you board.' },
+      { icon: '🏙️', title: 'The Bund & Lujiazui (2h+ layover)', desc: 'If you have 4h+ and no visa issues (China offers 144-hour transit visa-free for many nationalities), The Bund and the Lujiazui skyline are 40 min away. One of the great city views on earth.' },
+      { icon: '🍜', title: 'Soup dumplings (xiao long bao)', desc: 'Din Tai Fung has a branch in Terminal 2 — the xiao long bao here are legitimately excellent. If you have a long layover, the original Din Tai Fung in Xintiandi is 50 min away.' },
+    ],
+  },
+  PEK: {
+    airport: 'Beijing Capital International Airport',
+    city: 'Beijing',
+    flag: '🇨🇳',
+    lounges: 'Air China First Class Lounge T3E (AC Business+); CNAC Zhejiang Lounge T3 (pay ~¥200, shower included); Plaza Premium T3 (pay ~¥350, buffet and shower); CIP Terminal 3 (pay ~¥380)',
+    tips: [
+      { icon: '🚇', title: 'Airport Express to the city', desc: 'Line 3 Airport Express runs from T2/T3 to Dongzhimen and Sanyuanqiao — ¥25, 15–25 min. Connects to Lines 2 and 10 for most of Beijing. Far faster than taxis in rush hour.' },
+      { icon: '💳', title: 'WeChat Pay & Alipay are essential', desc: 'Beijing is even more cashless than Shanghai. Street food, taxis, and even most malls require WeChat Pay or Alipay. Both accept international Visa/Mastercard — link before you leave the airport.' },
+      { icon: '🔒', title: 'VPN required for Google & WhatsApp', desc: 'China\'s Great Firewall blocks Google Maps, WhatsApp, YouTube, and most Western apps. Download and test your VPN before boarding. Baidu Maps and WeChat work as offline alternatives.' },
+      { icon: '🏛️', title: 'Forbidden City & Tiananmen (4h+)', desc: 'With a 6h+ layover, you can reach Tiananmen Square and the entrance to the Forbidden City in ~40 min from the airport. Many nationalities qualify for China\'s 144-hour transit visa exemption — check before you fly.' },
+    ],
+  },
 };
 
 // Minimum layover minutes to show airport guide
