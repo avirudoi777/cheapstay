@@ -144,6 +144,168 @@ function fmtExpiry(v: string) {
   return d.length >= 3 ? d.slice(0, 2) + '/' + d.slice(2) : d;
 }
 
+/* ─── Credit card affiliate offers ──────────────────────────────────────── */
+interface CardOffer {
+  name: string;
+  issuer: string;       // used for badge colouring
+  icon: string;         // emoji
+  headline: string;     // "Earn 2x miles on United flights"
+  bonus: string;        // "60,000 bonus miles after $3k spend"
+  url: string;
+  highlight?: string;   // pill label, e.g. "Best for United"
+}
+
+const CARD_DB: Record<string, CardOffer> = {
+  chase_sapphire_preferred: {
+    name: 'Chase Sapphire Preferred®',
+    issuer: 'chase',
+    icon: '💎',
+    headline: 'Earn 3x points on travel · transfer to 14 airlines 1:1',
+    bonus: '60,000 bonus points after $4k spend in 3 months',
+    url: 'https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred',
+    highlight: 'Best overall',
+  },
+  chase_sapphire_reserve: {
+    name: 'Chase Sapphire Reserve®',
+    issuer: 'chase',
+    icon: '🖤',
+    headline: 'Earn 3x on travel + $300 travel credit · Priority Pass lounge',
+    bonus: '60,000 bonus points after $4k spend in 3 months',
+    url: 'https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve',
+    highlight: 'Premium',
+  },
+  united_explorer: {
+    name: 'United℠ Explorer Card',
+    issuer: 'chase',
+    icon: '✈️',
+    headline: 'Earn 2x miles on United · free first checked bag',
+    bonus: '60,000 bonus miles after $3k spend',
+    url: 'https://creditcards.chase.com/travel-credit-cards/united/explorer',
+    highlight: 'United flyers',
+  },
+  united_club_infinite: {
+    name: 'United Club℠ Infinite Card',
+    issuer: 'chase',
+    icon: '🛋️',
+    headline: '4x miles on United + United Club lounge membership',
+    bonus: '80,000 bonus miles after $5k spend',
+    url: 'https://creditcards.chase.com/travel-credit-cards/united/club-infinite',
+    highlight: 'United premium',
+  },
+  amex_platinum: {
+    name: 'The Platinum Card® from Amex',
+    issuer: 'amex',
+    icon: '⬛',
+    headline: '5x points on flights · transfer to 20+ airlines · 1,400+ lounges',
+    bonus: '80,000 Membership Rewards points after $8k spend',
+    url: 'https://www.americanexpress.com/us/credit-cards/card/platinum/',
+    highlight: 'Best lounge access',
+  },
+  amex_gold: {
+    name: 'Amex Gold Card®',
+    issuer: 'amex',
+    icon: '🟡',
+    headline: '3x points on flights · transfer to Delta, Air France, and more',
+    bonus: '60,000 Membership Rewards points after $6k spend',
+    url: 'https://www.americanexpress.com/us/credit-cards/card/gold-card/',
+  },
+  delta_gold: {
+    name: 'Delta SkyMiles® Gold Amex',
+    issuer: 'amex',
+    icon: '🔵',
+    headline: '2x miles on Delta purchases · free first checked bag',
+    bonus: '40,000 bonus miles after $2k spend',
+    url: 'https://www.americanexpress.com/us/credit-cards/card/delta-skymiles-gold-american-express-card/',
+    highlight: 'Delta flyers',
+  },
+  delta_platinum: {
+    name: 'Delta SkyMiles® Platinum Amex',
+    issuer: 'amex',
+    icon: '🔷',
+    headline: '3x miles on Delta · companion certificate · upgrade priority',
+    bonus: '50,000 bonus miles after $3k spend',
+    url: 'https://www.americanexpress.com/us/credit-cards/card/delta-skymiles-platinum-american-express-card/',
+    highlight: 'Delta premium',
+  },
+  citi_aadvantage: {
+    name: 'Citi® / AAdvantage® Platinum Select®',
+    issuer: 'citi',
+    icon: '🔴',
+    headline: '2x miles on American Airlines · free first checked bag',
+    bonus: '50,000 bonus miles after $2.5k spend',
+    url: 'https://www.citi.com/credit-cards/citi-aadvantage-platinum-select-credit-card',
+    highlight: 'American Airlines',
+  },
+  barclays_aviator: {
+    name: 'AAdvantage® Aviator® Red World Elite',
+    issuer: 'barclays',
+    icon: '🔺',
+    headline: '2x miles on American Airlines · companion certificate',
+    bonus: '60,000 bonus miles after first purchase',
+    url: 'https://cards.barclaycardus.com/banking/cards/aadvantage-aviator-red-world-elite-mastercard/',
+    highlight: 'AA — easy bonus',
+  },
+  southwest_priority: {
+    name: 'Southwest Rapid Rewards® Priority',
+    issuer: 'chase',
+    icon: '🟧',
+    headline: '3x points on Southwest · 7,500 bonus points each anniversary',
+    bonus: '50,000 bonus points after $1k spend',
+    url: 'https://creditcards.chase.com/travel-credit-cards/southwest-airlines/priority',
+    highlight: 'Southwest',
+  },
+  british_airways: {
+    name: 'British Airways Visa Signature®',
+    issuer: 'chase',
+    icon: '🇬🇧',
+    headline: '3x Avios on BA · works on American Airlines + Iberia',
+    bonus: '85,000 Avios after $5k spend in 3 months',
+    url: 'https://creditcards.chase.com/travel-credit-cards/british-airways',
+    highlight: 'Oneworld',
+  },
+};
+
+// Airline IATA code → card keys to show (first 2 shown by default)
+const AIRLINE_CARDS: Record<string, string[]> = {
+  UA: ['united_explorer', 'chase_sapphire_preferred', 'united_club_infinite'],
+  DL: ['delta_gold', 'delta_platinum', 'amex_platinum'],
+  AA: ['citi_aadvantage', 'barclays_aviator', 'chase_sapphire_preferred'],
+  WN: ['southwest_priority', 'chase_sapphire_preferred'],
+  B6: ['chase_sapphire_preferred', 'amex_gold'],              // JetBlue
+  AS: ['chase_sapphire_preferred', 'amex_platinum'],          // Alaska
+  BA: ['british_airways', 'chase_sapphire_preferred'],
+  IB: ['british_airways', 'chase_sapphire_preferred'],        // Iberia (Avios)
+  QF: ['british_airways', 'amex_platinum'],                   // Qantas
+  EK: ['amex_platinum', 'chase_sapphire_preferred'],
+  SQ: ['amex_platinum', 'chase_sapphire_preferred'],
+  AF: ['amex_gold', 'chase_sapphire_preferred'],
+  KL: ['amex_gold', 'chase_sapphire_preferred'],
+  LH: ['amex_platinum', 'chase_sapphire_preferred'],
+  OS: ['amex_platinum', 'chase_sapphire_preferred'],          // Austrian (LH group)
+  LX: ['amex_platinum', 'chase_sapphire_preferred'],          // Swiss (LH group)
+  TK: ['amex_gold', 'chase_sapphire_preferred'],
+  MH: ['amex_platinum', 'chase_sapphire_preferred'],
+  CX: ['amex_platinum', 'chase_sapphire_preferred'],          // Cathay
+  NH: ['amex_platinum', 'chase_sapphire_preferred'],          // ANA
+  JL: ['amex_platinum', 'chase_sapphire_preferred'],          // JAL
+};
+const DEFAULT_CARDS = ['chase_sapphire_preferred', 'amex_gold'];
+
+function getCardOffers(airlineCodes: string[]): CardOffer[] {
+  for (const code of airlineCodes) {
+    const keys = AIRLINE_CARDS[code.toUpperCase()];
+    if (keys) return keys.slice(0, 2).map(k => CARD_DB[k]).filter(Boolean);
+  }
+  return DEFAULT_CARDS.map(k => CARD_DB[k]);
+}
+
+const ISSUER_STYLE: Record<string, { bg: string; color: string }> = {
+  chase: { bg: '#EFF6FF', color: '#1D4ED8' },
+  amex: { bg: '#F0FDF4', color: '#15803D' },
+  citi: { bg: '#FFF7ED', color: '#C2410C' },
+  barclays: { bg: '#FDF4FF', color: '#7E22CE' },
+};
+
 /* ─── Input helpers ──────────────────────────────────────────────────────── */
 const inputCls = 'w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-400 transition bg-white';
 const selectCls = inputCls + ' appearance-none';
@@ -1667,6 +1829,56 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   <span className="text-xl font-extrabold" style={{ color: '#DC2626' }}>{fmtPrice(gross, offer.totalCurrency)}</span>
                 </div>
               </div>
+
+              {/* Credit card / miles offer */}
+              {(() => {
+                const airlineCodes = [...new Set(offer.segments.map(s => s.airlineCode))];
+                const cards = getCardOffers(airlineCodes);
+                const estPoints = Math.round(gross * 3); // 3x on travel for Chase/Amex
+                return (
+                  <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #C7D2FE', background: 'linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%)' }}>
+                    <div className="px-4 pt-4 pb-2">
+                      <div className="flex items-start justify-between gap-2 mb-0.5">
+                        <p className="text-sm font-extrabold" style={{ color: '#1E40AF' }}>✨ Earn miles on this booking</p>
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#DBEAFE', color: '#1D4ED8' }}>SAVE MORE</span>
+                      </div>
+                      <p className="text-[11px]" style={{ color: '#3730A3' }}>
+                        {offer.totalCurrency === 'USD'
+                          ? `Pay $${Math.round(gross).toLocaleString()} and earn ~${estPoints.toLocaleString()} points — worth ~$${Math.round(estPoints * 0.015).toLocaleString()} in future travel`
+                          : `The right card earns miles on every dollar spent`}
+                      </p>
+                    </div>
+                    <div className="px-3 pb-3 space-y-2">
+                      {cards.map((card, i) => {
+                        const style = ISSUER_STYLE[card.issuer] ?? { bg: '#F1F5F9', color: '#475569' };
+                        return (
+                          <a key={i} href={card.url} target="_blank" rel="noopener noreferrer sponsored"
+                            className="flex items-start gap-3 bg-white rounded-xl px-3 py-3 shadow-sm transition hover:shadow-md"
+                            style={{ border: '1px solid #E0E7FF' }}>
+                            <span className="text-2xl mt-0.5 flex-shrink-0">{card.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="text-[11px] font-extrabold text-gray-900 leading-snug">{card.name}</p>
+                                {card.highlight && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: style.bg, color: style.color }}>
+                                    {card.highlight}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">{card.headline}</p>
+                              <p className="text-[10px] font-semibold mt-1" style={{ color: '#15803D' }}>🎁 {card.bonus}</p>
+                            </div>
+                            <span className="text-xs font-bold flex-shrink-0 mt-1" style={{ color: '#1D4ED8' }}>Apply →</span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[9px] text-center pb-2" style={{ color: '#94A3B8' }}>
+                      Affiliate links — we may earn a commission at no cost to you
+                    </p>
+                  </div>
+                );
+              })()}
 
               {/* Booking conditions */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
