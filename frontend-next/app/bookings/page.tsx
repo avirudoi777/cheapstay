@@ -65,7 +65,17 @@ export default function BookingsPage() {
         .from('flight_bookings')
         .select('*')
         .order('created_at', { ascending: false });
-      if (data) setBookings(data);
+      if (data) {
+        // Deduplicate by duffel_order_id — keep the most recent record per order
+        const seen = new Set<string>();
+        const deduped = data.filter(b => {
+          const key = b.duffel_order_id || b.booking_reference;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setBookings(deduped);
+      }
       setLoading(false);
     });
   }, [router]);

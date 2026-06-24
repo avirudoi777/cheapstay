@@ -665,14 +665,14 @@ function DestinationTipsSection({
               </div>
             </div>
             {/* Lounge access CTA */}
-            <a href="https://www.loungebuddy.com" target="_blank" rel="noopener noreferrer"
+            <a href="https://www.dragonpass.com/en-gb/member-lounge/" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-3 rounded-xl p-4 transition hover:opacity-90"
               style={{ background: 'rgba(29,158,117,0.15)', border: '1px solid rgba(29,158,117,0.3)' }}>
               <span className="text-2xl">🎫</span>
               <div className="flex-1">
                 <p className="text-sm font-bold" style={{ color: '#34D399' }}>Buy lounge access — from $35</p>
                 <p className="text-xs mt-0.5" style={{ color: '#6EE7B7' }}>
-                  LoungeBuddy lets you book day-pass access to premium airport lounges in 100+ airports. No membership needed.
+                  DragonPass lets you book day-pass access to 1,300+ airport lounges worldwide. No membership needed.
                 </p>
               </div>
               <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: '#1D9E75', color: '#fff' }}>

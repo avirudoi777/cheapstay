@@ -947,8 +947,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             {/* ── LEFT COLUMN: forms ───────────────────────────────────── */}
             <div className="lg:col-span-2 space-y-4">
 
-              {/* Contact details */}
-              {savedProfile && (
+              {/* Contact details — passenger step only */}
+              {bookStep === 'passenger' && savedProfile && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-3">For all bookings</p>
                   <p className="text-lg font-extrabold text-gray-900 mb-0.5">Contact details</p>
@@ -965,8 +965,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 </div>
               )}
 
-              {/* Passenger forms */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              {/* Passenger forms — passenger step only */}
+              {bookStep === 'passenger' && <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">✈️ Flight(s)</p>
                 {forms.map((paxForm, idx) => {
                   const paxErrors = formErrors[idx] ?? {};
@@ -1136,7 +1136,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     <a href="/account" target="_blank" className="font-semibold underline" style={{ color: '#1A73E8' }}>See Privacy Policy</a>.
                   </label>
                 </div>
-              </div>
+              </div>}
 
               {/* China travel tips banner */}
               {bookStep === 'passenger' && AIRPORT_COUNTRY[toCode.toUpperCase()] === 'CN' && (
@@ -1217,32 +1217,37 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 </div>
               )}
 
-              {/* Cancellation policy card */}
+              {/* Cancellation policy card — always shown */}
               {bookStep === 'passenger' && (() => {
                 const r = offer.conditions?.refundBeforeDeparture;
-                if (!r) return null;
-                const free = r.allowed && !r.penaltyAmount;
-                const fee = r.allowed && r.penaltyAmount;
-                const noRefund = !r.allowed;
+                const free    = r?.allowed && !r.penaltyAmount;
+                const fee     = r?.allowed && r.penaltyAmount;
+                const noRefund = r && !r.allowed;
+                const unknown  = !r;
                 return (
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                     <p className="text-sm font-extrabold text-gray-900 mb-3">🔄 Cancellation policy</p>
                     <div className="flex items-start gap-3 p-3 rounded-xl"
-                      style={free ? { background: '#ECFDF5', border: '1px solid #BBF7D0' }
-                        : fee ? { background: '#FFFBEB', border: '1px solid #FCD34D' }
-                        : { background: '#FEF2F2', border: '1px solid #FECACA' }}>
-                      <span className="text-xl flex-shrink-0">{free ? '✅' : fee ? '⚠️' : '❌'}</span>
+                      style={free    ? { background: '#ECFDF5', border: '1px solid #BBF7D0' }
+                           : fee     ? { background: '#FFFBEB', border: '1px solid #FCD34D' }
+                           : noRefund ? { background: '#FEF2F2', border: '1px solid #FECACA' }
+                                      : { background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                      <span className="text-xl flex-shrink-0">
+                        {free ? '✅' : fee ? '⚠️' : noRefund ? '❌' : 'ℹ️'}
+                      </span>
                       <div>
                         <p className="text-sm font-bold"
-                          style={{ color: free ? '#15803D' : fee ? '#92400E' : '#DC2626' }}>
-                          {free ? 'Free cancellation before departure'
-                            : fee ? `Refundable with ${r.penaltyCurrency ?? ''} ${r.penaltyAmount} cancellation fee`
-                            : 'Non-refundable fare'}
+                          style={{ color: free ? '#15803D' : fee ? '#92400E' : noRefund ? '#DC2626' : '#475569' }}>
+                          {free     ? 'Free cancellation before departure'
+                          : fee     ? `Refundable — ${r!.penaltyCurrency ?? ''} ${r!.penaltyAmount} cancellation fee`
+                          : noRefund ? 'Non-refundable fare'
+                                     : 'Cancellation policy not provided by airline'}
                         </p>
                         <p className="text-[11px] mt-0.5 text-gray-500">
-                          {free ? 'You can cancel this booking and receive a full refund before departure.'
-                            : fee ? 'A cancellation fee applies if you cancel this booking.'
-                            : 'This ticket cannot be cancelled or refunded. Consider travel insurance.'}
+                          {free     ? 'You can cancel this booking and receive a full refund before departure.'
+                          : fee     ? 'A cancellation fee applies if you cancel before departure.'
+                          : noRefund ? 'This ticket cannot be cancelled or refunded. Consider travel insurance.'
+                                     : 'This airline does not publish cancellation terms via our system. Contact the airline directly or check your confirmation email for fare rules.'}
                         </p>
                       </div>
                     </div>
