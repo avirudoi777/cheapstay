@@ -523,6 +523,7 @@ export default function HomePage() {
       {flightSearch && (
         <div ref={flightResultsRef}>
           <FlightResults
+            key={`${flightSearch.fromCode}-${flightSearch.toCode}-${flightSearch.depart}-${flightSearch.ret}-${flightSearch.adults}-${flightSearch.children}-${flightSearch.infants}-${flightSearch.cabinClass}`}
             fromCode={flightSearch.fromCode}
             toCode={flightSearch.toCode}
             fromName={flightSearch.fromName}
