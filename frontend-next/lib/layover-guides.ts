@@ -407,6 +407,30 @@ const GUIDES: Record<string, LayoverGuide> = {
       { icon: '🏛️', title: 'Forbidden City & Tiananmen (4h+)', desc: 'With a 6h+ layover, you can reach Tiananmen Square and the entrance to the Forbidden City in ~40 min from the airport. Many nationalities qualify for China\'s 144-hour transit visa exemption — check before you fly.' },
     ],
   },
+  LIS: {
+    airport: 'Humberto Delgado Airport',
+    city: 'Lisbon',
+    flag: '🇵🇹',
+    lounges: 'TAP Premium Lounge (TAP Business/Gold; pay ~€35 walk-in for non-members); Serene Lounge T1 (Priority Pass / pay ~€35, includes food and drinks); No1 Lounges near Gate 41 (pay ~€30, shower available)',
+    tips: [
+      { icon: '🚇', title: 'Metro to the city in 20 min', desc: 'Red Line (Aeroporto station) runs direct to Alameda and Oriente. Tickets cost ~€1.70 — buy a reloadable Viva Viagem card at the airport machines. The airport is literally on the metro, no bus or taxi needed.' },
+      { icon: '🚖', title: 'Taxis & Uber both work well', desc: 'Uber and Bolt are both active at LIS. Official taxis are metered and honest — city centre is roughly €15–20. Avoid unlicensed drivers approaching you in arrivals.' },
+      { icon: '🏙️', title: 'Alfama & Belém (3h layover+)', desc: 'With 4–5 hours, you can take the metro to Baixa-Chiado and walk up to Alfama for the viewpoints, or take tram 15E to Belém for the Jerónimos Monastery and famous pastéis de nata at Pastéis de Belém.' },
+      { icon: '🌊', title: 'Quick layover tip', desc: 'Even a 2h layover is enough to grab a glass of Portuguese wine and a francesinha in the terminal. LIS is one of the more pleasant European transit airports — modern, spacious, rarely overcrowded.' },
+    ],
+  },
+  MAD: {
+    airport: 'Adolfo Suárez Madrid–Barajas Airport',
+    city: 'Madrid',
+    flag: '🇪🇸',
+    lounges: 'Iberia Premium Lounge T4 (Iberia Business/Platinum; pay ~€35); Sala VIP Dali T4 (pay ~€35, Priority Pass accepted, food and showers); American Express Centurion Lounge T4S (Amex Platinum/Centurion only); Sala Cibeles T1–T3 (pay ~€25)',
+    tips: [
+      { icon: '🚇', title: 'Metro Line 8 to the city', desc: 'Line 8 (pink) runs from all four terminals directly to Nuevos Ministerios in ~12 min and Atocha in ~25 min. A €3 airport supplement is added to the standard fare — total ~€5. Runs 6am–2am daily.' },
+      { icon: '🚖', title: 'Bolt and Uber are great here', desc: 'Both Bolt and Uber operate at MAD and are significantly cheaper than official taxis. City centre rides typically run €20–30 depending on traffic. Taxis are also metered and reliable if you prefer.' },
+      { icon: '🏛️', title: 'Prado Museum or Retiro Park (4h+)', desc: 'With a long layover, take the metro to Atocha — the Prado Museum is a 5-min walk and arguably Europe\'s finest art collection. Retiro Park is a 10-min walk for a coffee and a stroll. Allow 45 min each way.' },
+      { icon: '🍽️', title: 'Terminal 4 food is surprisingly good', desc: 'T4 (the big modern terminal) has proper sit-down restaurants and a good selection of Spanish tapas bars. Skip the grab-and-go chains and look for the Rodilla or Casa Dani options on the upper level.' },
+    ],
+  },
 };
 
 // Minimum layover minutes to show airport guide

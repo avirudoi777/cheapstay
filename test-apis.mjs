@@ -257,7 +257,7 @@ if (runUnit) {
       missingLounges.length > 0 ? `missing: ${missingLounges.join(', ')}` : 'all good');
 
     // Major hubs present
-    const MAJOR_HUBS = ['LHR', 'JFK', 'LAX', 'DXB', 'SIN', 'NRT', 'GIG', 'CDG', 'FRA'];
+    const MAJOR_HUBS = ['LHR', 'JFK', 'LAX', 'DXB', 'SIN', 'NRT', 'GIG', 'CDG', 'FRA', 'LIS', 'MAD'];
     for (const hub of MAJOR_HUBS) {
       assert(`${hub} lounge guide present`, codes.includes(hub));
     }
