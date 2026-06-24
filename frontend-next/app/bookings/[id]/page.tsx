@@ -454,7 +454,7 @@ export default function ManageBookingPage() {
                     {name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-gray-900">{name}</p>
+                    <p className="text-sm font-bold text-gray-900 capitalize">{name}</p>
                     <p className="text-xs text-gray-400">Passenger {i + 1}</p>
                   </div>
                 </div>
@@ -934,7 +934,7 @@ function PassengerCard({ passenger: p, index }: { passenger: DuffelPassenger; in
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-gray-900">
+          <p className="text-sm font-bold text-gray-900 capitalize">
             {p.title ? p.title.charAt(0).toUpperCase() + p.title.slice(1) + ' ' : ''}{p.given_name} {p.family_name}
           </p>
           <p className="text-xs text-gray-400">Passenger {index + 1}</p>

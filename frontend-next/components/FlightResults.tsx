@@ -660,6 +660,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  const cap = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
   function updatePassenger(idx: number, key: keyof PassengerForm, val: string) {
     setForms(fs => fs.map((f, i) => {
       if (i === idx) return { ...f, [key]: val };
@@ -1245,7 +1247,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Passenger {idx + 1}</p>
-                          <p className="font-bold text-gray-900">{paxForm.title.charAt(0).toUpperCase() + paxForm.title.slice(1)} {paxForm.givenName} {paxForm.familyName}</p>
+                          <p className="font-bold text-gray-900">{cap(paxForm.title)} {cap(paxForm.givenName)} {cap(paxForm.familyName)}</p>
                           {idx === 0 && <p className="text-xs text-gray-500 mt-0.5">{paxForm.email} · {paxForm.phoneNumber}</p>}
                           <p className="text-xs text-gray-400 mt-0.5">Passport {paxForm.passportNumber} · {flagEmoji(paxForm.passportCountry)} {paxForm.passportCountry} · Expires {paxForm.passportExpiry}</p>
                         </div>
@@ -2103,7 +2105,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             <div className="flex items-center justify-between py-4 px-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div>
                 <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Passenger</p>
-                <p className="text-sm font-semibold text-white">{forms[0]?.givenName} {forms[0]?.familyName}{forms.length > 1 ? ` +${forms.length - 1}` : ''}</p>
+                <p className="text-sm font-semibold text-white">{cap(forms[0]?.givenName)} {cap(forms[0]?.familyName)}{forms.length > 1 ? ` +${forms.length - 1}` : ''}</p>
               </div>
               <div className="text-right">
                 <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Total paid</p>

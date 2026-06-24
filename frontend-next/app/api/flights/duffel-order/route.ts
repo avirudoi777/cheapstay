@@ -35,8 +35,36 @@ export async function POST(req: NextRequest) {
 
   // DUFFEL_TEST_MODE=true overrides; otherwise infer from key prefix
   const isTestMode = process.env.DUFFEL_TEST_MODE === 'true' || !key.startsWith('duffel_live_');
+
+  // Refresh the offer to get the current price before booking.
+  // Airline prices change in real-time — booking with a stale amount causes
+  // Duffel to return "Please retrieve the offer again to get the latest pricing information."
+  // GET /air/offers/{id} refreshes the price without creating a new offer_request.
+  let bookingAmount = amount;
+  let bookingCurrency = currency;
+  let refreshedTotalAmount: number | null = null;
+  try {
+    const offerRes = await fetch(`${DUFFEL}/air/offers/${offerId}`, {
+      headers: {
+        Authorization: `Bearer ${key}`,
+        'Duffel-Version': 'v2',
+      },
+      cache: 'no-store',
+    });
+    if (offerRes.ok) {
+      const offerData = await offerRes.json();
+      const freshAmount: string | undefined = offerData.data?.total_amount;
+      const freshCurrency: string | undefined = offerData.data?.total_currency;
+      if (freshAmount) {
+        bookingAmount = freshAmount;
+        bookingCurrency = freshCurrency ?? currency;
+        refreshedTotalAmount = parseFloat(freshAmount);
+      }
+    }
+  } catch { /* keep original amount if refresh fails */ }
+
   const payment = isTestMode
-    ? { type: 'balance', amount, currency }
+    ? { type: 'balance', amount: bookingAmount, currency: bookingCurrency }
     : { type: 'payment_intent', id: paymentIntentId };
 
   try {
@@ -147,6 +175,7 @@ export async function POST(req: NextRequest) {
       totalAmount: parseFloat(order.total_amount),
       currency: order.total_currency,
       passengers: order.passengers,
+      refreshedTotalAmount,
       testMode: isTestMode,
       _saveDebug: (order as Record<string, unknown>)._saveDebug ?? null,
     });

@@ -202,7 +202,7 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
         {b.passenger_names?.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3">
             {b.passenger_names.map((name, i) => (
-              <span key={i} className="text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ background: '#F1F5F9', color: '#475569' }}>
+              <span key={i} className="text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize" style={{ background: '#F1F5F9', color: '#475569' }}>
                 👤 {name}
               </span>
             ))}

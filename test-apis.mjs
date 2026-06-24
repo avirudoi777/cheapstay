@@ -380,6 +380,30 @@ if (runUnit) {
       src.includes("offerId: offer.id,"));
   });
 
+  // ── duffel-order route refreshes offer price before booking ───────────────
+  await section('duffel-order route — offer price refresh before booking', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');
+
+    assert('route GETs offer price before creating order',
+      src.includes('/air/offers/${offerId}'));
+    assert('bookingAmount uses refreshed price',
+      src.includes('bookingAmount'));
+    assert('balance payment uses bookingAmount (not raw amount)',
+      src.includes("amount: bookingAmount"));
+    assert('refreshedTotalAmount returned in response',
+      src.includes('refreshedTotalAmount'));
+
+    // Simulate the price refresh logic
+    function refreshLogic(originalAmount, freshAmount) {
+      let bookingAmount = originalAmount;
+      if (freshAmount) bookingAmount = freshAmount;
+      return bookingAmount;
+    }
+    assert('uses fresh price when available',   refreshLogic('100.00', '105.00') === '105.00');
+    assert('falls back to original if no fresh', refreshLogic('100.00', null)     === '100.00');
+    assert('keeps original if refresh undefined', refreshLogic('100.00', undefined) === '100.00');
+  });
+
   // ── Payment step: passenger forms hidden (not gated check) ─────────────────
   await section('Payment step — passenger forms gated by bookStep', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
