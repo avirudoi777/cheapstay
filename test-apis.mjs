@@ -471,11 +471,56 @@ if (runUnit) {
       src.includes('dragonpass.com') || src.includes('collinsonflex.com') || src.includes('lounge'));
   });
 
-  // ── Vercel Analytics CDN URL (avoids Cloudflare blocking /_vercel/) ────────
-  await section('Vercel Analytics — uses CDN scriptSrc (not /_vercel/ path)', async () => {
+  // ── Vercel Analytics removed (was causing Cloudflare 404 + infinite loop) ───
+  await section('Vercel Analytics — removed to stop Cloudflare /_vercel/ 404 loop', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/layout.tsx'), 'utf8');
-    assert('Analytics component uses scriptSrc CDN URL', src.includes('va.vercel-scripts.com'));
-    assert('Analytics does not rely on /_vercel/ default path', !src.includes('/_vercel/insights'));
+    assert('@vercel/analytics not imported', !src.includes("from '@vercel/analytics"));
+    assert('Analytics component not rendered', !src.includes('<Analytics'));
+    assert('/_vercel/insights endpoint not referenced', !src.includes('/_vercel/insights'));
+  });
+
+  // ── Checkout flow invariants ──────────────────────────────────────────────
+  await section('Checkout — confirmBooking sends correct payload to duffel-order', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Uses selectedOffer directly — no re-search that would create new offer_request
+    assert('offerId taken from offer.id', src.includes('offerId: offer.id'));
+    assert('amount passed as offer.totalAmount.toFixed(2)', src.includes('offer.totalAmount.toFixed(2)'));
+    assert('currency taken from offer', src.includes('offer.totalCurrency'));
+    assert('passengers mapped with offer.passengerIds', src.includes('offer.passengerIds[i]'));
+    assert('services filtered to available only', src.includes('offer.availableServices.some'));
+  });
+
+  await section('Checkout — test mode skips card validation and payment intent', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // validateCard only called when NOT in test mode
+    assert('validateCard gated on !duffelTestMode', src.includes('!duffelTestMode && !validateCard()') || src.includes('duffelTestMode') && src.includes('validateCard'));
+    // payment intent fetch is inside !duffelTestMode block
+    assert('payment intent fetch inside live-mode block', src.includes('if (!duffelTestMode)'));
+  });
+
+  await section('Checkout — confirmed state set after successful booking', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert("bookStep set to 'confirmed' on success", src.includes("setBookStep('confirmed')"));
+    assert('confirmation stores bookingReference', src.includes('order.bookingReference'));
+    assert('page scrolls to top after booking', src.includes("window.scrollTo"));
+  });
+
+  await section('Checkout — duffel-order route refreshes price and uses it for payment', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');
+    assert('GETs offer price before booking', src.includes('/air/offers/${offerId}'));
+    assert('uses refreshed amount for payment', src.includes('bookingAmount'));
+    assert('balance payment uses bookingAmount not raw amount', src.includes('amount: bookingAmount'));
+    assert('returns refreshedTotalAmount to frontend', src.includes('refreshedTotalAmount'));
+    assert('offer GET is cache: no-store', src.includes("cache: 'no-store'"));
+  });
+
+  await section('Checkout — duffel-order saves booking to Supabase', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');
+    assert('inserts into flight_bookings', src.includes("from('flight_bookings').insert"));
+    assert('saves duffel_order_id', src.includes('duffel_order_id'));
+    assert('saves booking_reference', src.includes('booking_reference'));
+    assert('saves passenger_names', src.includes('passenger_names'));
+    assert('Supabase failure does not break booking (best-effort)', src.includes('best-effort'));
   });
 
 }

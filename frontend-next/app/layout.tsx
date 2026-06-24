@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google';
 import Image from 'next/image';
 import Link from 'next/link';
 import Script from 'next/script';
-import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
 import HeaderClient from '@/components/HeaderClient';
 
@@ -216,8 +215,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         )}
 
-        {/* Vercel Analytics — use CDN URL to avoid Cloudflare blocking /_vercel/ paths */}
-        <Analytics scriptSrc="https://va.vercel-scripts.com/v1/script.js" />
       </body>
     </html>
   );
