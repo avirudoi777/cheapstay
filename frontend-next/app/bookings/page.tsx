@@ -56,23 +56,11 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
 
-  // Cancel state
-  const [cancelling, setCancelling] = useState<string | null>(null); // bookingId
-  const [cancelQuote, setCancelQuote] = useState<{
-    cancellationId: string;
-    refundAmount: number;
-    refundCurrency: string;
-    bookingId: string;
-  } | null>(null);
-  const [cancelConfirming, setCancelConfirming] = useState(false);
-  const [cancelError, setCancelError] = useState('');
-
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       setAuthChecked(true);
       if (!user) { router.push('/auth'); return; }
-      // Query Supabase directly — avoids server-side auth issues with the API route
       const { data } = await supabase
         .from('flight_bookings')
         .select('*')
@@ -81,57 +69,6 @@ export default function BookingsPage() {
       setLoading(false);
     });
   }, [router]);
-
-  async function requestCancelQuote(booking: FlightBooking) {
-    setCancelling(booking.id);
-    setCancelError('');
-    try {
-      const res = await fetch('/api/flights/duffel-cancel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'quote', orderId: booking.duffel_order_id }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.detail || data.error);
-      setCancelQuote({
-        cancellationId: data.cancellationId,
-        refundAmount: data.refundAmount,
-        refundCurrency: data.refundCurrency,
-        bookingId: booking.id,
-      });
-    } catch (err) {
-      setCancelError(err instanceof Error ? err.message : 'Could not get cancellation quote.');
-    } finally {
-      setCancelling(null);
-    }
-  }
-
-  async function confirmCancel() {
-    if (!cancelQuote) return;
-    setCancelConfirming(true);
-    setCancelError('');
-    try {
-      const res = await fetch('/api/flights/duffel-cancel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'confirm',
-          cancellationId: cancelQuote.cancellationId,
-          bookingId: cancelQuote.bookingId,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.detail || data.error);
-      setBookings(prev => prev.map(b =>
-        b.id === cancelQuote.bookingId ? { ...b, status: 'cancelled' } : b
-      ));
-      setCancelQuote(null);
-    } catch (err) {
-      setCancelError(err instanceof Error ? err.message : 'Cancellation failed.');
-    } finally {
-      setCancelConfirming(false);
-    }
-  }
 
   if (!authChecked || loading) {
     return (
@@ -179,7 +116,7 @@ export default function BookingsPage() {
           <section>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Upcoming</p>
             <div className="space-y-3">
-              {upcoming.map(b => <BookingCard key={b.id} booking={b} onCancel={() => requestCancelQuote(b)} cancelling={cancelling === b.id} />)}
+              {upcoming.map(b => <BookingCard key={b.id} booking={b} />)}
             </div>
           </section>
         )}
@@ -188,7 +125,7 @@ export default function BookingsPage() {
           <section>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Past trips</p>
             <div className="space-y-3">
-              {past.map(b => <BookingCard key={b.id} booking={b} onCancel={() => requestCancelQuote(b)} cancelling={cancelling === b.id} />)}
+              {past.map(b => <BookingCard key={b.id} booking={b} />)}
             </div>
           </section>
         )}
@@ -197,70 +134,16 @@ export default function BookingsPage() {
           <section>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Cancelled</p>
             <div className="space-y-3 opacity-60">
-              {cancelled.map(b => <BookingCard key={b.id} booking={b} onCancel={() => {}} cancelling={false} />)}
+              {cancelled.map(b => <BookingCard key={b.id} booking={b} />)}
             </div>
           </section>
         )}
       </div>
-
-      {/* Cancel quote modal */}
-      {cancelQuote && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
-            <p className="text-lg font-extrabold text-gray-900 mb-1">Cancel this booking?</p>
-            <p className="text-sm text-gray-500 mb-4">This cannot be undone. Here&apos;s what Duffel confirmed you&apos;ll get back:</p>
-
-            <div className="rounded-xl p-4 mb-4" style={{ background: cancelQuote.refundAmount > 0 ? '#ECFDF5' : '#FEF2F2' }}>
-              {cancelQuote.refundAmount > 0 ? (
-                <div>
-                  <p className="text-2xl font-extrabold" style={{ color: '#1D9E75' }}>
-                    {fmtPrice(cancelQuote.refundAmount, cancelQuote.refundCurrency)} refund
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">Returned to your original payment method within 5–10 business days</p>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-base font-bold" style={{ color: '#DC2626' }}>No refund</p>
-                  <p className="text-xs text-gray-500 mt-0.5">This fare is non-refundable. You will not receive any money back.</p>
-                </div>
-              )}
-            </div>
-
-            {cancelError && (
-              <p className="text-xs text-red-600 mb-3">⚠️ {cancelError}</p>
-            )}
-
-            <div className="flex gap-3">
-              <button onClick={() => { setCancelQuote(null); setCancelError(''); }}
-                className="flex-1 py-3 rounded-xl text-sm font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition">
-                Keep booking
-              </button>
-              <button onClick={confirmCancel} disabled={cancelConfirming}
-                className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition disabled:opacity-60"
-                style={{ background: '#DC2626' }}>
-                {cancelConfirming ? 'Cancelling…' : 'Yes, cancel'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Cancel error toast */}
-      {cancelError && !cancelQuote && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-red-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-lg z-50">
-          ⚠️ {cancelError}
-        </div>
-      )}
     </div>
   );
 }
 
-function BookingCard({ booking: b, onCancel, cancelling }: {
-  booking: FlightBooking;
-  onCancel: () => void;
-  cancelling: boolean;
-  // onCancel/cancelling kept for compat but cancel is now on manage page
-}) {
+function BookingCard({ booking: b }: { booking: FlightBooking }) {
   const isPast = new Date(b.departure_at) < new Date();
   const isCancelled = b.status === 'cancelled';
   const badge = cancellationBadge(b.cancellation_policy);

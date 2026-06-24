@@ -191,6 +191,8 @@ export default function ManageBookingPage() {
       setBooking(prev => prev ? { ...prev, status: 'cancelled' } : prev);
       setCancelQuote(null);
       setCancelDone(true);
+      // Refresh router cache so the bookings list reflects the new status immediately
+      router.refresh();
     } catch (err) {
       setCancelError(err instanceof Error ? err.message : 'Cancellation failed.');
     } finally {
@@ -462,7 +464,26 @@ export default function ManageBookingPage() {
 
         {/* ── Cancellation ────────────────────────────────────────────── */}
         <Section title="Cancellation">
-          {isCancelled ? (
+          {cancelDone ? (
+            /* Just cancelled this session — show success + back button */
+            <div className="space-y-4">
+              <div className="rounded-xl p-5 text-center" style={{ background: '#ECFDF5' }}>
+                <p className="text-2xl mb-1">✅</p>
+                <p className="text-base font-extrabold" style={{ color: '#15803D' }}>Booking cancelled</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {cancelQuote && cancelQuote.refundAmount > 0
+                    ? `Your refund of ${fmtPrice(cancelQuote.refundAmount, cancelQuote.refundCurrency)} will appear within 5–10 business days.`
+                    : 'If eligible, your refund will appear within 5–10 business days.'}
+                </p>
+              </div>
+              <button onClick={() => router.push('/bookings')}
+                className="w-full py-3 rounded-xl text-sm font-bold transition"
+                style={{ background: '#1D9E75', color: '#fff' }}>
+                ← Back to My Bookings
+              </button>
+            </div>
+          ) : isCancelled ? (
+            /* Was already cancelled before this session */
             <div className="rounded-xl p-4 text-center" style={{ background: '#FEF2F2' }}>
               <p className="text-base font-bold" style={{ color: '#DC2626' }}>This booking has been cancelled</p>
               <p className="text-xs text-gray-500 mt-1">If eligible, your refund will appear within 5–10 business days.</p>
