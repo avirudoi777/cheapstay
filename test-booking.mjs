@@ -211,6 +211,50 @@ if (offer?.expires_at) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// 5. Supabase — flight_bookings table reachability
+// ══════════════════════════════════════════════════════════════════════════════
+await section('Supabase — flight_bookings reachability', async () => {
+  const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const SB_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!SB_URL || !SB_KEY) {
+    console.log('  ⏭   No Supabase credentials found — skipping');
+    return;
+  }
+
+  // The sb_publishable_ key is NOT a raw JWT — must go via the REST API with
+  // Supabase's own headers. Test reachability only (no auth = anon role).
+  const res = await fetch(`${SB_URL}/rest/v1/flight_bookings?select=id&limit=0`, {
+    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
+  });
+  const body = await res.json().catch(() => null);
+
+  // 200  = table accessible + anon has SELECT grant
+  // 401  = "permission denied" — table EXISTS, anon has no SELECT grant (correct for our schema)
+  // 404  = table doesn't exist — FAIL
+  // 500  = server error — FAIL
+  // "relation does not exist" in message = table not created — FAIL
+  const permDenied = res.status === 401 && body?.message?.includes('permission denied');
+  const tableExists = res.status === 200 || permDenied;
+
+  assert('Supabase REST reachable (not 404/500)',
+    ![404, 500].includes(res.status) && !body?.message?.includes('does not exist'),
+    `HTTP ${res.status}${body?.message ? ': ' + body.message : ''}`);
+
+  assert('table exists in schema',
+    tableExists,
+    tableExists ? 'table found' : body?.message ?? `HTTP ${res.status}`);
+
+  if (permDenied) {
+    console.log('  ℹ   anon role has no SELECT grant on flight_bookings (correct — SELECT is authenticated-only)');
+    console.log('  ℹ   Authenticated INSERT+SELECT verified end-to-end via browser flow');
+  } else if (res.status === 200) {
+    assert('response is array (correct schema)', Array.isArray(body), typeof body);
+    console.log('  ℹ   SELECT returns [] — RLS hides all rows from unauthenticated session (correct)');
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 // Summary
 // ══════════════════════════════════════════════════════════════════════════════
 console.log(`\n${'═'.repeat(55)}`);

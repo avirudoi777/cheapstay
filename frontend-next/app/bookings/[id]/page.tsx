@@ -1,0 +1,627 @@
+'use client';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface FlightBooking {
+  id: string;
+  duffel_order_id: string;
+  booking_reference: string;
+  status: 'confirmed' | 'cancelled';
+  origin_code: string;
+  origin_city: string;
+  destination_code: string;
+  destination_city: string;
+  departure_at: string;
+  arrival_at: string;
+  airline: string;
+  total_amount: number;
+  currency: string;
+  passengers_count: number;
+  passenger_names: string[];
+  cancellation_policy: { allowed: boolean; penalty_amount: number | null; penalty_currency: string | null } | null;
+  created_at: string;
+}
+
+interface DuffelPassenger {
+  id: string;
+  title: string;
+  given_name: string;
+  family_name: string;
+  gender: string;
+  born_on: string;
+  email: string;
+  phone_number: string;
+  identity_documents: {
+    type: string;
+    unique_identifier: string;
+    expires_on: string;
+    issuing_country_code: string;
+  }[];
+}
+
+interface DuffelOrder {
+  id: string;
+  booking_reference: string;
+  status: string;
+  total_amount: string;
+  total_currency: string;
+  passengers: DuffelPassenger[];
+  slices: {
+    segments: {
+      origin: { iata_code: string; name: string; city_name?: string; terminal?: string };
+      destination: { iata_code: string; name: string; city_name?: string; terminal?: string };
+      departing_at: string;
+      arriving_at: string;
+      marketing_carrier: { iata_code: string; name: string };
+      operating_carrier?: { iata_code: string; name: string };
+      aircraft?: { name: string };
+      cabin_class?: string;
+      duration?: string;
+    }[];
+  }[];
+  conditions: {
+    refund_before_departure?: { allowed: boolean; penalty_amount?: string; penalty_currency?: string };
+    change_before_departure?: { allowed: boolean; penalty_amount?: string; penalty_currency?: string };
+  };
+  services?: { id: string; type: string; quantity: number; metadata?: Record<string, unknown> }[];
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+const fmtTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+const fmtPrice = (n: number, cur: string) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: cur, maximumFractionDigits: 0 }).format(n);
+
+function parseDuration(iso?: string) {
+  if (!iso) return null;
+  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+  if (!m) return null;
+  const h = parseInt(m[1] ?? '0');
+  const min = parseInt(m[2] ?? '0');
+  return h > 0 ? `${h}h ${min > 0 ? min + 'm' : ''}`.trim() : `${min}m`;
+}
+
+function countryName(code: string) {
+  try { return new Intl.DisplayNames(['en'], { type: 'region' }).of(code) ?? code; }
+  catch { return code; }
+}
+
+// ── Section wrapper ───────────────────────────────────────────────────────────
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-50">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{title}</p>
+      </div>
+      <div className="px-6 py-5">{children}</div>
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
+export default function ManageBookingPage() {
+  const { id } = useParams() as { id: string };
+  const router = useRouter();
+
+  const [booking, setBooking] = useState<FlightBooking | null>(null);
+  const [order, setOrder] = useState<DuffelOrder | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [orderLoading, setOrderLoading] = useState(false);
+  const [orderError, setOrderError] = useState('');
+
+  // Cancel state
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [cancelQuote, setCancelQuote] = useState<{
+    cancellationId: string;
+    refundAmount: number;
+    refundCurrency: string;
+  } | null>(null);
+  const [cancelConfirming, setCancelConfirming] = useState(false);
+  const [cancelDone, setCancelDone] = useState(false);
+  const [cancelError, setCancelError] = useState('');
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) { router.push('/auth'); return; }
+      const { data } = await supabase.from('flight_bookings').select('*').eq('id', id).single();
+      if (!data) { router.push('/bookings'); return; }
+      setBooking(data);
+      setLoading(false);
+
+      // Fetch full Duffel order for passenger details
+      setOrderLoading(true);
+      try {
+        const res = await fetch('/api/flights/duffel-order-detail', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: data.duffel_order_id }),
+        });
+        const json = await res.json();
+        if (res.ok) setOrder(json);
+        else setOrderError(json.error ?? 'Could not load full order details');
+      } catch {
+        setOrderError('Could not reach Duffel');
+      } finally {
+        setOrderLoading(false);
+      }
+    });
+  }, [id, router]);
+
+  async function getQuote() {
+    if (!booking) return;
+    setQuoteLoading(true);
+    setCancelError('');
+    try {
+      const res = await fetch('/api/flights/duffel-cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'quote', orderId: booking.duffel_order_id }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.detail || data.error);
+      setCancelQuote({ cancellationId: data.cancellationId, refundAmount: data.refundAmount, refundCurrency: data.refundCurrency });
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : 'Could not get cancellation quote.');
+    } finally {
+      setQuoteLoading(false);
+    }
+  }
+
+  async function confirmCancel() {
+    if (!cancelQuote || !booking) return;
+    setCancelConfirming(true);
+    setCancelError('');
+    try {
+      const res = await fetch('/api/flights/duffel-cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'confirm', cancellationId: cancelQuote.cancellationId, bookingId: booking.id }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.detail || data.error);
+      setBooking(prev => prev ? { ...prev, status: 'cancelled' } : prev);
+      setCancelQuote(null);
+      setCancelDone(true);
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : 'Cancellation failed.');
+    } finally {
+      setCancelConfirming(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#F8FAFC' }}>
+        <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#1D9E75', borderTopColor: 'transparent' }} />
+      </div>
+    );
+  }
+
+  if (!booking) return null;
+
+  const isCancelled = booking.status === 'cancelled' || cancelDone;
+  const isPast = new Date(booking.departure_at) < new Date();
+  const canCancel = !isCancelled && !isPast;
+
+  // Derive cancellation policy display
+  const cp = booking.cancellation_policy;
+  const cancelPolicyLabel = !cp ? null
+    : !cp.allowed ? { text: 'Non-refundable', color: '#DC2626', bg: '#FEF2F2' }
+    : cp.penalty_amount ? { text: `Cancel fee: ${fmtPrice(cp.penalty_amount, cp.penalty_currency ?? 'USD')}`, color: '#B45309', bg: '#FFFBEB' }
+    : { text: 'Free cancellation', color: '#15803D', bg: '#ECFDF5' };
+
+  const firstSeg = order?.slices?.[0]?.segments?.[0];
+  const allSegs = order?.slices?.flatMap(s => s.segments) ?? [];
+  const lastSeg = allSegs[allSegs.length - 1];
+
+  return (
+    <div className="min-h-screen" style={{ background: '#F8FAFC' }}>
+      {/* Top bar */}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
+          <button onClick={() => router.push('/bookings')}
+            className="text-sm text-gray-400 hover:text-gray-700 flex items-center gap-1.5 transition">
+            ← My Bookings
+          </button>
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+
+        {/* ── Route header ───────────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                  {booking.origin_code} → {booking.destination_code}
+                </h1>
+                <span className="text-xs font-bold px-3 py-1 rounded-full"
+                  style={isCancelled
+                    ? { background: '#FEE2E2', color: '#DC2626' }
+                    : isPast
+                    ? { background: '#F3F4F6', color: '#6B7280' }
+                    : { background: '#ECFDF5', color: '#15803D' }}>
+                  {isCancelled ? 'Cancelled' : isPast ? 'Completed' : 'Confirmed ✓'}
+                </span>
+              </div>
+              <p className="text-base text-gray-500">{booking.origin_city} → {booking.destination_city}</p>
+              <p className="text-sm text-gray-400 mt-0.5">
+                {booking.airline} · {fmtDate(booking.departure_at)}
+              </p>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="text-2xl font-extrabold" style={{ color: '#DC2626' }}>
+                {fmtPrice(booking.total_amount, booking.currency)}
+              </p>
+              <p className="text-xs text-gray-400">{booking.passengers_count} passenger{booking.passengers_count > 1 ? 's' : ''}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Booking reference ───────────────────────────────────────── */}
+        <div className="rounded-2xl overflow-hidden shadow-sm" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)' }}>
+          <div className="px-6 py-5">
+            <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#94A3B8' }}>Booking Reference</p>
+            <p className="text-4xl font-black tracking-[0.12em]" style={{ color: '#F0FDF4', fontFamily: 'monospace' }}>
+              {booking.booking_reference}
+            </p>
+            <p className="text-xs mt-2" style={{ color: '#64748B' }}>
+              Order ID: {booking.duffel_order_id}
+            </p>
+          </div>
+          <div className="border-t px-6 py-3 flex items-center justify-between" style={{ borderColor: '#1E293B', background: 'rgba(0,0,0,0.2)' }}>
+            <p className="text-xs" style={{ color: '#64748B' }}>
+              Booked {fmtDate(booking.created_at)}
+            </p>
+            <p className="text-xs" style={{ color: '#64748B' }}>
+              Use this reference at the airport
+            </p>
+          </div>
+        </div>
+
+        {/* ── Flight details ──────────────────────────────────────────── */}
+        <Section title="Flight Details">
+          {orderLoading && (
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="w-4 h-4 border border-t-transparent rounded-full animate-spin" style={{ borderColor: '#1D9E75', borderTopColor: 'transparent' }} />
+              Loading live flight details…
+            </div>
+          )}
+          {orderError && !orderLoading && (
+            <p className="text-sm text-gray-400">Could not load live details — showing saved info.</p>
+          )}
+          {allSegs.length > 0 ? (
+            <div className="space-y-5">
+              {allSegs.map((seg, i) => (
+                <div key={i}>
+                  {i > 0 && (
+                    <div className="flex items-center gap-2 my-4">
+                      <div className="flex-1 border-t border-dashed border-amber-200" />
+                      <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: '#FFFBEB', color: '#B45309' }}>
+                        Layover · {seg.origin.city_name ?? seg.origin.iata_code}
+                      </span>
+                      <div className="flex-1 border-t border-dashed border-amber-200" />
+                    </div>
+                  )}
+                  <div className="flex items-start gap-4">
+                    {/* Dep */}
+                    <div className="flex-1">
+                      <p className="text-2xl font-extrabold text-gray-900">{fmtTime(seg.departing_at)}</p>
+                      <p className="text-sm font-bold text-gray-700">{seg.origin.iata_code}</p>
+                      <p className="text-xs text-gray-400">{seg.origin.city_name ?? seg.origin.name}</p>
+                      {seg.origin.terminal && <p className="text-xs text-gray-400">Terminal {seg.origin.terminal}</p>}
+                      <p className="text-xs text-gray-400 mt-0.5">{fmtDate(seg.departing_at)}</p>
+                    </div>
+                    {/* Duration */}
+                    <div className="text-center pt-2">
+                      {parseDuration(seg.duration) && (
+                        <p className="text-xs text-gray-400">{parseDuration(seg.duration)}</p>
+                      )}
+                      <div className="flex items-center gap-1 my-1">
+                        <div className="w-2 h-2 rounded-full border-2" style={{ borderColor: '#1D9E75' }} />
+                        <div className="w-10 h-px" style={{ background: '#1D9E75' }} />
+                        <div className="w-2 h-2 rounded-full" style={{ background: '#1D9E75' }} />
+                      </div>
+                      <p className="text-[10px] text-gray-400">{seg.marketing_carrier.iata_code}</p>
+                    </div>
+                    {/* Arr */}
+                    <div className="flex-1 text-right">
+                      <p className="text-2xl font-extrabold text-gray-900">{fmtTime(seg.arriving_at)}</p>
+                      <p className="text-sm font-bold text-gray-700">{seg.destination.iata_code}</p>
+                      <p className="text-xs text-gray-400">{seg.destination.city_name ?? seg.destination.name}</p>
+                      {seg.destination.terminal && <p className="text-xs text-gray-400">Terminal {seg.destination.terminal}</p>}
+                      <p className="text-xs text-gray-400 mt-0.5">{fmtDate(seg.arriving_at)}</p>
+                    </div>
+                  </div>
+                  {/* Segment meta */}
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#F1F5F9', color: '#475569' }}>
+                      ✈ {seg.marketing_carrier.name}
+                    </span>
+                    {seg.operating_carrier && seg.operating_carrier.iata_code !== seg.marketing_carrier.iata_code && (
+                      <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#F1F5F9', color: '#475569' }}>
+                        Operated by {seg.operating_carrier.name}
+                      </span>
+                    )}
+                    {seg.aircraft && (
+                      <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#F1F5F9', color: '#475569' }}>
+                        {seg.aircraft.name}
+                      </span>
+                    )}
+                    {seg.cabin_class && (
+                      <span className="text-[11px] px-2.5 py-1 rounded-full font-medium capitalize" style={{ background: '#F1F5F9', color: '#475569' }}>
+                        {seg.cabin_class.replace('_', ' ')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : !orderLoading && (
+            /* Fallback to saved data */
+            <div className="flex items-start gap-4">
+              <div className="flex-1">
+                <p className="text-2xl font-extrabold text-gray-900">{fmtTime(booking.departure_at)}</p>
+                <p className="text-sm font-bold text-gray-700">{booking.origin_code}</p>
+                <p className="text-xs text-gray-400">{booking.origin_city}</p>
+                <p className="text-xs text-gray-400">{fmtDate(booking.departure_at)}</p>
+              </div>
+              <div className="text-center pt-2">
+                <div className="flex items-center gap-1 my-1">
+                  <div className="w-2 h-2 rounded-full border-2" style={{ borderColor: '#1D9E75' }} />
+                  <div className="w-10 h-px" style={{ background: '#1D9E75' }} />
+                  <div className="w-2 h-2 rounded-full" style={{ background: '#1D9E75' }} />
+                </div>
+              </div>
+              <div className="flex-1 text-right">
+                <p className="text-2xl font-extrabold text-gray-900">{fmtTime(booking.arrival_at)}</p>
+                <p className="text-sm font-bold text-gray-700">{booking.destination_code}</p>
+                <p className="text-xs text-gray-400">{booking.destination_city}</p>
+                <p className="text-xs text-gray-400">{fmtDate(booking.arrival_at)}</p>
+              </div>
+            </div>
+          )}
+        </Section>
+
+        {/* ── Payment ─────────────────────────────────────────────────── */}
+        <Section title="Payment">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-500">Flight fare</span>
+              <span className="text-sm text-gray-900 font-semibold">
+                {fmtPrice(Math.max(0, booking.total_amount - 10), booking.currency)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-500">Service fee</span>
+              <span className="text-sm text-gray-900 font-semibold">{fmtPrice(10, booking.currency)}</span>
+            </div>
+            {order?.services && order.services.length > 0 && order.services.map((svc, i) => (
+              <div key={i} className="flex justify-between items-center">
+                <span className="text-sm text-gray-500 capitalize">
+                  {svc.type === 'baggage' ? `Extra bag ×${svc.quantity}` : svc.type}
+                </span>
+                <span className="text-sm text-gray-500">included</span>
+              </div>
+            ))}
+            <div className="border-t border-gray-100 pt-2 mt-2 flex justify-between items-center">
+              <span className="text-base font-extrabold text-gray-900">Total paid</span>
+              <span className="text-xl font-extrabold" style={{ color: '#1D9E75' }}>
+                {fmtPrice(booking.total_amount, booking.currency)}
+              </span>
+            </div>
+          </div>
+        </Section>
+
+        {/* ── Passengers ──────────────────────────────────────────────── */}
+        <Section title={`Passengers · ${booking.passengers_count}`}>
+          {orderLoading && (
+            <p className="text-sm text-gray-400">Loading passenger details…</p>
+          )}
+          {(order?.passengers ?? []).length > 0 ? (
+            <div className="space-y-4">
+              {order!.passengers.map((p, i) => (
+                <PassengerCard key={p.id} passenger={p} index={i} />
+              ))}
+              <div className="rounded-xl p-3 flex gap-2" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                <span className="text-sm">ℹ️</span>
+                <p className="text-xs text-gray-500">
+                  To change passenger details (name, passport), contact the airline directly using booking reference{' '}
+                  <span className="font-bold text-gray-700">{booking.booking_reference}</span>.
+                </p>
+              </div>
+            </div>
+          ) : !orderLoading && (
+            <div className="space-y-3">
+              {booking.passenger_names.map((name, i) => (
+                <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                    style={{ background: '#1D9E75' }}>
+                    {name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">{name}</p>
+                    <p className="text-xs text-gray-400">Passenger {i + 1}</p>
+                  </div>
+                </div>
+              ))}
+              {orderError && <p className="text-xs text-gray-400 mt-2">Full passport details unavailable — could not load order from Duffel.</p>}
+            </div>
+          )}
+        </Section>
+
+        {/* ── Cancellation ────────────────────────────────────────────── */}
+        <Section title="Cancellation">
+          {isCancelled ? (
+            <div className="rounded-xl p-4 text-center" style={{ background: '#FEF2F2' }}>
+              <p className="text-base font-bold" style={{ color: '#DC2626' }}>This booking has been cancelled</p>
+              <p className="text-xs text-gray-500 mt-1">If eligible, your refund will appear within 5–10 business days.</p>
+            </div>
+          ) : isPast ? (
+            <p className="text-sm text-gray-400">This flight has already departed. Cancellations are no longer available.</p>
+          ) : (
+            <div className="space-y-4">
+              {/* Stored policy */}
+              {cancelPolicyLabel && (
+                <div className="flex items-center gap-2 rounded-xl px-4 py-3" style={{ background: cancelPolicyLabel.bg }}>
+                  <span className="text-sm font-bold" style={{ color: cancelPolicyLabel.color }}>
+                    {cancelPolicyLabel.text}
+                  </span>
+                  <span className="text-xs text-gray-400 ml-auto">from booking</span>
+                </div>
+              )}
+
+              {/* Get live quote */}
+              {!cancelQuote ? (
+                <div>
+                  <button onClick={getQuote} disabled={quoteLoading}
+                    className="w-full py-3 rounded-xl text-sm font-bold transition disabled:opacity-50"
+                    style={{ background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FECACA' }}>
+                    {quoteLoading ? 'Checking with airline…' : 'Check live cancellation & refund →'}
+                  </button>
+                  {cancelError && <p className="text-xs text-red-600 mt-2">⚠️ {cancelError}</p>}
+                  <p className="text-xs text-gray-400 mt-2 text-center">
+                    Gets the current refund amount from the airline. No commitment yet.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Refund quote */}
+                  <div className="rounded-xl p-4" style={{ background: cancelQuote.refundAmount > 0 ? '#ECFDF5' : '#FEF2F2' }}>
+                    {cancelQuote.refundAmount > 0 ? (
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: '#15803D' }}>Estimated refund</p>
+                        <p className="text-3xl font-extrabold" style={{ color: '#15803D' }}>
+                          {fmtPrice(cancelQuote.refundAmount, cancelQuote.refundCurrency)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">Returned to your original payment method within 5–10 business days</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-base font-bold" style={{ color: '#DC2626' }}>No refund</p>
+                        <p className="text-xs text-gray-500 mt-0.5">This fare is non-refundable. You will not receive any money back.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {cancelError && <p className="text-xs text-red-600">⚠️ {cancelError}</p>}
+
+                  <div className="flex gap-3">
+                    <button onClick={() => { setCancelQuote(null); setCancelError(''); }}
+                      className="flex-1 py-3 rounded-xl text-sm font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition">
+                      Keep booking
+                    </button>
+                    <button onClick={confirmCancel} disabled={cancelConfirming}
+                      className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition disabled:opacity-60"
+                      style={{ background: '#DC2626' }}>
+                      {cancelConfirming ? 'Cancelling…' : 'Confirm cancellation'}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 text-center">This action cannot be undone.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </Section>
+
+        {/* ── Change conditions (from Duffel) ─────────────────────────── */}
+        {order?.conditions?.change_before_departure && (
+          <Section title="Change Policy">
+            <div className="flex items-center gap-2">
+              {order.conditions.change_before_departure.allowed ? (
+                <>
+                  <span className="text-sm font-bold" style={{ color: '#1D9E75' }}>Changes allowed</span>
+                  {order.conditions.change_before_departure.penalty_amount && (
+                    <span className="text-sm text-gray-500">
+                      · fee {fmtPrice(parseFloat(order.conditions.change_before_departure.penalty_amount), order.conditions.change_before_departure.penalty_currency ?? booking.currency)}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="text-sm font-bold" style={{ color: '#DC2626' }}>No changes permitted</span>
+              )}
+            </div>
+            {order.conditions.change_before_departure.allowed && (
+              <p className="text-xs text-gray-400 mt-2">
+                To change your flights, contact the airline with reference {booking.booking_reference}.
+              </p>
+            )}
+          </Section>
+        )}
+
+        <div className="pb-8" />
+      </div>
+    </div>
+  );
+}
+
+// ── Passenger card ────────────────────────────────────────────────────────────
+
+function PassengerCard({ passenger: p, index }: { passenger: DuffelPassenger; index: number }) {
+  const [expanded, setExpanded] = useState(true);
+
+  const initials = `${p.given_name[0]}${p.family_name[0]}`.toUpperCase();
+  const doc = p.identity_documents?.[0];
+
+  return (
+    <div className="rounded-xl border border-gray-100 overflow-hidden">
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-left">
+        <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+          style={{ background: '#1D9E75' }}>
+          {initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-gray-900">
+            {p.title ? p.title.charAt(0).toUpperCase() + p.title.slice(1) + ' ' : ''}{p.given_name} {p.family_name}
+          </p>
+          <p className="text-xs text-gray-400">Passenger {index + 1}</p>
+        </div>
+        <span className="text-gray-300 text-xs">{expanded ? '▲' : '▼'}</span>
+      </button>
+
+      {expanded && (
+        <div className="px-4 pb-4 pt-1 space-y-3 border-t border-gray-50">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <Field label="Gender" value={p.gender === 'm' ? 'Male' : p.gender === 'f' ? 'Female' : p.gender} />
+            <Field label="Date of birth" value={p.born_on ? new Date(p.born_on).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'} />
+            <Field label="Email" value={p.email} />
+            <Field label="Phone" value={p.phone_number} />
+          </div>
+
+          {doc && (
+            <div className="rounded-xl p-3 mt-1" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Travel Document</p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+                <Field label="Type" value={doc.type.charAt(0).toUpperCase() + doc.type.slice(1)} />
+                <Field label="Number" value={doc.unique_identifier} mono />
+                <Field label="Country" value={countryName(doc.issuing_country_code)} />
+                <Field label="Expires" value={doc.expires_on ? new Date(doc.expires_on).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{label}</p>
+      <p className={`text-sm text-gray-800 font-medium mt-0.5 ${mono ? 'font-mono' : ''}`}>{value || '—'}</p>
+    </div>
+  );
+}

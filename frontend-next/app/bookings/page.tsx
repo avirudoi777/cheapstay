@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
 interface CancellationPolicy {
@@ -258,6 +259,7 @@ function BookingCard({ booking: b, onCancel, cancelling }: {
   booking: FlightBooking;
   onCancel: () => void;
   cancelling: boolean;
+  // onCancel/cancelling kept for compat but cancel is now on manage page
 }) {
   const isPast = new Date(b.departure_at) < new Date();
   const isCancelled = b.status === 'cancelled';
@@ -321,18 +323,11 @@ function BookingCard({ booking: b, onCancel, cancelling }: {
           <p className="text-[10px] text-gray-400 uppercase tracking-wide">Booking ref</p>
           <p className="text-sm font-extrabold text-gray-900 font-mono tracking-wide">{b.booking_reference}</p>
         </div>
-        {!isCancelled && !isPast && (
-          <button
-            onClick={onCancel}
-            disabled={cancelling}
-            className="text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition disabled:opacity-50"
-            style={{ color: '#DC2626', background: '#FEE2E2', border: '1px solid #FECACA' }}>
-            {cancelling ? 'Checking…' : 'Cancel booking'}
-          </button>
-        )}
-        {isPast && !isCancelled && (
-          <span className="text-xs text-gray-400">Trip completed</span>
-        )}
+        <Link href={`/bookings/${b.id}`}
+          className="text-xs font-bold px-4 py-2 rounded-lg transition"
+          style={{ color: '#1D9E75', background: '#ECFDF5', border: '1px solid #BBF7D0' }}>
+          Manage →
+        </Link>
       </div>
     </div>
   );
