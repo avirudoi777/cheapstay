@@ -618,7 +618,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         passportExpiry: best?.passportExpiry || '',
         passportCountry: best?.country || '',
       };
-      const newForms = [firstForm, ...Array.from({ length: numPax - 1 }, () => ({ ...EMPTY_FORM, email: savedProfile.email || '' }))];
+      // Additional passengers inherit email + phone from lead so the family shares one contact
+      const newForms = [firstForm, ...Array.from({ length: numPax - 1 }, () => ({
+        ...EMPTY_FORM,
+        email: savedProfile.email || '',
+        phoneNumber: savedProfile.phone || '',
+      }))];
       setForms(newForms);
       setSelectedPassportIds([best?.id || '', ...Array(numPax - 1).fill('')]);
     } else {
@@ -630,7 +635,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   }
 
   function updatePassenger(idx: number, key: keyof PassengerForm, val: string) {
-    setForms(fs => fs.map((f, i) => i === idx ? { ...f, [key]: val } : f));
+    setForms(fs => fs.map((f, i) => {
+      if (i === idx) return { ...f, [key]: val };
+      // Cascade email/phone changes from lead pax to all others (family shares one contact)
+      if (idx === 0 && (key === 'email' || key === 'phoneNumber')) return { ...f, [key]: val };
+      return f;
+    }));
     setFormErrors(es => es.map((e, i) => i === idx ? { ...e, [key]: '' } : e));
   }
   function updateCard(key: keyof CardForm, val: string) {
@@ -645,16 +655,19 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   }
 
   function validateForms(): boolean {
-    const allErrs = forms.map(form => {
+    const allErrs = forms.map((form, idx) => {
       const errs: Partial<PassengerForm> = {};
       if (!form.givenName.trim())       errs.givenName = 'Required';
       if (!form.familyName.trim())      errs.familyName = 'Required';
-      if (!form.email.includes('@'))    errs.email = 'Valid email required';
       if (!form.bornOn)                 errs.bornOn = 'Required';
-      if (!form.phoneNumber.trim())     errs.phoneNumber = 'Required';
       if (!form.passportNumber.trim())  errs.passportNumber = 'Required';
       if (!form.passportExpiry)         errs.passportExpiry = 'Required';
-      if (!form.passportCountry.trim()) errs.passportCountry = 'Required (2-letter, e.g. US)';
+      if (!form.passportCountry.trim()) errs.passportCountry = 'Required';
+      // Email and phone only required for the lead passenger (idx 0)
+      if (idx === 0) {
+        if (!form.email.includes('@'))  errs.email = 'Valid email required';
+        if (!form.phoneNumber.trim())   errs.phoneNumber = 'Required';
+      }
       return errs;
     });
     setFormErrors(allErrs);
@@ -934,29 +947,35 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       <p className="text-xs font-semibold mb-4" style={{ color: '#DC2626' }}>*Required field</p>
 
                       {/* Saved passenger select */}
-                      {savedProfile && (savedProfile.passports.length > 0 || savedProfile.givenName) && (
-                        <div className="mb-4">
-                          <label className="block text-xs font-semibold text-gray-600 mb-1">Select passenger</label>
-                          <select
-                            value={selectedPassportIds[idx] ?? ''}
-                            onChange={e => {
-                              const p = savedProfile.passports.find(p => p.id === e.target.value);
-                              if (p) selectPassportForPax(idx, p);
-                              else setSelectedPassportIds(ids => ids.map((id, i) => i === idx ? '' : id));
-                            }}
-                            className={selectCls + ' w-full'}>
-                            {savedProfile.passports.map((p, pi) => {
-                              const usedByOther = selectedPassportIds.some((id, i) => i !== idx && id === p.id);
-                              if (usedByOther) return null;
-                              const label = pi === 0 && !savedProfile.passports[1]
-                                ? `${savedProfile.givenName} ${savedProfile.familyName}${p.country ? ` — ${flagEmoji(p.country)} ${p.country}` : ''}`
-                                : `${savedProfile.givenName} ${savedProfile.familyName} — ${flagEmoji(p.country)} ${p.country}${p.country === destCountry ? ' ★ Best' : ''}`;
-                              return <option key={p.id} value={p.id}>{label}</option>;
-                            })}
-                            <option value="">Enter new passenger details</option>
-                          </select>
-                        </div>
-                      )}
+                      {savedProfile && (savedProfile.passports.length > 0 || savedProfile.givenName) && (() => {
+                        // Block the entire saved profile if any other passenger is already using it
+                        // (same person can't fly twice on the same booking)
+                        const profileTakenByOther = selectedPassportIds.some(
+                          (id, i) => i !== idx && id !== '' && id !== '__manual__'
+                        );
+                        if (profileTakenByOther) return null; // only "new passenger" option shown below
+                        return (
+                          <div className="mb-4">
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Select passenger</label>
+                            <select
+                              value={selectedPassportIds[idx] ?? ''}
+                              onChange={e => {
+                                const p = savedProfile.passports.find(p => p.id === e.target.value);
+                                if (p) selectPassportForPax(idx, p);
+                                else setSelectedPassportIds(ids => ids.map((id, i) => i === idx ? '' : id));
+                              }}
+                              className={selectCls + ' w-full'}>
+                              {savedProfile.passports.map((p, pi) => {
+                                const label = pi === 0 && savedProfile.passports.length === 1
+                                  ? `${savedProfile.givenName} ${savedProfile.familyName}${p.country ? ` — ${flagEmoji(p.country)} ${p.country}` : ''}`
+                                  : `${savedProfile.givenName} ${savedProfile.familyName} — ${flagEmoji(p.country)} ${p.country}${p.country === destCountry ? ' ★ Best' : ''}`;
+                                return <option key={p.id} value={p.id}>{label}</option>;
+                              })}
+                              <option value="">Enter new passenger details</option>
+                            </select>
+                          </div>
+                        );
+                      })()}
 
                       {/* Gender */}
                       <div className="mb-4">
@@ -975,7 +994,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
                       <div className="grid grid-cols-2 gap-3 mb-3">
                         <Field label="First and middle name *">
-                          <input value={paxForm.givenName} onChange={e => updatePassenger(idx, 'givenName', e.target.value)} placeholder="As on passport" className={inputCls} />
+                          <input
+                            data-error={paxErrors.givenName ? 'true' : undefined}
+                            value={paxForm.givenName} onChange={e => updatePassenger(idx, 'givenName', e.target.value)} placeholder="As on passport"
+                            className={inputCls + (paxErrors.givenName ? ' border-red-400' : '')} />
                           {paxErrors.givenName && <p className="text-xs text-red-500 mt-0.5">{paxErrors.givenName}</p>}
                         </Field>
                         <Field label="Last name *">
@@ -1505,13 +1527,51 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
               })()}
 
               {/* Continue button on passenger step */}
-              {bookStep === 'passenger' && (
-                <button onClick={() => { if (validateForms()) setBookStep('payment'); }}
-                  className="w-full py-4 rounded-2xl text-sm font-bold text-white"
-                  style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
-                  {extrasTotal > 0 ? `Continue with +${fmtPrice(extrasTotal, offer.totalCurrency)} →` : 'Continue to payment →'}
-                </button>
-              )}
+              {bookStep === 'passenger' && (() => {
+                const hasAnyError = formErrors.some(e => Object.keys(e).length > 0);
+                const missingFields = formErrors.flatMap((e, idx) =>
+                  Object.entries(e).map(([field]) => {
+                    const fieldNames: Record<string, string> = {
+                      givenName: 'First name', familyName: 'Last name', bornOn: 'Date of birth',
+                      email: 'Email', phoneNumber: 'Phone', passportNumber: 'Passport number',
+                      passportExpiry: 'Passport expiry', passportCountry: 'Nationality',
+                    };
+                    return `Passenger ${idx + 1}: ${fieldNames[field] ?? field}`;
+                  })
+                );
+                return (
+                  <div className="space-y-2">
+                    {hasAnyError && (
+                      <div className="rounded-xl px-4 py-3 flex items-start gap-2" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+                        <span className="text-red-500 mt-0.5 flex-shrink-0">⚠️</span>
+                        <div>
+                          <p className="text-xs font-bold text-red-700">Please fill in all required fields</p>
+                          <ul className="mt-1 space-y-0.5">
+                            {missingFields.map((f, i) => (
+                              <li key={i} className="text-[11px] text-red-600">• {f}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => {
+                        if (validateForms()) setBookStep('payment');
+                        else {
+                          // Scroll to first error
+                          setTimeout(() => {
+                            const el = document.querySelector('[data-error="true"]');
+                            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          }, 50);
+                        }
+                      }}
+                      className="w-full py-4 rounded-2xl text-sm font-bold text-white transition"
+                      style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)', opacity: 1 }}>
+                      {extrasTotal > 0 ? `Continue with +${fmtPrice(extrasTotal, offer.totalCurrency)} →` : 'Continue to payment →'}
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* ── EXTRAS STEP (kept for type compat but never rendered) ── */}
