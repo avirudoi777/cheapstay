@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
   // Airline prices change in real-time — booking with a stale amount causes
   // Duffel to return "Please retrieve the offer again to get the latest pricing information."
   // GET /air/offers/{id} refreshes the price without creating a new offer_request.
+  // If the offer is no longer available (expired or sold out), fail early with a clear error.
   let bookingAmount = amount;
   let bookingCurrency = currency;
   let refreshedTotalAmount: number | null = null;
@@ -60,8 +61,17 @@ export async function POST(req: NextRequest) {
         bookingCurrency = freshCurrency ?? currency;
         refreshedTotalAmount = parseFloat(freshAmount);
       }
+    } else {
+      // Offer expired or no longer available — fail now before attempting to book
+      const errBody = await offerRes.json().catch(() => ({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const detail = (errBody as any)?.errors?.[0]?.message || 'This offer is no longer available.';
+      return NextResponse.json(
+        { error: 'offer_expired', detail: `${detail} Please search again for updated prices.` },
+        { status: 410 },
+      );
     }
-  } catch { /* keep original amount if refresh fails */ }
+  } catch { /* keep original amount if refresh fails for an unexpected reason */ }
 
   const payment = isTestMode
     ? { type: 'balance', amount: bookingAmount, currency: bookingCurrency }

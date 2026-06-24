@@ -512,6 +512,15 @@ if (runUnit) {
     assert('balance payment uses bookingAmount not raw amount', src.includes('amount: bookingAmount'));
     assert('returns refreshedTotalAmount to frontend', src.includes('refreshedTotalAmount'));
     assert('offer GET is cache: no-store', src.includes("cache: 'no-store'"));
+    assert('expired offer returns 410 before attempting to book', src.includes('offer_expired') && src.includes('status: 410'));
+    assert('expired offer error message tells user to search again', src.includes('Please search again'));
+  });
+
+  await section('Checkout — frontend handles offer_expired error gracefully', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert('offer_expired error detected and surfaced', src.includes("order.error === 'offer_expired'") || src.includes('no longer available'));
+    assert('"Search again" link shown on expired offer error', src.includes('Search again') && src.includes('no longer available'));
+    assert('Search again resets selectedOffer', src.includes("setSelectedOffer(null)") && src.includes('setBookingError'));
   });
 
   await section('Checkout — duffel-order saves booking to Supabase', async () => {

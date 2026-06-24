@@ -793,6 +793,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       });
       const order = await orderRes.json();
       if (order.error) {
+        if (order.error === 'offer_expired') {
+          throw new Error('This offer is no longer available (sold out or expired). Please go back and search again.');
+        }
         throw new Error(order.detail || order.error);
       }
 
@@ -1295,9 +1298,19 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   </div>
 
                   {bookingError && (
-                    <div className="rounded-xl px-4 py-3 text-sm text-red-700 font-semibold flex items-center gap-2" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-                      <span>⚠️</span>
-                      <span>{bookingError}</span>
+                    <div className="rounded-xl px-4 py-3 text-sm text-red-700 font-semibold flex flex-col gap-2" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+                      <div className="flex items-center gap-2">
+                        <span>⚠️</span>
+                        <span>{bookingError}</span>
+                      </div>
+                      {bookingError.includes('no longer available') && (
+                        <button
+                          onClick={() => { setSelectedOffer(null); setBookingError(''); }}
+                          className="self-start text-xs font-bold underline text-red-700 hover:text-red-900"
+                        >
+                          ← Search again
+                        </button>
+                      )}
                     </div>
                   )}
 
