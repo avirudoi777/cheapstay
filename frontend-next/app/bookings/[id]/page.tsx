@@ -804,205 +804,168 @@ function DestinationTipsSection({
         </div>
       )}
 
-      {/* ── Destination tips ─────────────────────────── */}
+      {/* ── Destination tips — horizontal scroll cards ─ */}
       {(guide || arrival) && (
-        <div className="rounded-2xl overflow-hidden shadow-sm"
-          style={{ background: 'linear-gradient(135deg, #0C4A2A 0%, #064E3B 100%)' }}>
-          {/* Header */}
-          <div className="px-6 pt-5 pb-4 border-b border-emerald-900">
+        <div className="space-y-4">
+
+          {/* Section header */}
+          <div className="px-1">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg">{guide?.flag ?? '🌍'}</span>
-              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#6EE7B7' }}>
-                Destination Tips
+              <span className="text-xl">{guide?.flag ?? '🌍'}</span>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Suggested for your trip</p>
+                <p className="text-xl font-extrabold text-gray-900">{destinationCity}</p>
+              </div>
+            </div>
+            {arrival?.cityIntro && (
+              <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">{arrival.cityIntro}</p>
+            )}
+          </div>
+
+          {/* ── Horizontal scroll row ────────────────── */}
+          <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 [&::-webkit-scrollbar]:hidden"
+            style={{ scrollbarWidth: 'none' }}>
+
+            {/* Ride-share app cards — one per app */}
+            {rideApps.map(appName => {
+              const meta = getAppMeta(appName);
+              return (
+                <a key={appName} href={meta.downloadUrl} target="_blank" rel="noopener noreferrer"
+                  className="flex-shrink-0 flex flex-col rounded-2xl p-4 active:scale-95 transition-transform"
+                  style={{ width: 164, minHeight: 208, background: meta.bgColor, border: `1.5px solid ${meta.borderColor}` }}>
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl font-black mb-3 flex-shrink-0"
+                    style={{ background: meta.borderColor }}>
+                    <span className="text-white text-xl">{appName[0]}</span>
+                  </div>
+                  <p className="text-[15px] font-extrabold text-white leading-tight">{appName}</p>
+                  <p className="text-[11px] font-semibold mt-0.5 leading-tight" style={{ color: meta.borderColor }}>
+                    {meta.tagline}
+                  </p>
+                  <p className="text-[11px] mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.62)' }}>
+                    {meta.description}
+                  </p>
+                  <div className="mt-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.13)' }}>
+                    <p className="text-[11px] font-bold text-white text-center">Download →</p>
+                  </div>
+                </a>
+              );
+            })}
+
+            {/* Limo / VIP cards */}
+            {limoServices.map(limo => (
+              <a key={limo.name} href={limo.url} target="_blank" rel="noopener noreferrer"
+                className="flex-shrink-0 flex flex-col rounded-2xl p-4 active:scale-95 transition-transform"
+                style={{ width: 164, minHeight: 208, background: '#0A0A0A', border: '1.5px solid rgba(234,179,8,0.4)' }}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3 flex-shrink-0"
+                  style={{ background: 'rgba(234,179,8,0.15)' }}>
+                  🚘
+                </div>
+                <p className="text-[15px] font-extrabold text-white leading-tight">{limo.name}</p>
+                <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#EAB308' }}>{limo.tagline}</p>
+                <p className="text-[11px] mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.58)' }}>
+                  {limo.description}
+                </p>
+                <p className="text-[11px] font-bold mt-1" style={{ color: '#86EFAC' }}>{limo.estimatedCost}</p>
+                <div className="mt-3 py-1.5 rounded-xl" style={{ background: 'rgba(234,179,8,0.14)' }}>
+                  <p className="text-[11px] font-bold text-center" style={{ color: '#EAB308' }}>Book →</p>
+                </div>
+              </a>
+            ))}
+
+            {/* Transit card */}
+            {arrival?.transit && (
+              <div className="flex-shrink-0 flex flex-col rounded-2xl p-4"
+                style={{ width: 164, minHeight: 208, background: '#0F172A', border: '1.5px solid rgba(99,102,241,0.4)' }}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3 flex-shrink-0"
+                  style={{ background: 'rgba(99,102,241,0.15)' }}>
+                  🚇
+                </div>
+                <p className="text-[15px] font-extrabold text-white leading-tight">{arrival.transit.name}</p>
+                <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#A5B4FC' }}>
+                  {arrival.transit.cost} · {arrival.transit.time}
+                </p>
+                <p className="text-[11px] mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.58)' }}>
+                  {arrival.transit.note ?? ''}
+                </p>
+              </div>
+            )}
+
+            {/* SIM card */}
+            {arrival?.sim && (
+              <div className="flex-shrink-0 flex flex-col rounded-2xl p-4"
+                style={{ width: 164, minHeight: 208, background: '#0F172A', border: '1.5px solid rgba(16,185,129,0.4)' }}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3 flex-shrink-0"
+                  style={{ background: 'rgba(16,185,129,0.15)' }}>
+                  📱
+                </div>
+                <p className="text-[15px] font-extrabold text-white leading-tight">Local SIM</p>
+                <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#34D399' }}>Buy at the airport</p>
+                <p className="text-[11px] mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.58)' }}>
+                  {arrival.sim}
+                </p>
+              </div>
+            )}
+
+            {/* NordVPN — China only */}
+            {showVpnPromo && (
+              <a href="https://go.nordvpn.net/aff_c?offer_id=15&aff_id=151019&url_id=902" target="_blank" rel="noopener noreferrer"
+                className="flex-shrink-0 flex flex-col rounded-2xl p-4 active:scale-95 transition-transform"
+                style={{ width: 164, minHeight: 208, background: '#1E0546', border: '1.5px solid rgba(139,92,246,0.55)' }}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3 flex-shrink-0"
+                  style={{ background: 'rgba(139,92,246,0.22)' }}>
+                  🔒
+                </div>
+                <p className="text-[15px] font-extrabold text-white leading-tight">NordVPN</p>
+                <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#C4B5FD' }}>Required for China</p>
+                <p className="text-[11px] mt-2 leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.62)' }}>
+                  Google, WhatsApp &amp; Instagram are blocked. Install before landing — can&apos;t download inside China.
+                </p>
+                <div className="mt-3 py-1.5 rounded-xl" style={{ background: 'rgba(139,92,246,0.28)' }}>
+                  <p className="text-[11px] font-bold text-center" style={{ color: '#E9D5FF' }}>70% off + 3mo free →</p>
+                </div>
+              </a>
+            )}
+
+          </div>
+
+          {/* Pickup note */}
+          {arrival && (
+            <div className="flex items-start gap-1.5 px-1">
+              <span className="text-xs mt-0.5 flex-shrink-0">📍</span>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                {arrival.rideShare.pickupNote}{' · '}
+                <span className="font-semibold text-gray-700">{arrival.rideShare.estimatedCost}</span>
               </p>
             </div>
-            <p className="text-2xl font-extrabold text-white">{destinationCity}</p>
-            {arrival?.cityIntro && (
-              <p className="text-sm mt-2 leading-relaxed" style={{ color: '#A7F3D0' }}>
-                {arrival.cityIntro}
-              </p>
-            )}
-          </div>
+          )}
 
-          <div className="px-6 py-5 space-y-6">
-            {/* ── Getting from airport ───────────────────── */}
-            {arrival && (
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#6EE7B7' }}>
-                  Getting from {destinationCode}
-                </p>
-                <p className="text-xs mb-4" style={{ color: '#A7F3D0' }}>
-                  {arrival.rideShare.pickupNote} · <span className="font-semibold text-white">{arrival.rideShare.estimatedCost}</span>
-                </p>
+          {/* Watch out */}
+          {arrival?.watchOut && (
+            <div className="flex gap-2 items-start rounded-xl px-4 py-3"
+              style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+              <span className="text-sm flex-shrink-0 mt-0.5">⚠️</span>
+              <p className="text-xs leading-relaxed text-amber-800">{arrival.watchOut}</p>
+            </div>
+          )}
 
-                {/* ── Individual ride-share app cards ─────── */}
-                <div className="space-y-3">
-                  {rideApps.map(appName => {
-                    const meta = getAppMeta(appName);
-                    const initial = appName[0].toUpperCase();
-                    return (
-                      <a key={appName} href={meta.downloadUrl} target="_blank" rel="noopener noreferrer"
-                        className="flex items-start gap-4 rounded-2xl p-4 transition hover:opacity-90"
-                        style={{ background: meta.bgColor, border: `1.5px solid ${meta.borderColor}` }}>
-                        {/* App icon */}
-                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-black flex-shrink-0"
-                          style={{ background: meta.borderColor, color: '#fff', backdropFilter: 'blur(8px)' }}>
-                          {initial}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-base font-extrabold text-white">{appName}</p>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                              style={{ background: meta.borderColor, color: '#fff' }}>
-                              {meta.tagline}
-                            </span>
-                          </div>
-                          <p className="text-xs mt-1.5 leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
-                            {meta.description}
-                          </p>
-                          <span className="inline-flex items-center gap-1 mt-2.5 text-xs font-bold px-3 py-1.5 rounded-xl"
-                            style={{ background: 'rgba(255,255,255,0.12)', color: '#fff' }}>
-                            Download app →
-                          </span>
-                        </div>
-                      </a>
-                    );
-                  })}
-                </div>
-
-                {/* ── Limo / VIP section ──────────────────── */}
-                {limoServices.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-xs font-bold uppercase tracking-widest mb-3 mt-2" style={{ color: '#FCD34D' }}>
-                      VIP &amp; Chauffeur Transfers
-                    </p>
-                    <div className="space-y-3">
-                      {limoServices.map(limo => (
-                        <a key={limo.name} href={limo.url} target="_blank" rel="noopener noreferrer"
-                          className="flex items-start gap-4 rounded-2xl p-4 transition hover:opacity-90"
-                          style={{ background: 'rgba(0,0,0,0.4)', border: '1.5px solid rgba(253,211,77,0.25)' }}>
-                          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0"
-                            style={{ background: 'rgba(253,211,77,0.12)', border: '1px solid rgba(253,211,77,0.25)' }}>
-                            🚘
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-base font-extrabold text-white">{limo.name}</p>
-                            <p className="text-xs font-semibold mt-0.5" style={{ color: '#FCD34D' }}>{limo.tagline}</p>
-                            <p className="text-xs mt-1.5 leading-relaxed" style={{ color: 'rgba(255,255,255,0.70)' }}>
-                              {limo.description}
-                            </p>
-                            <p className="text-xs font-bold mt-2" style={{ color: '#86EFAC' }}>{limo.estimatedCost}</p>
-                            <span className="inline-flex items-center gap-1 mt-2 text-xs font-bold px-3 py-1.5 rounded-xl"
-                              style={{ background: 'rgba(253,211,77,0.15)', color: '#FCD34D' }}>
-                              Book now →
-                            </span>
-                          </div>
-                        </a>
-                      ))}
+          {/* Local Know-How */}
+          {guide && guide.tips.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 px-1">Local Know-How</p>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
+                {guide.tips.map((tip, i) => (
+                  <div key={i} className="flex gap-3 px-4 py-3">
+                    <span className="text-base flex-shrink-0 mt-0.5">{tip.icon}</span>
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">{tip.title}</p>
+                      <p className="text-xs mt-0.5 text-gray-500">{tip.desc}</p>
                     </div>
                   </div>
-                )}
-
-                {/* ── Transit card ────────────────────────── */}
-                {arrival.transit && (
-                  <div className="mt-3 rounded-2xl p-4" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(167,243,208,0.15)' }}>
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: 'rgba(110,231,183,0.12)' }}>
-                        <span className="text-lg">🚇</span>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-white">{arrival.transit.name}</p>
-                        <p className="text-xs font-semibold mt-0.5" style={{ color: '#6EE7B7' }}>
-                          {arrival.transit.cost} · {arrival.transit.time}
-                        </p>
-                        {arrival.transit.note && (
-                          <p className="text-xs mt-1 leading-relaxed" style={{ color: '#A7F3D0' }}>{arrival.transit.note}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ── Watch out ───────────────────────────── */}
-                {arrival.watchOut && (
-                  <div className="mt-3 flex gap-3 items-start rounded-xl px-4 py-3"
-                    style={{ background: 'rgba(253,211,77,0.08)', border: '1px solid rgba(253,211,77,0.2)' }}>
-                    <span className="text-base flex-shrink-0 mt-0.5">⚠️</span>
-                    <p className="text-xs leading-relaxed" style={{ color: '#FCD34D' }}>{arrival.watchOut}</p>
-                  </div>
-                )}
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* ── Travel Essentials ─────────────────────── */}
-            {(arrival?.sim || showVpnPromo) && (
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#6EE7B7' }}>
-                  Travel Essentials
-                </p>
-                <div className="space-y-3">
-                  {/* SIM card tip */}
-                  {arrival?.sim && (
-                    <div className="flex items-start gap-3 rounded-2xl p-4"
-                      style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(167,243,208,0.15)' }}>
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: 'rgba(110,231,183,0.12)' }}>
-                        <span className="text-lg">📱</span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-white">SIM Card</p>
-                        <p className="text-xs mt-1 leading-relaxed" style={{ color: '#A7F3D0' }}>{arrival.sim}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* NordVPN promo — China only */}
-                  {showVpnPromo && (
-                    <a href="https://go.nordvpn.net/aff_c?offer_id=15&aff_id=151019&url_id=902" target="_blank" rel="noopener noreferrer"
-                      className="flex items-start gap-3 rounded-2xl px-4 py-4 transition hover:opacity-90"
-                      style={{ background: 'rgba(74,0,224,0.22)', border: '1.5px solid rgba(139,92,246,0.5)' }}>
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: 'rgba(139,92,246,0.2)' }}>
-                        <span className="text-lg">🔒</span>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-base font-extrabold text-white">Get NordVPN — required for China</p>
-                        <p className="text-xs mt-1 leading-relaxed" style={{ color: '#C4B5FD' }}>
-                          Google, WhatsApp, Instagram &amp; most Western apps are blocked in China.{' '}
-                          <strong style={{ color: '#fff' }}>You cannot download a VPN once inside China</strong> — install it now.
-                        </p>
-                        <span className="inline-flex items-center gap-1 mt-2.5 text-xs font-bold px-3 py-1.5 rounded-xl"
-                          style={{ background: 'rgba(139,92,246,0.35)', color: '#E9D5FF' }}>
-                          Get NordVPN — usually 70% off + 3 months free →
-                        </span>
-                      </div>
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* ── City tips from layover guide ─────────── */}
-            {guide && guide.tips.length > 0 && (
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#6EE7B7' }}>
-                  Local Know-How
-                </p>
-                <div className="space-y-3">
-                  {guide.tips.map((tip, i) => (
-                    <div key={i} className="flex gap-3">
-                      <span className="text-base flex-shrink-0 mt-0.5">{tip.icon}</span>
-                      <div>
-                        <p className="text-sm font-bold text-white">{tip.title}</p>
-                        <p className="text-xs mt-0.5" style={{ color: '#A7F3D0' }}>{tip.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       )}
     </>
