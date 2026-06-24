@@ -1666,31 +1666,94 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
   /* ── CONFIRMATION VIEW ───────────────────────────────────────────────────── */
   if (bookStep === 'confirmed' && confirmation && selectedOffer) {
+    const firstSeg = selectedOffer.segments[0];
+    const lastSeg  = selectedOffer.segments[selectedOffer.segments.length - 1];
     return (
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-6 mb-12">
-        <RouteMap
-          fromCode={selectedOffer.segments[0].depCode}
-          toCode={selectedOffer.segments[selectedOffer.segments.length - 1].arrCode}
-          fromName={fromName} toName={toName}
-          stops={selectedOffer.segments.slice(1).map(s => s.depCode)}
-          duration={selectedOffer.totalDuration}
-        />
+      <div className="max-w-lg mx-auto px-4 sm:px-6 mt-8 mb-16">
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4" style={{ background: '#F0FBF7' }}>✅</div>
-          <h2 className="text-2xl font-extrabold text-gray-900">Booking confirmed!</h2>
-          <p className="text-sm text-gray-500 mt-1 mb-6">Confirmation sent to {forms[0]?.email}</p>
+        {/* Boarding-pass card */}
+        <div className="rounded-3xl overflow-hidden shadow-2xl" style={{ background: 'linear-gradient(160deg, #0a1628 0%, #0f2e4a 60%, #0d3d2e 100%)' }}>
 
-          <div className="rounded-2xl p-6 text-left mb-4" style={{ background: '#F8FAFC', border: '1.5px solid #E2E8F0' }}>
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Booking reference</p>
-            <p className="text-4xl font-extrabold tracking-widest text-gray-900 mb-3">{confirmation.reference}</p>
-            <p className="text-sm text-gray-600">{fmtPrice(confirmation.amount, confirmation.currency)} · {fromName} → {toName}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{fmtDate(depart + 'T12:00')} · {forms[0]?.givenName} {forms[0]?.familyName}{forms.length > 1 ? ` + ${forms.length - 1} more` : ''}</p>
+          {/* Top section — route + check */}
+          <div className="px-8 pt-8 pb-6 text-center">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl mx-auto mb-5"
+              style={{ background: 'rgba(29,158,117,0.18)', border: '1.5px solid rgba(29,158,117,0.4)' }}>
+              ✓
+            </div>
+            <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: 'rgba(29,158,117,0.9)' }}>Booking confirmed</p>
+            <h2 className="text-2xl font-extrabold text-white mb-1">{fromName} → {toName}</h2>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              {firstSeg.airline} · {fmtDate(depart + 'T12:00')}
+            </p>
           </div>
 
-          <button onClick={onClear}
-            className="w-full py-3.5 rounded-2xl text-sm font-bold text-white"
+          {/* Tear-line divider */}
+          <div className="relative flex items-center px-0 my-0">
+            <div className="w-6 h-6 rounded-full flex-shrink-0 -ml-3" style={{ background: '#F8FAFC' }} />
+            <div className="flex-1 border-t-2 border-dashed mx-1" style={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+            <div className="w-6 h-6 rounded-full flex-shrink-0 -mr-3" style={{ background: '#F8FAFC' }} />
+          </div>
+
+          {/* Reference + details */}
+          <div className="px-8 pt-6 pb-8">
+            <p className="text-[10px] font-bold tracking-widest uppercase mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Booking reference</p>
+            <p className="text-5xl font-extrabold tracking-widest mb-5" style={{
+              color: 'white',
+              textShadow: '0 0 30px rgba(29,158,117,0.5)',
+              letterSpacing: '0.15em',
+            }}>
+              {confirmation.reference}
+            </p>
+
+            {/* 3-col detail row */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div>
+                <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>From</p>
+                <p className="text-sm font-bold text-white">{firstSeg.depCode}</p>
+                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{firstSeg.depCity}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Duration</p>
+                <p className="text-sm font-bold text-white">{selectedOffer.totalDuration}</p>
+                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                  {selectedOffer.segments.length > 1 ? `${selectedOffer.segments.length - 1} stop` : 'Direct'}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>To</p>
+                <p className="text-sm font-bold text-white">{lastSeg.arrCode}</p>
+                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{lastSeg.arrCity}</p>
+              </div>
+            </div>
+
+            {/* Passenger + price row */}
+            <div className="flex items-center justify-between py-4 px-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div>
+                <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Passenger</p>
+                <p className="text-sm font-semibold text-white">{forms[0]?.givenName} {forms[0]?.familyName}{forms.length > 1 ? ` +${forms.length - 1}` : ''}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Total paid</p>
+                <p className="text-lg font-extrabold" style={{ color: '#1D9E75' }}>{fmtPrice(confirmation.amount, confirmation.currency)}</p>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-center mt-4" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              Confirmation sent to {forms[0]?.email}
+            </p>
+          </div>
+        </div>
+
+        {/* CTA buttons */}
+        <div className="mt-4 space-y-2.5">
+          <button onClick={() => window.location.href = '/bookings'}
+            className="w-full py-3.5 rounded-2xl text-sm font-bold text-white transition-opacity hover:opacity-90"
             style={{ background: '#1D9E75' }}>
+            View my bookings →
+          </button>
+          <button onClick={onClear}
+            className="w-full py-3 rounded-2xl text-sm font-semibold transition-colors"
+            style={{ color: 'rgba(100,116,139,1)', background: 'white', border: '1.5px solid #E2E8F0' }}>
             Search another flight
           </button>
         </div>

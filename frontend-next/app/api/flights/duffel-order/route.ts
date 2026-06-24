@@ -131,6 +131,12 @@ export async function POST(req: NextRequest) {
         const { error: retryErr } = await supabase.from('flight_bookings').insert(baseRow);
         if (retryErr) console.error('Retry insert also failed:', retryErr.message);
       }
+
+      // Expose save debug so we can diagnose in the network tab
+      (order as Record<string, unknown>)._saveDebug = {
+        userId: user?.id ?? null,
+        insertError: insertErr?.message ?? null,
+      };
     } catch (saveErr) {
       console.error('Failed to save booking to Supabase:', saveErr);
     }
@@ -142,6 +148,7 @@ export async function POST(req: NextRequest) {
       currency: order.total_currency,
       passengers: order.passengers,
       testMode: isTestMode,
+      _saveDebug: (order as Record<string, unknown>)._saveDebug ?? null,
     });
   } catch (err) {
     console.error('Duffel order error:', JSON.stringify(err));
