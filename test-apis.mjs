@@ -471,6 +471,13 @@ if (runUnit) {
       src.includes('dragonpass.com') || src.includes('collinsonflex.com') || src.includes('lounge'));
   });
 
+  // ── Vercel Analytics CDN URL (avoids Cloudflare blocking /_vercel/) ────────
+  await section('Vercel Analytics — uses CDN scriptSrc (not /_vercel/ path)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/layout.tsx'), 'utf8');
+    assert('Analytics component uses scriptSrc CDN URL', src.includes('va.vercel-scripts.com'));
+    assert('Analytics does not rely on /_vercel/ default path', !src.includes('/_vercel/insights'));
+  });
+
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

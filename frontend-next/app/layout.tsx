@@ -216,8 +216,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         )}
 
-        {/* Vercel Analytics — page views & web vitals */}
-        <Analytics />
+        {/* Vercel Analytics — use CDN URL to avoid Cloudflare blocking /_vercel/ paths */}
+        <Analytics scriptSrc="https://va.vercel-scripts.com/v1/script.js" />
       </body>
     </html>
   );
