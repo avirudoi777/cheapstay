@@ -19,24 +19,18 @@ export async function DELETE() {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Delete user data from all tables first (FK constraints block auth deletion otherwise)
-    const cleanupResults: Record<string, string> = {};
-    const tables: { table: string; col: string }[] = [
-      { table: 'flight_bookings', col: 'user_id' },
-      { table: 'booking_clicks', col: 'user_id' },
-      { table: 'user_preferences', col: 'user_id' },
-      { table: 'user_profiles', col: 'id' },
-    ];
-    for (const { table, col } of tables) {
-      const { error: delErr } = await admin.from(table).delete().eq(col, user.id);
-      if (delErr) cleanupResults[table] = delErr.message;
-    }
-    console.log('Account delete cleanup:', cleanupResults);
+    // Use the user's own session to delete their rows (service_role lacks table grants;
+    // user's JWT has RLS-allowed DELETE on their own rows)
+    await supabase.from('flight_bookings').delete().eq('user_id', user.id);
+    await supabase.from('booking_clicks').delete().eq('user_id', user.id);
+    await supabase.from('user_preferences').delete().eq('user_id', user.id);
+    await supabase.from('user_profiles').delete().eq('id', user.id);
 
+    // Admin client needed only to delete the auth user itself
     const { error } = await admin.auth.admin.deleteUser(user.id);
     if (error) {
       console.error('Auth deleteUser error:', error);
-      return NextResponse.json({ error: error.message, cleanup: cleanupResults }, { status: 500 });
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true });
