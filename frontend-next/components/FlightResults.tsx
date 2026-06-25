@@ -907,9 +907,17 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
               gender: lead.gender || existing.gender || 'm',
               bornOn: lead.bornOn || existing.bornOn || '',
               phone: lead.phoneNumber || existing.phone || '',
-              passports: lead.passportNumber
-                ? [{ id: crypto.randomUUID(), country: lead.passportCountry || '', label: lead.passportCountry || '', passportNumber: lead.passportNumber, passportExpiry: lead.passportExpiry }]
-                : (existing.passports ?? []),
+              passports: (() => {
+                if (!lead.passportNumber) return existing.passports ?? [];
+                const existingPassports = existing.passports ?? [];
+                const newPassport = { id: crypto.randomUUID(), country: lead.passportCountry || '', label: lead.passportCountry || '', passportNumber: lead.passportNumber, passportExpiry: lead.passportExpiry };
+                const idx = existingPassports.findIndex((p: { country: string; id?: string }) => p.country === lead.passportCountry);
+                if (idx >= 0) {
+                  // Update the matching country passport, keep all others
+                  return existingPassports.map((p: { country: string; id?: string }, i: number) => i === idx ? { ...p, ...newPassport, id: p.id ?? newPassport.id } : p);
+                }
+                return [...existingPassports, newPassport];
+              })(),
               companions: mergedCompanions,
             }),
           });

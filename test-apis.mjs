@@ -593,6 +593,7 @@ if (runUnit) {
     assert('companions merged by name (no duplicates)', src.includes('mergedCompanions'));
     assert('lead passenger (forms[0]) updates main profile', src.includes('forms[0]') && src.includes('givenName: lead.givenName'));
     assert('additional passengers (forms.slice(1)) become companions', src.includes('forms.slice(1)'));
+    assert('passports merged by country — existing passports not wiped', src.includes('existingPassports') && src.includes('findIndex') && src.includes('p.country === lead.passportCountry'));
   });
 
   // ── DiDi logo + AppLogo fallback ────────────────────────────────────────
@@ -702,6 +703,35 @@ if (runUnit) {
     assert('Name unavailable → contact airline message', src.includes('nameUnavailable') && src.includes("contact the airline directly"));
     assert('nameDone success state', src.includes('nameDone'));
     assert('passenger list shown for editing', src.includes('namePassengerId'));
+  });
+
+  // ── Chip price prefetch includes returnDate ──────────────────────────────
+  await section('Date chip prefetch — includes returnDate for round trips', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert('prefetch shifts returnDate by same offset', src.includes('prefetchRet') && src.includes('rd.setUTCDate'));
+    assert('prefetch sends returnDate to duffel-search', src.includes('returnDate: prefetchRet'));
+    assert('chip shows ~ prefix for non-active dates', src.includes("!isActive && '~'"));
+  });
+
+  // ── Airline internal_error retry ─────────────────────────────────────────
+  await section('Booking error — internal_error shows retry button', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert('internal_error detected and tagged as retryable', src.includes('__retryable__') && src.includes('internal_error'));
+    assert('retry button shown for retryable errors', src.includes("startsWith('__retryable__')") && src.includes('Try again'));
+    assert('__retryable__ prefix stripped from displayed message', src.includes("replace('__retryable__', '')"));
+  });
+
+  // ── Calendar flip-up ─────────────────────────────────────────────────────
+  await section('Date picker — calendar flips above input when near bottom of viewport', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightSearchBar.tsx'), 'utf8');
+    assert('flipUp logic exists', src.includes('flipUp') && src.includes('calH'));
+    assert('top position uses flipUp to go above input', src.includes('flipUp ? anchor.top - calH'));
+  });
+
+  // ── DragonPass link fix ───────────────────────────────────────────────────
+  await section('DragonPass link — uses root URL not broken /en-gb/ path', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    assert('DragonPass links to root URL', src.includes('dragonpass.com/') && !src.includes('dragonpass.com/en-gb'));
   });
 
   // ── transport-tips: APP_META ──────────────────────────────────────────────
