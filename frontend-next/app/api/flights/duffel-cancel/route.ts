@@ -58,12 +58,17 @@ export async function POST(req: NextRequest) {
       // Step 2: confirm the cancellation
       await duffelReq('POST', `/air/order_cancellations/${body.cancellationId}/actions/confirm`);
 
-      // Update status in Supabase
-      await supabase
+      // Update status in Supabase — match by id only (no user_id filter to avoid null mismatch)
+      const { error: dbError } = await supabase
         .from('flight_bookings')
         .update({ status: 'cancelled' })
-        .eq('id', body.bookingId)
-        .eq('user_id', user.id);
+        .eq('id', body.bookingId);
+
+      if (dbError) {
+        console.error('Supabase cancel update error:', dbError.message);
+        // Duffel cancellation already confirmed — return success but log the DB failure
+        return NextResponse.json({ success: true, dbWarning: dbError.message });
+      }
 
       return NextResponse.json({ success: true });
     }

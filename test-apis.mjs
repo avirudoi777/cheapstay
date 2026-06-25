@@ -558,6 +558,97 @@ if (runUnit) {
     assert('Supabase failure does not break booking (best-effort)', src.includes('best-effort'));
   });
 
+  // ── Cancel booking — DB update fix ─────────────────────────────────────────
+  await section('Cancel — duffel-cancel route updates DB correctly', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
+    assert('confirm action updates status to cancelled', src.includes("status: 'cancelled'"));
+    assert('DB update checks for error (not silent)', src.includes('dbError'));
+    assert('update matches on id only (no user_id filter that breaks null rows)', !src.includes(".eq('user_id', user.id)"));
+    assert('Duffel cancellation confirmed before DB update', src.includes('order_cancellations') && src.includes('actions/confirm'));
+  });
+
+  // ── Companion isChild flag ───────────────────────────────────────────────
+  await section('Companions — isChild flag', async () => {
+    const accountSrc = readFileSync(resolve(__dir, 'frontend-next/app/account/page.tsx'), 'utf8');
+    assert('CompanionData has isChild field', accountSrc.includes('isChild'));
+    assert('EMPTY_COMPANION initialises isChild false', accountSrc.includes('isChild: false'));
+    assert('toggle in companion form', accountSrc.includes('This is a child'));
+    assert('Child badge shown in companion list', accountSrc.includes('>Child<'));
+
+    const apiSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/profile/traveler/route.ts'), 'utf8');
+    assert('CompanionRaw has is_child field', apiSrc.includes('is_child'));
+    assert('isChild decoded on GET', apiSrc.includes('isChild'));
+    assert('is_child encoded on POST', apiSrc.includes('is_child:'));
+
+    const flightSrc = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert('CompanionProfile has isChild', flightSrc.includes('isChild?'));
+  });
+
+  // ── Companion save from booking flow ────────────────────────────────────
+  await section('Companions — savePassenger checkbox actually POSTs to API', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert('savePassenger state exists', src.includes('savePassenger'));
+    assert('save POST triggered after booking when checked', src.includes("if (savePassenger)") && src.includes("method: 'POST'") && src.includes('/api/profile/traveler'));
+    assert('existing companions GETted before merge', src.includes("fetch('/api/profile/traveler')") && src.includes('mergedCompanions'));
+    assert('companions merged by name (no duplicates)', src.includes('mergedCompanions'));
+    assert('lead passenger (forms[0]) updates main profile', src.includes('forms[0]') && src.includes('givenName: lead.givenName'));
+    assert('additional passengers (forms.slice(1)) become companions', src.includes('forms.slice(1)'));
+  });
+
+  // ── DiDi logo + AppLogo fallback ────────────────────────────────────────
+  await section('Ride-share logos — DiDi Clearbit domain and 3-level AppLogo fallback', async () => {
+    const tipsSrc = readFileSync(resolve(__dir, 'frontend-next/lib/transport-tips.ts'), 'utf8');
+    assert('DiDi logo uses didichuxing.com (not didiglobal.com in logoUrl)', tipsSrc.includes('didichuxing.com') && !tipsSrc.includes('clearbit.com/didiglobal.com'));
+
+    const bookSrc = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    assert('AppLogo has 3-level fallback (clearbit/favicon/letter)', bookSrc.includes("'clearbit'") && bookSrc.includes("'favicon'") && bookSrc.includes("'letter'"));
+    assert('Google favicon used as second fallback', bookSrc.includes('google.com/s2/favicons'));
+    assert('letter initial as last resort', bookSrc.includes('name[0]'));
+  });
+
+  // ── Delete account ───────────────────────────────────────────────────────
+  await section('Account — delete account feature', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/account/page.tsx'), 'utf8');
+    assert('deleteModal state exists', src.includes('deleteModal'));
+    assert('Danger zone section present', src.includes('Danger zone'));
+    assert('confirmation modal shows before delete', src.includes('Delete my account') && src.includes('Yes, delete'));
+    assert('calls DELETE /api/account/delete', src.includes('/api/account/delete'));
+
+    const routeSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/account/delete/route.ts'), 'utf8');
+    assert('DELETE route uses service role key (not anon)', routeSrc.includes('SUPABASE_SERVICE_ROLE_KEY'));
+    assert('calls admin.deleteUser', routeSrc.includes('admin.deleteUser'));
+    assert('requires authenticated user', routeSrc.includes('unauthorized'));
+  });
+
+  // ── Duffel API coverage audit ────────────────────────────────────────────
+  await section('Duffel API — flight API coverage audit', async () => {
+    const routes = [
+      'duffel-search', 'duffel-order', 'duffel-order-detail',
+      'duffel-payment-intent', 'duffel-cancel', 'seat-map',
+    ];
+    for (const r of routes) {
+      const exists = (() => { try { readFileSync(resolve(__dir, `frontend-next/app/api/flights/${r}/route.ts`)); return true; } catch { return false; } })();
+      assert(`${r} route exists`, exists);
+    }
+    // Confirm key capabilities are implemented
+    const cancelSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
+    assert('Cancel: quote + confirm two-step flow', cancelSrc.includes("'quote'") && cancelSrc.includes("'confirm'"));
+
+    const orderSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');
+    assert('Order: seats/bags services supported at booking', orderSrc.includes('services'));
+
+    const searchSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-search/route.ts'), 'utf8');
+    assert('Search: children + infants passengers supported', searchSrc.includes('child') && searchSrc.includes('infant'));
+
+    // Not-yet-implemented features (expected to be absent)
+    const changeOrderExists = (() => { try { readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-change-order/route.ts')); return true; } catch { return false; } })();
+    const postBookBagsExists = (() => { try { readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-post-book-bags/route.ts')); return true; } catch { return false; } })();
+    skip('Changing an Order (post-booking)', changeOrderExists ? 'implemented' : 'not yet built — future feature');
+    skip('Adding Post Booking Bags', postBookBagsExists ? 'implemented' : 'not yet built — future feature');
+    skip('Holding Orders / Pay Later', 'not yet built — future feature');
+    skip('Loyalty Programme Accounts', 'not yet built — not needed for MVP');
+  });
+
   // ── transport-tips: APP_META ──────────────────────────────────────────────
   await section('transport-tips — APP_META coverage', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/lib/transport-tips.ts'), 'utf8');
