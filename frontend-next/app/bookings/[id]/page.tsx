@@ -993,7 +993,7 @@ function DestinationTipsSection({
               </div>
             </div>
             {/* Lounge access CTA */}
-            <a href="https://www.dragonpass.com/en-gb/" target="_blank" rel="noopener noreferrer"
+            <a href="https://www.dragonpass.com/" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-3 rounded-xl p-4 transition hover:opacity-90"
               style={{ background: 'rgba(29,158,117,0.15)', border: '1px solid rgba(29,158,117,0.3)' }}>
               <span className="text-2xl">🎫</span>
