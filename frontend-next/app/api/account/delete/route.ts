@@ -19,12 +19,12 @@ export async function DELETE() {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Use the user's own session to delete their rows (service_role lacks table grants;
-    // user's JWT has RLS-allowed DELETE on their own rows)
+    // user_profiles: admin client has DELETE grant on this table
+    await admin.from('user_profiles').delete().eq('id', user.id);
+    // Other tables: user session needed (service_role lacks grants; RLS allows user to delete own rows)
     await supabase.from('flight_bookings').delete().eq('user_id', user.id);
     await supabase.from('booking_clicks').delete().eq('user_id', user.id);
     await supabase.from('user_preferences').delete().eq('user_id', user.id);
-    await supabase.from('user_profiles').delete().eq('id', user.id);
 
     // Admin client needed only to delete the auth user itself
     const { error } = await admin.auth.admin.deleteUser(user.id);
