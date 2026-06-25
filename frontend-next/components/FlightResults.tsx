@@ -556,12 +556,19 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       const d = new Date(base);
       d.setUTCDate(d.getUTCDate() + offset);
       const iso = d.toISOString().slice(0, 10);
+      // Keep trip duration the same for round-trip searches
+      let prefetchRet: string | undefined;
+      if (ret) {
+        const rd = new Date(ret + 'T12:00:00');
+        rd.setUTCDate(rd.getUTCDate() + offset);
+        prefetchRet = rd.toISOString().slice(0, 10);
+      }
       if (prefetchingDates.current.has(iso)) return;
       prefetchingDates.current.add(iso);
       fetch('/api/flights/duffel-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ origin: fromCode, destination: toCode, departureDate: iso, adults, children, infants, cabinClass }),
+        body: JSON.stringify({ origin: fromCode, destination: toCode, departureDate: iso, returnDate: prefetchRet, adults, children, infants, cabinClass }),
       })
         .then(r => r.json())
         .then(json => {
