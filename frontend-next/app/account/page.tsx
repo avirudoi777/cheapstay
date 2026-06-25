@@ -695,7 +695,7 @@ export default function AccountPage() {
                     if (!res.ok) throw new Error(data.error || 'Failed to delete account');
                     const supabase = createClient();
                     await supabase.auth.signOut();
-                    router.push('/');
+                    window.location.href = '/';
                   } catch (e) {
                     setDeleteError(e instanceof Error ? e.message : 'Something went wrong');
                     setDeleting(false);
