@@ -701,8 +701,8 @@ export default function AccountPage() {
                     setDeleting(false);
                   }
                 }} disabled={deleting}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition disabled:opacity-60">
-                  {deleting ? 'Deleting…' : 'Yes, delete'}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition disabled:opacity-60 flex items-center justify-center gap-2">
+                  {deleting ? <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>Deleting…</> : 'Yes, delete'}
                 </button>
               </div>
             </div>
