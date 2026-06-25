@@ -75,6 +75,7 @@ interface SavedPassport {
 interface CompanionProfile {
   id: string; nickname: string; title: string; givenName: string; familyName: string;
   gender: string; bornOn: string; phone: string; passports: SavedPassport[];
+  isChild?: boolean;
 }
 interface TravelerProfile {
   title: string; givenName: string; familyName: string; gender: string;
@@ -833,6 +834,58 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           passenger_names: forms.map(f => `${f.givenName} ${f.familyName}`),
         });
       } catch { /* best-effort */ }
+
+      // Save passenger profiles if checkbox was checked
+      if (savePassenger) {
+        try {
+          const tpRes = await fetch('/api/profile/traveler');
+          const existing = tpRes.ok ? await tpRes.json() : {};
+          const lead = forms[0];
+          const newCompanions: CompanionProfile[] = forms.slice(1).map(f => ({
+            id: crypto.randomUUID(),
+            nickname: `${f.givenName} ${f.familyName}`.trim(),
+            title: f.title,
+            givenName: f.givenName,
+            familyName: f.familyName,
+            gender: f.gender,
+            bornOn: f.bornOn,
+            phone: f.phoneNumber,
+            passports: f.passportNumber ? [{
+              id: crypto.randomUUID(),
+              country: f.passportCountry || '',
+              label: f.passportCountry || '',
+              passportNumber: f.passportNumber,
+              passportExpiry: f.passportExpiry,
+            }] : [],
+          }));
+          // Merge: keep existing companions, update by name match or append
+          const mergedCompanions: CompanionProfile[] = [...(existing.companions ?? [])];
+          for (const nc of newCompanions) {
+            const idx = mergedCompanions.findIndex(c =>
+              c.givenName?.toLowerCase() === nc.givenName.toLowerCase() &&
+              c.familyName?.toLowerCase() === nc.familyName.toLowerCase()
+            );
+            if (idx >= 0) mergedCompanions[idx] = { ...mergedCompanions[idx], ...nc, id: mergedCompanions[idx].id };
+            else mergedCompanions.push(nc);
+          }
+          await fetch('/api/profile/traveler', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: existing.title || lead.title,
+              givenName: lead.givenName || existing.givenName || '',
+              familyName: lead.familyName || existing.familyName || '',
+              gender: lead.gender || existing.gender || 'm',
+              bornOn: lead.bornOn || existing.bornOn || '',
+              phone: lead.phoneNumber || existing.phone || '',
+              passports: lead.passportNumber
+                ? [{ id: crypto.randomUUID(), country: lead.passportCountry || '', label: lead.passportCountry || '', passportNumber: lead.passportNumber, passportExpiry: lead.passportExpiry }]
+                : (existing.passports ?? []),
+              companions: mergedCompanions,
+            }),
+          });
+        } catch { /* best-effort */ }
+      }
     } catch (err) {
       setBookingError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
     } finally {

@@ -54,7 +54,7 @@ export const APP_META: Record<string, AppMeta> = {
     tagline: "China's dominant ride app — download first",
     description: 'DiDi is the only reliable ride-hailing option in mainland China. Register your account before arriving — harder to set up inside China.',
     downloadUrl: 'https://web.didiglobal.com/',
-    logoUrl: 'https://logo.clearbit.com/didiglobal.com',
+    logoUrl: 'https://logo.clearbit.com/didichuxing.com',
   },
   'DiDi Japan': {
     bgColor: '#180800',
@@ -63,7 +63,7 @@ export const APP_META: Record<string, AppMeta> = {
     tagline: 'Budget alternative to taxis in Japan',
     description: 'DiDi operates in major Japanese cities. Often cheaper than traditional metered taxis, especially for late-night rides when trains stop.',
     downloadUrl: 'https://web.didiglobal.com/jp/',
-    logoUrl: 'https://logo.clearbit.com/didiglobal.com',
+    logoUrl: 'https://logo.clearbit.com/didichuxing.com',
   },
   'Gojek': {
     bgColor: '#001500',

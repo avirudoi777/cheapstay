@@ -630,17 +630,27 @@ export default function ManageBookingPage() {
 // ── App logo with fallback ────────────────────────────────────────────────────
 
 function AppLogo({ name, logoUrl, borderColor }: { name: string; logoUrl: string; borderColor: string }) {
-  const [err, setErr] = useState(false);
+  const [stage, setStage] = useState<'clearbit' | 'favicon' | 'letter'>('clearbit');
+  const domain = logoUrl ? logoUrl.split('/').pop() ?? '' : '';
+  const faviconUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=128` : '';
+
+  if (!logoUrl || stage === 'letter') {
+    return (
+      <div className="w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden flex-shrink-0"
+        style={{ background: borderColor }}>
+        <span className="text-2xl font-black text-white">{name[0]}</span>
+      </div>
+    );
+  }
+
+  const src = stage === 'clearbit' ? logoUrl : faviconUrl;
   return (
     <div className="w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden flex-shrink-0"
-      style={{ background: err || !logoUrl ? borderColor : '#fff' }}>
-      {logoUrl && !err ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoUrl} alt={name} onError={() => setErr(true)}
-          className="w-10 h-10 object-contain" />
-      ) : (
-        <span className="text-2xl font-black text-white">{name[0]}</span>
-      )}
+      style={{ background: '#fff' }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={name}
+        onError={() => setStage(prev => prev === 'clearbit' ? (faviconUrl ? 'favicon' : 'letter') : 'letter')}
+        className="w-10 h-10 object-contain" />
     </div>
   );
 }

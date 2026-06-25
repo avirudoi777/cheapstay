@@ -20,6 +20,7 @@ interface CompanionRaw {
   born_on_enc?: string;
   phone?: string;
   passports?: PassportRaw[];
+  is_child?: boolean;
 }
 interface TravelerProfileRaw {
   title?: string;
@@ -78,6 +79,7 @@ export async function GET() {
     bornOn:     c.born_on_enc ? (decryptField(c.born_on_enc) || '') : '',
     phone:      c.phone ?? '',
     passports:  decodePassports(c.passports),
+    isChild:    c.is_child ?? false,
   }));
 
   return NextResponse.json({
@@ -106,7 +108,7 @@ export async function POST(req: NextRequest) {
       passports: { id?: string; country: string; label: string; passportNumber: string; passportExpiry: string }[];
       companions?: {
         id?: string; nickname: string; title: string; givenName: string; familyName: string;
-        gender: string; bornOn: string; phone: string;
+        gender: string; bornOn: string; phone: string; isChild?: boolean;
         passports: { id?: string; country: string; label: string; passportNumber: string; passportExpiry: string }[];
       }[];
     };
@@ -132,6 +134,7 @@ export async function POST(req: NextRequest) {
       born_on_enc: c.bornOn ? encryptField(c.bornOn) : undefined,
       phone:       c.phone || undefined,
       passports:   encodePassports(c.passports ?? []),
+      is_child:    c.isChild ?? false,
     }));
 
     const travelerProfile: TravelerProfileRaw = {
