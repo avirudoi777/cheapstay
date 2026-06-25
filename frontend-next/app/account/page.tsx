@@ -692,7 +692,10 @@ export default function AccountPage() {
                   try {
                     const res = await fetch('/api/account/delete', { method: 'DELETE' });
                     const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'Failed to delete account');
+                    if (!res.ok) {
+                      const detail = [data.error, data.cleanup ? JSON.stringify(data.cleanup) : null].filter(Boolean).join(' | cleanup: ');
+                      throw new Error(detail || 'Failed to delete account');
+                    }
                     const supabase = createClient();
                     await supabase.auth.signOut();
                     router.push('/');
