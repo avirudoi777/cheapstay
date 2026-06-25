@@ -139,13 +139,14 @@ export default function ManageBookingPage() {
   }[]>([]);
   const [bagSelections, setBagSelections] = useState<Record<string, number>>({});
   const [bagsLoading, setBagsLoading] = useState(false);
-  const [bagsOpen, setBagsOpen] = useState(false);
+  const [bagsChecked, setBagsChecked] = useState(false);
   const [bagsSaving, setBagsSaving] = useState(false);
   const [bagsDone, setBagsDone] = useState(false);
   const [bagsError, setBagsError] = useState('');
 
   // Name correction state
   const [nameFormOpen, setNameFormOpen] = useState(false);
+  const [nameUnavailable, setNameUnavailable] = useState(false);
   const [namePassengerId, setNamePassengerId] = useState('');
   const [nameFields, setNameFields] = useState({ given_name: '', family_name: '', phone_number: '' });
   const [nameSaving, setNameSaving] = useState(false);
@@ -181,6 +182,21 @@ export default function ManageBookingPage() {
         setOrderError('Could not reach Duffel');
       } finally {
         setOrderLoading(false);
+      }
+
+      // Auto-check bag availability (skip for cancelled/held)
+      if (data.status !== 'cancelled' && data.status !== 'held') {
+        setBagsLoading(true);
+        try {
+          const bagRes = await fetch(`/api/flights/duffel-post-book-bags?orderId=${data.duffel_order_id}`);
+          const bagData = await bagRes.json();
+          if (bagRes.ok) setBagServices(bagData.services ?? []);
+        } catch {
+          // silently ignore — bags section shows "contact airline"
+        } finally {
+          setBagsLoading(false);
+          setBagsChecked(true);
+        }
       }
     });
   }, [id, router]);
@@ -229,23 +245,6 @@ export default function ManageBookingPage() {
     }
   }
 
-  async function loadBags() {
-    if (!booking) return;
-    if (bagsOpen) { setBagsOpen(false); return; }
-    setBagsLoading(true); setBagsError('');
-    try {
-      const res = await fetch(`/api/flights/duffel-post-book-bags?orderId=${booking.duffel_order_id}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Failed to load');
-      setBagServices(data.services ?? []);
-      setBagsOpen(true);
-    } catch (err) {
-      setBagsError(err instanceof Error ? err.message : 'Could not load available bags.');
-    } finally {
-      setBagsLoading(false);
-    }
-  }
-
   async function addBags() {
     if (!booking) return;
     const toAdd = Object.entries(bagSelections).filter(([, q]) => q > 0).map(([id, quantity]) => ({ serviceId: id, quantity }));
@@ -259,7 +258,7 @@ export default function ManageBookingPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed to add bags');
-      setBagsDone(true); setBagsOpen(false); setBagSelections({});
+      setBagsDone(true); setBagSelections({});
     } catch (err) {
       setBagsError(err instanceof Error ? err.message : 'Could not add bags.');
     } finally {
@@ -281,7 +280,14 @@ export default function ManageBookingPage() {
         body: JSON.stringify({ action: 'patch', orderId: booking.duffel_order_id, passengerId: namePassengerId, fields }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Update failed');
+      if (!res.ok) {
+        const msg: string = data.error ?? 'Update failed';
+        if (msg.toLowerCase().includes('does not exist') || msg.toLowerCase().includes('not found')) {
+          setNameUnavailable(true); setNameFormOpen(false);
+          return;
+        }
+        throw new Error(msg);
+      }
       setNameDone(true); setNameFormOpen(false);
       // Refresh order data
       const orderRes = await fetch('/api/flights/duffel-order-detail', {
@@ -771,50 +777,42 @@ export default function ManageBookingPage() {
                 <span className="text-2xl">✅</span>
                 <p className="text-sm font-bold text-green-700">Bags added to your booking.</p>
               </div>
-            ) : (
-              <>
-                <p className="text-xs text-gray-400 mb-3">Add checked bags after booking. Availability depends on the airline.</p>
-                <button onClick={loadBags} disabled={bagsLoading}
-                  className="w-full py-2.5 rounded-xl text-sm font-bold border-2 transition-colors"
-                  style={{ borderColor: '#1D9E75', color: bagsOpen ? 'white' : '#1D9E75', background: bagsOpen ? '#1D9E75' : 'white' }}>
-                  {bagsLoading ? 'Loading…' : bagsOpen ? '▲ Hide options' : '🧳 View available bags'}
-                </button>
-                {bagsOpen && bagServices.length === 0 && (
-                  <p className="text-sm text-gray-400 text-center mt-3">No additional bags available for this booking through Duffel.</p>
+            ) : bagsLoading ? (
+              <p className="text-xs text-gray-400">Checking availability…</p>
+            ) : bagsChecked && bagServices.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                Extra bags aren&apos;t available for this booking through Duffel. To add baggage, contact the airline directly.
+              </p>
+            ) : bagsChecked && bagServices.length > 0 ? (
+              <div className="space-y-2">
+                {bagServices.map(svc => {
+                  const qty = bagSelections[svc.id] ?? 0;
+                  return (
+                    <div key={svc.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                      <div>
+                        <p className="text-sm font-bold text-gray-800">{svc.maxWeightKg ? `${svc.maxWeightKg}kg bag` : 'Checked bag'}</p>
+                        <p className="text-sm font-bold mt-0.5" style={{ color: '#1D9E75' }}>+{fmtPrice(svc.totalAmount, svc.totalCurrency)}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setBagSelections(s => ({ ...s, [svc.id]: Math.max(0, (s[svc.id] ?? 0) - 1) }))}
+                          className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-sm font-bold text-gray-500 hover:border-teal transition">−</button>
+                        <span className="w-5 text-center text-sm font-bold tabular-nums">{qty}</span>
+                        <button onClick={() => setBagSelections(s => ({ ...s, [svc.id]: Math.min(svc.maxQuantity, (s[svc.id] ?? 0) + 1) }))}
+                          className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-sm font-bold text-gray-500 hover:border-teal transition">+</button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {bagsError && <p className="text-sm text-red-500">{bagsError}</p>}
+                {Object.values(bagSelections).some(q => q > 0) && (
+                  <button onClick={addBags} disabled={bagsSaving}
+                    className="w-full py-3 rounded-xl text-sm font-bold text-white mt-2 transition disabled:opacity-60"
+                    style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+                    {bagsSaving ? 'Adding…' : `Add bags · ${fmtPrice(Object.entries(bagSelections).reduce((sum, [id, qty]) => sum + (bagServices.find(s => s.id === id)?.totalAmount ?? 0) * qty, 0), bagServices[0]?.totalCurrency ?? booking.currency)}`}
+                  </button>
                 )}
-                {bagsOpen && bagServices.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {bagServices.map(svc => {
-                      const qty = bagSelections[svc.id] ?? 0;
-                      return (
-                        <div key={svc.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                          <div>
-                            <p className="text-sm font-bold text-gray-800">{svc.maxWeightKg ? `${svc.maxWeightKg}kg bag` : 'Checked bag'}</p>
-                            <p className="text-sm font-bold mt-0.5" style={{ color: '#1D9E75' }}>+{fmtPrice(svc.totalAmount, svc.totalCurrency)}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => setBagSelections(s => ({ ...s, [svc.id]: Math.max(0, (s[svc.id] ?? 0) - 1) }))}
-                              className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-sm font-bold text-gray-500 hover:border-teal transition">−</button>
-                            <span className="w-5 text-center text-sm font-bold tabular-nums">{qty}</span>
-                            <button onClick={() => setBagSelections(s => ({ ...s, [svc.id]: Math.min(svc.maxQuantity, (s[svc.id] ?? 0) + 1) }))}
-                              className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-sm font-bold text-gray-500 hover:border-teal transition">+</button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {bagsError && <p className="text-sm text-red-500">{bagsError}</p>}
-                    {Object.values(bagSelections).some(q => q > 0) && (
-                      <button onClick={addBags} disabled={bagsSaving}
-                        className="w-full py-3 rounded-xl text-sm font-bold text-white mt-2 transition disabled:opacity-60"
-                        style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
-                        {bagsSaving ? 'Adding…' : `Add bags · ${fmtPrice(Object.entries(bagSelections).reduce((sum, [id, qty]) => sum + (bagServices.find(s => s.id === id)?.totalAmount ?? 0) * qty, 0), bagServices[0]?.totalCurrency ?? booking.currency)}`}
-                      </button>
-                    )}
-                  </div>
-                )}
-                {bagsError && !bagsOpen && <p className="text-sm text-red-500 mt-2">{bagsError}</p>}
-              </>
-            )}
+              </div>
+            ) : null}
           </Section>
         )}
 
@@ -826,6 +824,10 @@ export default function ManageBookingPage() {
                 <span className="text-2xl">✅</span>
                 <p className="text-sm font-bold text-green-700">Passenger details updated.</p>
               </div>
+            ) : nameUnavailable ? (
+              <p className="text-sm text-gray-500">
+                Name changes aren&apos;t available for this booking through Duffel. Please contact the airline directly to make corrections.
+              </p>
             ) : (
               <>
                 <p className="text-xs text-gray-400 mb-3">Fix a typo in a passenger&apos;s name or update their phone number. Subject to airline approval.</p>

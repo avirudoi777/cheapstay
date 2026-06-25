@@ -289,11 +289,14 @@ function DatePicker({ label, value, minDate, onChange }: DatePickerProps) {
     cells.push(`${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
   }
 
+  const calH = 300;
+  const flipUp = anchor ? (window.innerHeight - anchor.bottom) < calH + 12 : false;
+
   const popup = open && anchor && typeof window !== 'undefined' ? createPortal(
     <div ref={popRef}
       style={{
         position: 'fixed',
-        top: anchor.bottom + 6,
+        top: flipUp ? anchor.top - calH - 6 : anchor.bottom + 6,
         left: Math.min(anchor.left, window.innerWidth - 300 - 16),
         width: 300,
         zIndex: 9999,

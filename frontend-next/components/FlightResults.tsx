@@ -514,7 +514,6 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
   const [seatMaps, setSeatMaps] = useState<SeatMap[] | null>(null);
   const [seatMapsLoading, setSeatMapsLoading] = useState(false);
-  const [seatMapsOpen, setSeatMapsOpen] = useState(false);
   // Per-passenger seat selection: { [segmentId_passengerId]: serviceId }
   const [seatSelections, setSeatSelections] = useState<Record<string, string>>({});
 
@@ -606,6 +605,18 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     return () => window.removeEventListener('popstate', handlePop);
   }, [selectedOffer]);
 
+  // Auto-load seat map when an offer is selected
+  useEffect(() => {
+    if (!selectedOffer) return;
+    setSeatMapsLoading(true);
+    fetch(`/api/flights/seat-map?offerId=${selectedOffer.id}`)
+      .then(r => r.json())
+      .then(d => { setSeatMaps(d.maps ?? []); })
+      .catch(() => { setSeatMaps([]); })
+      .finally(() => { setSeatMapsLoading(false); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedOffer?.id]);
+
   // Derived filter data
   const allAirlines = useMemo(() => {
     const map = new Map<string, string>();
@@ -637,7 +648,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     setBookStep('passenger');
     setCardForm(EMPTY_CARD); setCardErrors({});
     setBookingError(''); setConfirmation(null);
-    setSelectedServices([]); setSeatMaps(null); setSeatMapsOpen(false); setSeatSelections({});
+    setSelectedServices([]); setSeatMaps(null); setSeatSelections({});
 
     const numPax = offer.passengerIds.length;
     if (savedProfile) {
@@ -939,15 +950,6 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           ? prev.filter(s => s.serviceId !== serviceId)
           : [...prev, { serviceId, quantity: 1 }]
       );
-    }
-    function loadSeatMaps() {
-      if (seatMaps) { setSeatMapsOpen(o => !o); return; }
-      setSeatMapsLoading(true);
-      fetch(`/api/flights/seat-map?offerId=${offer.id}`)
-        .then(r => r.json())
-        .then(d => { if (d.maps) setSeatMaps(d.maps); })
-        .catch(() => {})
-        .finally(() => { setSeatMapsLoading(false); setSeatMapsOpen(true); });
     }
     function selectSeat(segId: string, paxId: string, svcId: string) {
       const key = `${segId}_${paxId}`;
@@ -1520,14 +1522,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       </span>
                     )}
                   </div>
-                  <button onClick={loadSeatMaps} disabled={seatMapsLoading}
-                    className="w-full py-2.5 px-4 rounded-xl text-sm font-bold border-2 transition-colors flex items-center justify-center gap-2"
-                    style={{ borderColor: '#1D9E75', color: seatMapsOpen ? 'white' : '#1D9E75', background: seatMapsOpen ? '#1D9E75' : 'white' }}>
-                    {seatMapsLoading
-                      ? <><svg className="animate-spin w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Loading seat map…</>
-                      : seatMapsOpen ? '▲ Hide seat map' : '💺 Choose your seats'}
-                  </button>
-                  {seatMapsOpen && seatMaps && seatMaps.length > 0 && (
+                  {seatMapsLoading && (
+                    <p className="text-xs text-gray-400">Checking seat availability…</p>
+                  )}
+                  {!seatMapsLoading && seatMaps && seatMaps.length === 0 && (
+                    <p className="text-sm text-gray-500">Seat selection isn&apos;t available for this flight. You can choose your seat during online check-in.</p>
+                  )}
+                  {!seatMapsLoading && seatMaps && seatMaps.length > 0 && (
                     <div className="mt-4 space-y-5">
                       {seatMaps.map(sm => {
                         const seg = offer.segments.find(s => s.segmentId === sm.segmentId);
@@ -1588,9 +1589,6 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#F3F4F6', border: '1px solid #E5E7EB' }} /> Taken</span>
                       </div>
                     </div>
-                  )}
-                  {seatMapsOpen && (!seatMaps || seatMaps.length === 0) && !seatMapsLoading && (
-                    <p className="text-xs text-gray-400 mt-2 text-center">Seat map not available for this flight.</p>
                   )}
                 </div>
               )}
@@ -1850,17 +1848,16 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   )}
 
                   {/* SEAT SELECTION */}
-                  {(seatServices.length > 0 || offer.segments.length > 0) && (
+                  {offer.segments.length > 0 && (
                     <div className="mb-5">
                       <p className="text-sm font-bold text-gray-700 mb-3">💺 Seat selection</p>
-                      <button onClick={loadSeatMaps} disabled={seatMapsLoading}
-                        className="w-full py-3 px-4 rounded-xl text-sm font-bold border-2 transition-colors flex items-center justify-center gap-2"
-                        style={{ borderColor: '#1D9E75', color: seatMapsOpen ? 'white' : '#1D9E75', background: seatMapsOpen ? '#1D9E75' : 'white' }}>
-                        {seatMapsLoading
-                          ? <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Loading seat map…</>
-                          : seatMapsOpen ? '▲ Hide seat map' : '💺 Choose your seats'}
-                      </button>
-                      {seatMapsOpen && seatMaps && (
+                      {seatMapsLoading && (
+                        <p className="text-xs text-gray-400">Checking seat availability…</p>
+                      )}
+                      {!seatMapsLoading && seatMaps && seatMaps.length === 0 && (
+                        <p className="text-sm text-gray-500">Seat selection isn&apos;t available for this flight. You can choose your seat during online check-in.</p>
+                      )}
+                      {!seatMapsLoading && seatMaps && seatMaps.length > 0 && (
                         <div className="mt-4 space-y-5">
                           {seatMaps.map(sm => {
                             const seg = offer.segments.find(s => s.segmentId === sm.segmentId);
@@ -1933,9 +1930,6 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#F3F4F6', border: '1px solid #E5E7EB' }} /> Taken</span>
                           </div>
                         </div>
-                      )}
-                      {seatMapsOpen && !seatMaps && !seatMapsLoading && (
-                        <p className="text-xs text-gray-400 mt-2 text-center">Seat map not available for this flight.</p>
                       )}
                     </div>
                   )}

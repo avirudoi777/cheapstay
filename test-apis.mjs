@@ -660,14 +660,15 @@ if (runUnit) {
   });
 
   // ── Seat map — decoupled from availableServices ──────────────────────────
-  await section('Seat map — always visible regardless of availableServices', async () => {
+  await section('Seat map — auto-load on offer select, no button if unavailable', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
-    assert('Seat selection card exists outside availableServices gate',
-      src.includes('Seat selection — always shown on passenger step'));
-    assert('Seat selection shown on passenger step', src.includes("bookStep === 'passenger'") && src.includes('Choose your seats'));
-    assert('Seat map loads from /api/flights/seat-map', src.includes('/api/flights/seat-map'));
-    assert('seatMapsOpen state controls visibility', src.includes('seatMapsOpen'));
+    assert('Seat selection card on passenger step', src.includes("bookStep === 'passenger'") && src.includes('Seat selection'));
+    assert('Seat map auto-loads via useEffect on selectedOffer change', src.includes("selectedOffer?.id") && src.includes('/api/flights/seat-map'));
+    assert('No toggle button — loading state shown as text', src.includes('Checking seat availability'));
+    assert('No button if unavailable — contact airline message', src.includes("Seat selection isn") && src.includes('online check-in'));
     assert('seat count badge shown when seats selected', src.includes('seatSelections') && src.includes('selected'));
+    assert('seatMapsOpen removed', !src.includes('seatMapsOpen'));
+    assert('loadSeatMaps removed', !src.includes('loadSeatMaps'));
   });
 
   // ── Hold & Pay Later ─────────────────────────────────────────────────────
@@ -692,11 +693,13 @@ if (runUnit) {
   await section('Post-booking manage — add bags + name correction UI', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
     assert('Add bags section present', src.includes('Add Checked Baggage'));
-    assert('loadBags calls duffel-post-book-bags GET', src.includes('/api/flights/duffel-post-book-bags'));
+    assert('Bags auto-checked on page load (no button)', src.includes('bagsChecked') && src.includes('Checking availability'));
+    assert('No bags → contact airline message', src.includes("Extra bags aren") && src.includes('contact the airline directly'));
     assert('addBags calls duffel-post-book-bags POST', src.includes("method: 'POST'") && src.includes('duffel-post-book-bags'));
     assert('bagsDone success state', src.includes('bagsDone'));
     assert('Name correction section present', src.includes('Passenger Name Correction'));
     assert('saveNameCorrection calls duffel-change-order patch', src.includes("action: 'patch'") && src.includes('duffel-change-order'));
+    assert('Name unavailable → contact airline message', src.includes('nameUnavailable') && src.includes("contact the airline directly"));
     assert('nameDone success state', src.includes('nameDone'));
     assert('passenger list shown for editing', src.includes('namePassengerId'));
   });
