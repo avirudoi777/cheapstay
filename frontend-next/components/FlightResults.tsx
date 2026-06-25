@@ -2373,7 +2373,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     <div className="h-3 w-14 bg-gray-200 rounded animate-pulse mt-1" />
                   ) : price != null ? (
                     <p className="text-[12px] font-bold mt-0.5" style={{ color: priceColor }}>
-                      {price.toLocaleString('en-US', { style: 'currency', currency: chipCurrency, maximumFractionDigits: 0 })}
+                      {!isActive && '~'}{price.toLocaleString('en-US', { style: 'currency', currency: chipCurrency, maximumFractionDigits: 0 })}
                     </p>
                   ) : (
                     <p className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>See prices</p>
