@@ -827,7 +827,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         if (order.error === 'offer_expired') {
           throw new Error('This offer is no longer available (sold out or expired). Please go back and search again.');
         }
-        throw new Error(order.detail || order.error);
+        const detail: string = order.detail || order.error || '';
+        if (detail.toLowerCase().includes('internal_error') || detail.toLowerCase().includes('internal error')) {
+          throw new Error('__retryable__The airline system had a temporary error. Please try again — this usually resolves on the next attempt.');
+        }
+        throw new Error(detail);
       }
 
       setConfirmation({ reference: order.bookingReference, amount: grossAmount, currency: offer.totalCurrency, held: order.status === 'held' });
@@ -1439,7 +1443,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     <div className="rounded-xl px-4 py-3 text-sm text-red-700 font-semibold flex flex-col gap-2" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
                       <div className="flex items-center gap-2">
                         <span>⚠️</span>
-                        <span>{bookingError}</span>
+                        <span>{bookingError.replace('__retryable__', '')}</span>
                       </div>
                       {bookingError.includes('no longer available') && (
                         <button
@@ -1447,6 +1451,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           className="self-start text-xs font-bold underline text-red-700 hover:text-red-900"
                         >
                           ← Search again
+                        </button>
+                      )}
+                      {bookingError.startsWith('__retryable__') && (
+                        <button
+                          onClick={() => { setBookingError(''); confirmBooking(); }}
+                          className="self-start text-xs font-bold underline text-red-700 hover:text-red-900"
+                        >
+                          ↻ Try again
                         </button>
                       )}
                     </div>
