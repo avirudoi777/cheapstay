@@ -20,11 +20,24 @@ export async function DELETE() {
     );
 
     // Delete user data from all tables first (FK constraints block auth deletion otherwise)
-    await admin.from('flight_bookings').delete().eq('user_id', user.id);
-    await admin.from('user_profiles').delete().eq('id', user.id);
+    const cleanupResults: Record<string, string> = {};
+    const tables: { table: string; col: string }[] = [
+      { table: 'flight_bookings', col: 'user_id' },
+      { table: 'booking_clicks', col: 'user_id' },
+      { table: 'user_preferences', col: 'user_id' },
+      { table: 'user_profiles', col: 'id' },
+    ];
+    for (const { table, col } of tables) {
+      const { error: delErr } = await admin.from(table).delete().eq(col, user.id);
+      if (delErr) cleanupResults[table] = delErr.message;
+    }
+    console.log('Account delete cleanup:', cleanupResults);
 
     const { error } = await admin.auth.admin.deleteUser(user.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      console.error('Auth deleteUser error:', error);
+      return NextResponse.json({ error: error.message, cleanup: cleanupResults }, { status: 500 });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
