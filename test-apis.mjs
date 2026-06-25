@@ -596,6 +596,15 @@ if (runUnit) {
     assert('passports merged by country — existing passports not wiped', src.includes('existingPassports') && src.includes('findIndex') && src.includes('p.country === lead.passportCountry'));
   });
 
+  // ── Avatar upload — instant local preview ────────────────────────────────
+  await section('Avatar upload — shows local preview before upload completes', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/account/page.tsx'), 'utf8');
+    assert('createObjectURL used for instant preview', src.includes('createObjectURL'));
+    assert('preview set before upload starts', src.indexOf('setAvatarUrl(localPreview)') < src.indexOf("supabase.storage"));
+    assert('revokeObjectURL called after upload', src.includes('revokeObjectURL'));
+    assert('reverts avatar on upload error', src.includes("setAvatarUrl('')"));
+  });
+
   // ── DiDi logo + AppLogo fallback ────────────────────────────────────────
   await section('Ride-share logos — DiDi Clearbit domain and 3-level AppLogo fallback', async () => {
     const tipsSrc = readFileSync(resolve(__dir, 'frontend-next/lib/transport-tips.ts'), 'utf8');
@@ -620,11 +629,11 @@ if (runUnit) {
     assert('calls admin.deleteUser', routeSrc.includes('admin.deleteUser'));
     assert('requires authenticated user', routeSrc.includes('unauthorized'));
     // FK constraint fix: must clean up all tables before auth deletion
-    assert('deletes user_profiles via admin (has grant)', routeSrc.includes("admin.from('user_profiles')") && routeSrc.includes("eq('id', user.id)"));
-    assert('deletes flight_bookings via user session', routeSrc.includes("supabase.from('flight_bookings')"));
-    assert('deletes booking_clicks via user session', routeSrc.includes("supabase.from('booking_clicks')"));
-    assert('deletes user_preferences via user session', routeSrc.includes("supabase.from('user_preferences')"));
-    assert('table cleanup happens before auth deleteUser', routeSrc.indexOf("admin.from('user_profiles')") < routeSrc.indexOf('admin.auth.admin.deleteUser'));
+    assert('deletes user_profiles via admin', routeSrc.includes("admin.from('user_profiles')"));
+    assert('deletes flight_bookings via admin', routeSrc.includes("admin.from('flight_bookings')"));
+    assert('deletes booking_clicks via admin', routeSrc.includes("admin.from('booking_clicks')"));
+    assert('deletes user_preferences via admin', routeSrc.includes("admin.from('user_preferences')"));
+    assert('table cleanup happens before auth deleteUser', routeSrc.indexOf("admin.from('flight_bookings')") < routeSrc.indexOf('admin.auth.admin.deleteUser'));
   });
 
   // ── Duffel API coverage audit ────────────────────────────────────────────

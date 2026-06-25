@@ -150,6 +150,9 @@ export default function AccountPage() {
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !user) return;
+    // Show local preview immediately — no waiting for upload
+    const localPreview = URL.createObjectURL(file);
+    setAvatarUrl(localPreview);
     setUploading(true);
     setError('');
     const supabase = createClient();
@@ -160,13 +163,14 @@ export default function AccountPage() {
       .upload(path, file, { upsert: true });
     if (uploadError) {
       setError('Upload failed: ' + uploadError.message);
+      setAvatarUrl('');
     } else {
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
-      const urlWithBust = publicUrl + '?t=' + Date.now();
-      setAvatarUrl(urlWithBust);
+      setAvatarUrl(publicUrl + '?t=' + Date.now());
       const { error: dbError } = await supabase.from('user_profiles').upsert({ id: user.id, avatar_url: publicUrl });
       if (dbError) setError('Save failed: ' + dbError.message);
     }
+    URL.revokeObjectURL(localPreview);
     e.target.value = '';
     setUploading(false);
   }
