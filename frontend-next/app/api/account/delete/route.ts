@@ -19,6 +19,10 @@ export async function DELETE() {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    // Delete user data from all tables first (FK constraints block auth deletion otherwise)
+    await admin.from('flight_bookings').delete().eq('user_id', user.id);
+    await admin.from('user_profiles').delete().eq('id', user.id);
+
     const { error } = await admin.auth.admin.deleteUser(user.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
