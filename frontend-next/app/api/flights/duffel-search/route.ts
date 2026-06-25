@@ -68,6 +68,8 @@ function formatOffer(offer: any) {
   const offerPassengers = (offer.passengers as { id: string; type: string }[]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const refund = (offer as any).conditions?.refund_before_departure;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pr = (offer as any).payment_requirements;
   return {
     id: offer.id,
     expiresAt: offer.expires_at,
@@ -83,6 +85,11 @@ function formatOffer(offer: any) {
         penaltyAmount: refund.penalty_amount ?? null,
         penaltyCurrency: refund.penalty_currency ?? null,
       },
+    } : null,
+    paymentRequirements: pr ? {
+      requiresInstantPayment: pr.requires_instant_payment ?? true,
+      priceGuaranteeExpiresAt: pr.price_guarantee_expires_at ?? null,
+      paymentRequiredBy: pr.payment_required_by ?? null,
     } : null,
     segments: segs.map((seg: Record<string, unknown>, si: number) => {
       const origin = seg.origin as Record<string, string>;

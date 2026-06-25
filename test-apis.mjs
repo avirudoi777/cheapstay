@@ -625,28 +625,80 @@ if (runUnit) {
     const routes = [
       'duffel-search', 'duffel-order', 'duffel-order-detail',
       'duffel-payment-intent', 'duffel-cancel', 'seat-map',
+      'duffel-post-book-bags', 'duffel-change-order', 'duffel-pay-held',
     ];
     for (const r of routes) {
       const exists = (() => { try { readFileSync(resolve(__dir, `frontend-next/app/api/flights/${r}/route.ts`)); return true; } catch { return false; } })();
       assert(`${r} route exists`, exists);
     }
-    // Confirm key capabilities are implemented
+
     const cancelSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
     assert('Cancel: quote + confirm two-step flow', cancelSrc.includes("'quote'") && cancelSrc.includes("'confirm'"));
 
     const orderSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');
     assert('Order: seats/bags services supported at booking', orderSrc.includes('services'));
+    assert('Order: hold=true creates held order without payment', orderSrc.includes('hold') && orderSrc.includes("order.status === 'held'"));
 
     const searchSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-search/route.ts'), 'utf8');
     assert('Search: children + infants passengers supported', searchSrc.includes('child') && searchSrc.includes('infant'));
+    assert('Search: paymentRequirements mapped from offer', searchSrc.includes('paymentRequirements') && searchSrc.includes('requiresInstantPayment'));
 
-    // Not-yet-implemented features (expected to be absent)
-    const changeOrderExists = (() => { try { readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-change-order/route.ts')); return true; } catch { return false; } })();
-    const postBookBagsExists = (() => { try { readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-post-book-bags/route.ts')); return true; } catch { return false; } })();
-    skip('Changing an Order (post-booking)', changeOrderExists ? 'implemented' : 'not yet built — future feature');
-    skip('Adding Post Booking Bags', postBookBagsExists ? 'implemented' : 'not yet built — future feature');
-    skip('Holding Orders / Pay Later', 'not yet built — future feature');
-    skip('Loyalty Programme Accounts', 'not yet built — not needed for MVP');
+    const bagsSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-post-book-bags/route.ts'), 'utf8');
+    assert('Post-book bags: GET fetches available services', bagsSrc.includes('available_services'));
+    assert('Post-book bags: POST creates order_services', bagsSrc.includes('order_services'));
+
+    const changeSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-change-order/route.ts'), 'utf8');
+    assert('Change order: patch action for name correction', changeSrc.includes("'patch'"));
+    assert('Change order: request action for date change', changeSrc.includes("'request'") && changeSrc.includes('order_change_requests'));
+    assert('Change order: confirm action for accepting change offer', changeSrc.includes("'confirm'") && changeSrc.includes('order_change_offers'));
+
+    const payHeldSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-pay-held/route.ts'), 'utf8');
+    assert('Pay held: POSTs to /air/payments', payHeldSrc.includes('/air/payments'));
+    assert('Pay held: updates booking to confirmed', payHeldSrc.includes("'confirmed'"));
+
+    skip('Loyalty Programme Accounts', 'not needed for MVP');
+  });
+
+  // ── Seat map — decoupled from availableServices ──────────────────────────
+  await section('Seat map — always visible regardless of availableServices', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert('Seat selection card exists outside availableServices gate',
+      src.includes('Seat selection — always shown on passenger step'));
+    assert('Seat selection shown on passenger step', src.includes("bookStep === 'passenger'") && src.includes('Choose your seats'));
+    assert('Seat map loads from /api/flights/seat-map', src.includes('/api/flights/seat-map'));
+    assert('seatMapsOpen state controls visibility', src.includes('seatMapsOpen'));
+    assert('seat count badge shown when seats selected', src.includes('seatSelections') && src.includes('selected'));
+  });
+
+  // ── Hold & Pay Later ─────────────────────────────────────────────────────
+  await section('Hold & Pay Later — booking flow + booking detail', async () => {
+    const flightSrc = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert('holdMode state added', flightSrc.includes('holdMode'));
+    assert('Hold button shown when offer supports it', flightSrc.includes('requiresInstantPayment') && flightSrc.includes('Hold seat'));
+    assert('hold passed to duffel-order API', flightSrc.includes("hold: holdMode"));
+    assert('held status shown in confirmation', flightSrc.includes("order.status === 'held'"));
+
+    const detailSrc = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    assert('isHeld derived from booking status', detailSrc.includes("booking.status === 'held'"));
+    assert('held badge shown in route header', detailSrc.includes('Held — pay to confirm'));
+    assert('Pay Now section for held orders', detailSrc.includes('payHeldOrder') && detailSrc.includes('Complete Your Booking'));
+
+    const listSrc = readFileSync(resolve(__dir, 'frontend-next/app/bookings/page.tsx'), 'utf8');
+    assert('held section shown in bookings list', listSrc.includes("status === 'held'"));
+    assert('held badge amber color', listSrc.includes('⏳ Held'));
+  });
+
+  // ── Post-booking bags + name correction UI ───────────────────────────────
+  await section('Post-booking manage — add bags + name correction UI', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    assert('Add bags section present', src.includes('Add Checked Baggage'));
+    assert('loadBags calls duffel-post-book-bags GET', src.includes('/api/flights/duffel-post-book-bags'));
+    assert('addBags calls duffel-post-book-bags POST', src.includes("method: 'POST'") && src.includes('duffel-post-book-bags'));
+    assert('bagsDone success state', src.includes('bagsDone'));
+    assert('Name correction section present', src.includes('Passenger Name Correction'));
+    assert('saveNameCorrection calls duffel-change-order patch', src.includes("action: 'patch'") && src.includes('duffel-change-order'));
+    assert('nameDone success state', src.includes('nameDone'));
+    assert('passenger list shown for editing', src.includes('namePassengerId'));
   });
 
   // ── transport-tips: APP_META ──────────────────────────────────────────────

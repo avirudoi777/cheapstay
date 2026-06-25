@@ -51,6 +51,11 @@ export interface DuffelOffer {
       penaltyCurrency?: string | null;
     } | null;
   } | null;
+  paymentRequirements?: {
+    requiresInstantPayment: boolean;
+    priceGuaranteeExpiresAt?: string | null;
+    paymentRequiredBy?: string | null;
+  } | null;
 }
 interface SelectedService { serviceId: string; quantity: number; }
 interface SeatElement {
@@ -500,8 +505,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [cardErrors, setCardErrors] = useState<Partial<CardForm>>({});
   const [booking, setBooking] = useState(false);
   const [bookingError, setBookingError] = useState('');
-  const [confirmation, setConfirmation] = useState<{ reference: string; amount: number; currency: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ reference: string; amount: number; currency: string; held?: boolean } | null>(null);
   const [savePassenger, setSavePassenger] = useState(false);
+  const [holdMode, setHoldMode] = useState(false);
   // Live countdown for offer expiry
   const [offerSecsLeft, setOfferSecsLeft] = useState<number | null>(null);
   // Add-on services
@@ -795,6 +801,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           currency: offer.totalCurrency,
           passengers: forms.map((f, i) => ({ ...f, passengerId: offer.passengerIds[i] })),
           services: selectedServices.filter(s => offer.availableServices.some(a => a.id === s.serviceId)),
+          hold: holdMode,
         }),
       });
       const order = await orderRes.json();
@@ -805,7 +812,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         throw new Error(order.detail || order.error);
       }
 
-      setConfirmation({ reference: order.bookingReference, amount: grossAmount, currency: offer.totalCurrency });
+      setConfirmation({ reference: order.bookingReference, amount: grossAmount, currency: offer.totalCurrency, held: order.status === 'held' });
       setBookStep('confirmed');
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -1443,23 +1450,23 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     </button>
                     <button onClick={confirmBooking} disabled={booking}
                       className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white disabled:opacity-60 flex items-center justify-center gap-2"
-                      style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+                      style={{ background: holdMode ? 'linear-gradient(135deg, #1A73E8, #6366F1)' : 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
                       {booking
                         ? <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Processing…</>
-                        : `Pay ${fmtPrice(gross, offer.totalCurrency)} →`
+                        : holdMode ? '⏳ Hold seat (pay later) →' : `Pay ${fmtPrice(gross, offer.totalCurrency)} →`
                       }
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Extras inline — shown below passenger form before payment */}
+              {/* Extras — baggage (only when airline offers paid bags) */}
               {bookStep === 'passenger' && offer.availableServices.length > 0 && (
                 <div id="extras-section" className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <p className="text-base font-extrabold text-gray-900">Add extras (optional)</p>
-                      <p className="text-xs text-gray-400 mt-0.5">Extra baggage or seat selection</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Extra baggage</p>
                     </div>
                     {extrasTotal > 0 && (
                       <span className="text-sm font-bold px-3 py-1 rounded-full" style={{ background: '#E6F7F1', color: '#1D9E75' }}>
@@ -1496,70 +1503,94 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     </div>
                   )}
 
-                  {(seatServices.length > 0 || offer.segments.length > 0) && (
+                </div>
+              )}
+
+              {/* Seat selection — always shown on passenger step */}
+              {bookStep === 'passenger' && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <div className="flex items-center justify-between mb-3">
                     <div>
-                      <p className="text-sm font-bold text-gray-700 mb-2">💺 Seat selection</p>
-                      <button onClick={loadSeatMaps} disabled={seatMapsLoading}
-                        className="w-full py-2.5 px-4 rounded-xl text-sm font-bold border-2 transition-colors flex items-center justify-center gap-2"
-                        style={{ borderColor: '#1D9E75', color: seatMapsOpen ? 'white' : '#1D9E75', background: seatMapsOpen ? '#1D9E75' : 'white' }}>
-                        {seatMapsLoading ? 'Loading…' : seatMapsOpen ? '▲ Hide seat map' : '💺 Choose your seats'}
-                      </button>
-                      {seatMapsOpen && seatMaps && (
-                        <div className="mt-3 space-y-4">
-                          {seatMaps.map(sm => {
-                            const seg = offer.segments.find(s => s.segmentId === sm.segmentId);
-                            const cabin = sm.cabins[0];
-                            if (!cabin) return null;
-                            return (
-                              <div key={sm.segmentId}>
-                                <p className="text-xs font-bold text-gray-500 mb-2">
-                                  {seg ? `${seg.depCode} → ${seg.arrCode}` : sm.segmentId}
-                                </p>
-                                {offer.passengerIds.map((paxId, pi) => (
-                                  <div key={paxId} className="mb-3">
-                                    {offer.passengerIds.length > 1 && <p className="text-xs text-gray-400 mb-1">Passenger {pi + 1}</p>}
-                                    <div className="overflow-x-auto">
-                                      <div className="inline-block">
-                                        {cabin.rows.map((row, ri) => (
-                                          <div key={ri} className="flex gap-1 mb-1">
-                                            {row.sections.map((sec, si) => (
-                                              <div key={si} className="flex gap-1">
-                                                {si > 0 && <div className="w-5" />}
-                                                {sec.elements.map((el, ei) => {
-                                                  if (el.type !== 'seat') return <div key={ei} className="w-8 h-8" />;
-                                                  const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
-                                                  const available = !!paxSvc;
-                                                  const key = `${sm.segmentId}_${paxId}`;
-                                                  const selected = seatSelections[key] === paxSvc?.id;
-                                                  return (
-                                                    <button key={ei} disabled={!available}
-                                                      onClick={() => paxSvc && selectSeat(sm.segmentId, paxId, paxSvc.id)}
-                                                      title={el.designator ?? ''}
-                                                      className="w-8 h-8 rounded text-[10px] font-bold flex items-center justify-center"
-                                                      style={{
-                                                        background: selected ? '#1D9E75' : available ? '#E6F7F1' : '#F3F4F6',
-                                                        color: selected ? 'white' : available ? '#1D9E75' : '#D1D5DB',
-                                                        border: selected ? '1.5px solid #1D9E75' : available ? '1px solid #A7F3D0' : '1px solid #E5E7EB',
-                                                        cursor: available ? 'pointer' : 'not-allowed',
-                                                      }}>
-                                                      {el.designator?.replace(/\d+/, '') ?? ''}
-                                                    </button>
-                                                  );
-                                                })}
-                                              </div>
-                                            ))}
+                      <p className="text-base font-extrabold text-gray-900">💺 Seat selection</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Optional — choose your seat before booking</p>
+                    </div>
+                    {Object.keys(seatSelections).length > 0 && (
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#E6F7F1', color: '#1D9E75' }}>
+                        {Object.keys(seatSelections).length} seat{Object.keys(seatSelections).length > 1 ? 's' : ''} selected
+                      </span>
+                    )}
+                  </div>
+                  <button onClick={loadSeatMaps} disabled={seatMapsLoading}
+                    className="w-full py-2.5 px-4 rounded-xl text-sm font-bold border-2 transition-colors flex items-center justify-center gap-2"
+                    style={{ borderColor: '#1D9E75', color: seatMapsOpen ? 'white' : '#1D9E75', background: seatMapsOpen ? '#1D9E75' : 'white' }}>
+                    {seatMapsLoading
+                      ? <><svg className="animate-spin w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Loading seat map…</>
+                      : seatMapsOpen ? '▲ Hide seat map' : '💺 Choose your seats'}
+                  </button>
+                  {seatMapsOpen && seatMaps && seatMaps.length > 0 && (
+                    <div className="mt-4 space-y-5">
+                      {seatMaps.map(sm => {
+                        const seg = offer.segments.find(s => s.segmentId === sm.segmentId);
+                        const cabin = sm.cabins[0];
+                        if (!cabin) return null;
+                        return (
+                          <div key={sm.segmentId}>
+                            <p className="text-xs font-bold text-gray-500 mb-3">
+                              {seg ? `${seg.depCode} → ${seg.arrCode} · ${cabin.cabinClassName ?? cabin.cabinClass}` : sm.segmentId}
+                            </p>
+                            {offer.passengerIds.map((paxId, pi) => (
+                              <div key={paxId} className="mb-4">
+                                {offer.passengerIds.length > 1 && (
+                                  <p className="text-xs font-semibold text-gray-400 mb-2">Passenger {pi + 1}</p>
+                                )}
+                                <div className="overflow-x-auto">
+                                  <div className="inline-block">
+                                    {cabin.rows.map((row, ri) => (
+                                      <div key={ri} className="flex gap-1 mb-1">
+                                        {row.sections.map((sec, si) => (
+                                          <div key={si} className="flex gap-1">
+                                            {si > 0 && <div className="w-5" />}
+                                            {sec.elements.map((el, ei) => {
+                                              if (el.type !== 'seat') return <div key={ei} className="w-8 h-8" />;
+                                              const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
+                                              const available = !!paxSvc;
+                                              const mapKey = `${sm.segmentId}_${paxId}`;
+                                              const selected = seatSelections[mapKey] === paxSvc?.id;
+                                              return (
+                                                <button key={ei} disabled={!available}
+                                                  onClick={() => paxSvc && selectSeat(sm.segmentId, paxId, paxSvc.id)}
+                                                  title={`${el.designator ?? ''}${paxSvc ? ` · +${fmtPrice(parseFloat(paxSvc.total_amount), paxSvc.total_currency)}` : ''}`}
+                                                  className="w-8 h-8 rounded text-[10px] font-bold flex items-center justify-center transition-colors"
+                                                  style={{
+                                                    background: selected ? '#1D9E75' : available ? '#E6F7F1' : '#F3F4F6',
+                                                    color: selected ? 'white' : available ? '#1D9E75' : '#D1D5DB',
+                                                    border: selected ? '1.5px solid #1D9E75' : available ? '1px solid #A7F3D0' : '1px solid #E5E7EB',
+                                                    cursor: available ? 'pointer' : 'not-allowed',
+                                                  }}>
+                                                  {el.designator?.replace(/\d+/, '') ?? ''}
+                                                </button>
+                                              );
+                                            })}
                                           </div>
                                         ))}
                                       </div>
-                                    </div>
+                                    ))}
                                   </div>
-                                ))}
+                                </div>
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                            ))}
+                          </div>
+                        );
+                      })}
+                      <div className="flex gap-3 text-xs text-gray-400">
+                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#E6F7F1', border: '1px solid #A7F3D0' }} /> Available</span>
+                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#1D9E75' }} /> Selected</span>
+                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#F3F4F6', border: '1px solid #E5E7EB' }} /> Taken</span>
+                      </div>
                     </div>
+                  )}
+                  {seatMapsOpen && (!seatMaps || seatMaps.length === 0) && !seatMapsLoading && (
+                    <p className="text-xs text-gray-400 mt-2 text-center">Seat map not available for this flight.</p>
                   )}
                 </div>
               )}
@@ -1747,6 +1778,19 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)', opacity: 1 }}>
                       {extrasTotal > 0 ? `Continue with +${fmtPrice(extrasTotal, offer.totalCurrency)} →` : 'Continue to payment →'}
                     </button>
+                    {offer.paymentRequirements && !offer.paymentRequirements.requiresInstantPayment && (
+                      <button
+                        onClick={() => {
+                          if (!validateForms()) return;
+                          setHoldMode(true);
+                          setBookStep('payment');
+                        }}
+                        title={offer.paymentRequirements.paymentRequiredBy ? `Pay by ${new Date(offer.paymentRequirements.paymentRequiredBy).toLocaleDateString()}` : undefined}
+                        className="w-full py-3 rounded-2xl text-sm font-bold border-2 transition"
+                        style={{ borderColor: '#1A73E8', color: '#1A73E8', background: 'white' }}>
+                        ⏳ Hold seat — pay later{offer.paymentRequirements.paymentRequiredBy ? ` (by ${new Date(offer.paymentRequirements.paymentRequiredBy).toLocaleDateString()})` : ''}
+                      </button>
+                    )}
                   </div>
                 );
               })()}

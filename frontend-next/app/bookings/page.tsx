@@ -14,7 +14,7 @@ interface FlightBooking {
   id: string;
   duffel_order_id: string;
   booking_reference: string;
-  status: 'confirmed' | 'cancelled';
+  status: 'confirmed' | 'cancelled' | 'held';
   origin_code: string;
   origin_city: string;
   destination_code: string;
@@ -91,6 +91,7 @@ export default function BookingsPage() {
     );
   }
 
+  const held = bookings.filter(b => b.status === 'held');
   const upcoming = bookings.filter(b => b.status === 'confirmed' && new Date(b.departure_at) >= new Date());
   const past = bookings.filter(b => b.status === 'confirmed' && new Date(b.departure_at) < new Date());
   const cancelled = bookings.filter(b => b.status === 'cancelled');
@@ -120,6 +121,15 @@ export default function BookingsPage() {
               Search flights →
             </button>
           </div>
+        )}
+
+        {held.length > 0 && (
+          <section>
+            <p className="text-xs font-bold text-amber-500 uppercase tracking-wide mb-3">⏳ Held — payment required</p>
+            <div className="space-y-3">
+              {held.map(b => <BookingCard key={b.id} booking={b} />)}
+            </div>
+          </section>
         )}
 
         {upcoming.length > 0 && (
@@ -156,6 +166,7 @@ export default function BookingsPage() {
 function BookingCard({ booking: b }: { booking: FlightBooking }) {
   const isPast = new Date(b.departure_at) < new Date();
   const isCancelled = b.status === 'cancelled';
+  const isHeld = b.status === 'held';
   const badge = cancellationBadge(b.cancellation_policy);
 
   return (
@@ -171,10 +182,12 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full`}
                 style={isCancelled
                   ? { background: '#FEE2E2', color: '#DC2626' }
+                  : isHeld
+                  ? { background: '#FEF3C7', color: '#B45309' }
                   : isPast
                   ? { background: '#F3F4F6', color: '#6B7280' }
                   : { background: '#ECFDF5', color: '#15803D' }}>
-                {isCancelled ? 'Cancelled' : isPast ? 'Completed' : 'Confirmed ✓'}
+                {isCancelled ? 'Cancelled' : isHeld ? '⏳ Held' : isPast ? 'Completed' : 'Confirmed ✓'}
               </span>
             </div>
             <p className="text-sm text-gray-500">

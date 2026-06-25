@@ -12,7 +12,7 @@ interface FlightBooking {
   id: string;
   duffel_order_id: string;
   booking_reference: string;
-  status: 'confirmed' | 'cancelled';
+  status: 'confirmed' | 'cancelled' | 'held';
   origin_code: string;
   origin_city: string;
   destination_code: string;
@@ -36,7 +36,7 @@ interface DuffelPassenger {
   gender: string;
   born_on: string;
   email: string;
-  phone_number: string;
+  phone_number?: string;
   identity_documents: {
     type: string;
     unique_identifier: string;
@@ -131,6 +131,32 @@ export default function ManageBookingPage() {
   const [cancelDone, setCancelDone] = useState(false);
   const [cancelError, setCancelError] = useState('');
 
+  // Post-booking bags state
+  const [bagServices, setBagServices] = useState<{
+    id: string; totalAmount: number; totalCurrency: string;
+    maxWeightKg: number | null; maxQuantity: number;
+    passengerIds: string[]; segmentIds: string[];
+  }[]>([]);
+  const [bagSelections, setBagSelections] = useState<Record<string, number>>({});
+  const [bagsLoading, setBagsLoading] = useState(false);
+  const [bagsOpen, setBagsOpen] = useState(false);
+  const [bagsSaving, setBagsSaving] = useState(false);
+  const [bagsDone, setBagsDone] = useState(false);
+  const [bagsError, setBagsError] = useState('');
+
+  // Name correction state
+  const [nameFormOpen, setNameFormOpen] = useState(false);
+  const [namePassengerId, setNamePassengerId] = useState('');
+  const [nameFields, setNameFields] = useState({ given_name: '', family_name: '', phone_number: '' });
+  const [nameSaving, setNameSaving] = useState(false);
+  const [nameDone, setNameDone] = useState(false);
+  const [nameError, setNameError] = useState('');
+
+  // Pay held order state
+  const [payHeldLoading, setPayHeldLoading] = useState(false);
+  const [payHeldDone, setPayHeldDone] = useState(false);
+  const [payHeldError, setPayHeldError] = useState('');
+
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -203,6 +229,99 @@ export default function ManageBookingPage() {
     }
   }
 
+  async function loadBags() {
+    if (!booking) return;
+    if (bagsOpen) { setBagsOpen(false); return; }
+    setBagsLoading(true); setBagsError('');
+    try {
+      const res = await fetch(`/api/flights/duffel-post-book-bags?orderId=${booking.duffel_order_id}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed to load');
+      setBagServices(data.services ?? []);
+      setBagsOpen(true);
+    } catch (err) {
+      setBagsError(err instanceof Error ? err.message : 'Could not load available bags.');
+    } finally {
+      setBagsLoading(false);
+    }
+  }
+
+  async function addBags() {
+    if (!booking) return;
+    const toAdd = Object.entries(bagSelections).filter(([, q]) => q > 0).map(([id, quantity]) => ({ serviceId: id, quantity }));
+    if (!toAdd.length) return;
+    setBagsSaving(true); setBagsError('');
+    try {
+      const res = await fetch('/api/flights/duffel-post-book-bags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: booking.duffel_order_id, bookingId: booking.id, services: toAdd }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed to add bags');
+      setBagsDone(true); setBagsOpen(false); setBagSelections({});
+    } catch (err) {
+      setBagsError(err instanceof Error ? err.message : 'Could not add bags.');
+    } finally {
+      setBagsSaving(false);
+    }
+  }
+
+  async function saveNameCorrection() {
+    if (!booking || !namePassengerId) return;
+    setNameSaving(true); setNameError('');
+    try {
+      const fields: Record<string, string> = {};
+      if (nameFields.given_name.trim()) fields.given_name = nameFields.given_name.trim();
+      if (nameFields.family_name.trim()) fields.family_name = nameFields.family_name.trim();
+      if (nameFields.phone_number.trim()) fields.phone_number = nameFields.phone_number.trim();
+      const res = await fetch('/api/flights/duffel-change-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'patch', orderId: booking.duffel_order_id, passengerId: namePassengerId, fields }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Update failed');
+      setNameDone(true); setNameFormOpen(false);
+      // Refresh order data
+      const orderRes = await fetch('/api/flights/duffel-order-detail', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: booking.duffel_order_id }),
+      });
+      if (orderRes.ok) setOrder(await orderRes.json());
+    } catch (err) {
+      setNameError(err instanceof Error ? err.message : 'Update failed.');
+    } finally {
+      setNameSaving(false);
+    }
+  }
+
+  async function payHeldOrder() {
+    if (!booking) return;
+    setPayHeldLoading(true); setPayHeldError('');
+    try {
+      const res = await fetch('/api/flights/duffel-pay-held', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: booking.duffel_order_id,
+          bookingId: booking.id,
+          amount: booking.total_amount.toString(),
+          currency: booking.currency,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Payment failed');
+      setBooking(prev => prev ? { ...prev, status: 'confirmed' } : prev);
+      setPayHeldDone(true);
+      router.refresh();
+    } catch (err) {
+      setPayHeldError(err instanceof Error ? err.message : 'Payment failed.');
+    } finally {
+      setPayHeldLoading(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#F8FAFC' }}>
@@ -214,8 +333,9 @@ export default function ManageBookingPage() {
   if (!booking) return null;
 
   const isCancelled = booking.status === 'cancelled' || cancelDone;
+  const isHeld = booking.status === 'held' && !cancelDone;
   const isPast = new Date(booking.departure_at) < new Date();
-  const canCancel = !isCancelled && !isPast;
+  const canCancel = !isCancelled && !isHeld && !isPast;
 
   // Derive cancellation policy display
   const cp = booking.cancellation_policy;
@@ -253,10 +373,12 @@ export default function ManageBookingPage() {
                 <span className="text-xs font-bold px-3 py-1 rounded-full"
                   style={isCancelled
                     ? { background: '#FEE2E2', color: '#DC2626' }
+                    : isHeld
+                    ? { background: '#FEF3C7', color: '#B45309' }
                     : isPast
                     ? { background: '#F3F4F6', color: '#6B7280' }
                     : { background: '#ECFDF5', color: '#15803D' }}>
-                  {isCancelled ? 'Cancelled' : isPast ? 'Completed' : 'Confirmed ✓'}
+                  {isCancelled ? 'Cancelled' : isHeld ? '⏳ Held — pay to confirm' : isPast ? 'Completed' : 'Confirmed ✓'}
                 </span>
               </div>
               <p className="text-base text-gray-500">{booking.origin_city} → {booking.destination_city}</p>
@@ -609,6 +731,152 @@ export default function ManageBookingPage() {
               <p className="text-xs text-gray-400 mt-2">
                 To change your flights, contact the airline with reference {booking.booking_reference}.
               </p>
+            )}
+          </Section>
+        )}
+
+        {/* ── Pay Now — held orders ───────────────────────────────────── */}
+        {isHeld && !payHeldDone && (
+          <Section title="Complete Your Booking">
+            <div className="rounded-xl p-4 mb-4" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+              <p className="text-sm font-bold text-amber-800">Your seat is held — payment required to confirm</p>
+              <p className="text-xs text-amber-700 mt-1">Pay now to lock in this ticket. Held seats can expire — check your booking reference for the deadline.</p>
+            </div>
+            <p className="text-lg font-extrabold text-gray-900 mb-4">{fmtPrice(booking.total_amount, booking.currency)}</p>
+            {payHeldError && <p className="text-sm text-red-500 bg-red-50 rounded-xl px-3 py-2 mb-3">{payHeldError}</p>}
+            <button onClick={payHeldOrder} disabled={payHeldLoading}
+              className="w-full py-3.5 rounded-xl text-sm font-bold text-white transition disabled:opacity-60"
+              style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+              {payHeldLoading ? 'Processing…' : `Pay ${fmtPrice(booking.total_amount, booking.currency)} → Confirm booking`}
+            </button>
+          </Section>
+        )}
+        {payHeldDone && (
+          <Section title="Complete Your Booking">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">✅</span>
+              <div>
+                <p className="text-sm font-bold text-green-700">Payment confirmed!</p>
+                <p className="text-xs text-gray-400">Your booking is now confirmed.</p>
+              </div>
+            </div>
+          </Section>
+        )}
+
+        {/* ── Add bags (post-booking) ──────────────────────────────────── */}
+        {!isCancelled && !isHeld && (
+          <Section title="Add Checked Baggage">
+            {bagsDone ? (
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">✅</span>
+                <p className="text-sm font-bold text-green-700">Bags added to your booking.</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-gray-400 mb-3">Add checked bags after booking. Availability depends on the airline.</p>
+                <button onClick={loadBags} disabled={bagsLoading}
+                  className="w-full py-2.5 rounded-xl text-sm font-bold border-2 transition-colors"
+                  style={{ borderColor: '#1D9E75', color: bagsOpen ? 'white' : '#1D9E75', background: bagsOpen ? '#1D9E75' : 'white' }}>
+                  {bagsLoading ? 'Loading…' : bagsOpen ? '▲ Hide options' : '🧳 View available bags'}
+                </button>
+                {bagsOpen && bagServices.length === 0 && (
+                  <p className="text-sm text-gray-400 text-center mt-3">No additional bags available for this booking through Duffel.</p>
+                )}
+                {bagsOpen && bagServices.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {bagServices.map(svc => {
+                      const qty = bagSelections[svc.id] ?? 0;
+                      return (
+                        <div key={svc.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                          <div>
+                            <p className="text-sm font-bold text-gray-800">{svc.maxWeightKg ? `${svc.maxWeightKg}kg bag` : 'Checked bag'}</p>
+                            <p className="text-sm font-bold mt-0.5" style={{ color: '#1D9E75' }}>+{fmtPrice(svc.totalAmount, svc.totalCurrency)}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => setBagSelections(s => ({ ...s, [svc.id]: Math.max(0, (s[svc.id] ?? 0) - 1) }))}
+                              className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-sm font-bold text-gray-500 hover:border-teal transition">−</button>
+                            <span className="w-5 text-center text-sm font-bold tabular-nums">{qty}</span>
+                            <button onClick={() => setBagSelections(s => ({ ...s, [svc.id]: Math.min(svc.maxQuantity, (s[svc.id] ?? 0) + 1) }))}
+                              className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-sm font-bold text-gray-500 hover:border-teal transition">+</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {bagsError && <p className="text-sm text-red-500">{bagsError}</p>}
+                    {Object.values(bagSelections).some(q => q > 0) && (
+                      <button onClick={addBags} disabled={bagsSaving}
+                        className="w-full py-3 rounded-xl text-sm font-bold text-white mt-2 transition disabled:opacity-60"
+                        style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+                        {bagsSaving ? 'Adding…' : `Add bags · ${fmtPrice(Object.entries(bagSelections).reduce((sum, [id, qty]) => sum + (bagServices.find(s => s.id === id)?.totalAmount ?? 0) * qty, 0), bagServices[0]?.totalCurrency ?? booking.currency)}`}
+                      </button>
+                    )}
+                  </div>
+                )}
+                {bagsError && !bagsOpen && <p className="text-sm text-red-500 mt-2">{bagsError}</p>}
+              </>
+            )}
+          </Section>
+        )}
+
+        {/* ── Name correction ──────────────────────────────────────────── */}
+        {!isCancelled && order && order.passengers.length > 0 && (
+          <Section title="Passenger Name Correction">
+            {nameDone ? (
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">✅</span>
+                <p className="text-sm font-bold text-green-700">Passenger details updated.</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-gray-400 mb-3">Fix a typo in a passenger&apos;s name or update their phone number. Subject to airline approval.</p>
+                {!nameFormOpen ? (
+                  <div className="space-y-2">
+                    {order.passengers.map(p => (
+                      <button key={p.id} onClick={() => {
+                        setNamePassengerId(p.id);
+                        setNameFields({ given_name: p.given_name, family_name: p.family_name, phone_number: p.phone_number ?? '' });
+                        setNameFormOpen(true);
+                      }}
+                        className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-teal/40 transition text-left">
+                        <span className="text-sm font-semibold text-gray-800 capitalize">{p.given_name} {p.family_name}</span>
+                        <span className="text-xs text-teal font-semibold">Edit →</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">First name</label>
+                        <input value={nameFields.given_name} onChange={e => setNameFields(f => ({ ...f, given_name: e.target.value }))}
+                          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">Last name</label>
+                        <input value={nameFields.family_name} onChange={e => setNameFields(f => ({ ...f, family_name: e.target.value }))}
+                          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">Phone number</label>
+                      <input type="tel" value={nameFields.phone_number} onChange={e => setNameFields(f => ({ ...f, phone_number: e.target.value }))}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                    </div>
+                    {nameError && <p className="text-sm text-red-500">{nameError}</p>}
+                    <div className="flex gap-2">
+                      <button onClick={saveNameCorrection} disabled={nameSaving}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition disabled:opacity-60"
+                        style={{ background: '#1D9E75' }}>
+                        {nameSaving ? 'Saving…' : 'Save changes'}
+                      </button>
+                      <button onClick={() => setNameFormOpen(false)}
+                        className="py-2.5 px-4 rounded-xl text-sm font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </Section>
         )}
@@ -1026,7 +1294,7 @@ function PassengerCard({ passenger: p, index }: { passenger: DuffelPassenger; in
             <Field label="Gender" value={p.gender === 'm' ? 'Male' : p.gender === 'f' ? 'Female' : p.gender} />
             <Field label="Date of birth" value={p.born_on ? new Date(p.born_on).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'} />
             <Field label="Email" value={p.email} />
-            <Field label="Phone" value={p.phone_number} />
+            <Field label="Phone" value={p.phone_number ?? '—'} />
           </div>
 
           {doc && (

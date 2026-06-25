@@ -18,13 +18,14 @@ interface PassengerInput {
 }
 
 export async function POST(req: NextRequest) {
-  const { offerId, paymentIntentId, amount, currency, passengers, services = [] } = await req.json() as {
+  const { offerId, paymentIntentId, amount, currency, passengers, services = [], hold = false } = await req.json() as {
     offerId: string;
     paymentIntentId: string;
     amount: string;
     currency: string;
     passengers: PassengerInput[];
     services?: { serviceId: string; quantity: number }[];
+    hold?: boolean;
   };
 
   const key = process.env.DUFFEL_LIVE_API_KEY
@@ -73,9 +74,12 @@ export async function POST(req: NextRequest) {
     }
   } catch { /* keep original amount if refresh fails for an unexpected reason */ }
 
-  const payment = isTestMode
-    ? { type: 'balance', amount: bookingAmount, currency: bookingCurrency }
-    : { type: 'payment_intent', id: paymentIntentId };
+  // hold=true creates the order without payment (airline holds the seat)
+  // The order can be paid later via POST /air/payments before the hold expires
+  const payment = hold ? null
+    : isTestMode
+      ? { type: 'balance', amount: bookingAmount, currency: bookingCurrency }
+      : { type: 'payment_intent', id: paymentIntentId };
 
   try {
     const res = await fetch(`${DUFFEL}/air/orders`, {
@@ -104,7 +108,7 @@ export async function POST(req: NextRequest) {
               issuing_country_code: p.passportCountry,
             }],
           })),
-          payments: [payment],
+          ...(payment ? { payments: [payment] } : {}),
           ...(services.length > 0 ? {
             services: services.map(s => ({ id: s.serviceId, quantity: s.quantity })),
           } : {}),
@@ -142,7 +146,7 @@ export async function POST(req: NextRequest) {
         passenger_email: passengers[0]?.email ?? null,
         duffel_order_id: order.id,
         booking_reference: order.booking_reference,
-        status: 'confirmed',
+        status: order.status === 'held' ? 'held' : 'confirmed',
         origin_code: firstSeg?.origin?.iata_code ?? null,
         origin_city: firstSeg?.origin?.city_name ?? firstSeg?.origin?.name ?? null,
         destination_code: lastSeg?.destination?.iata_code ?? null,
@@ -182,11 +186,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       orderId: order.id,
       bookingReference: order.booking_reference,
+      status: order.status,
       totalAmount: parseFloat(order.total_amount),
       currency: order.total_currency,
       passengers: order.passengers,
       refreshedTotalAmount,
       testMode: isTestMode,
+      paymentRequirements: order.payment_requirements ?? null,
       _saveDebug: (order as Record<string, unknown>)._saveDebug ?? null,
     });
   } catch (err) {
