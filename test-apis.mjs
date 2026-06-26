@@ -787,6 +787,22 @@ if (runUnit) {
     assert('top position uses flipUp to go above input', src.includes('flipUp ? anchor.top - calH'));
   });
 
+  // ── Calendar opens at today's month ──────────────────────────────────────
+  await section('Date picker — calendar resets to today\'s month on open', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightSearchBar.tsx'), 'utf8');
+    // toggle() must reset viewYear/viewMonth to today when opening
+    assert('toggle resets viewYear to today on open', src.includes('setViewYear(now.getFullYear())'));
+    assert('toggle resets viewMonth to today on open', src.includes('setViewMonth(now.getMonth())'));
+  });
+
+  // ── Round trip requires return date ──────────────────────────────────────
+  await section('Flight search — round trip blocks search without return date', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightSearchBar.tsx'), 'utf8');
+    assert('search button disabled when round trip and no return date', src.includes("tripType === 'round' && !ret"));
+    assert('return date picker gets required prop', src.includes('required onChange={setRet}') || src.includes('required\n') && src.includes('onChange={setRet}'));
+    assert('required prop highlights border amber', src.includes("required && !value ? '#F59E0B'"));
+  });
+
   // ── DragonPass link fix ───────────────────────────────────────────────────
   await section('DragonPass link — uses root URL not broken /en-gb/ path', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');

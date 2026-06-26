@@ -239,10 +239,11 @@ interface DatePickerProps {
   label: string;
   value: string;
   minDate?: string;
+  required?: boolean;
   onChange: (v: string) => void;
 }
 
-function DatePicker({ label, value, minDate, onChange }: DatePickerProps) {
+function DatePicker({ label, value, minDate, required, onChange }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
   const [viewYear, setViewYear] = useState(() => (value ? new Date(value + 'T12:00:00') : new Date()).getFullYear());
@@ -263,7 +264,12 @@ function DatePicker({ label, value, minDate, onChange }: DatePickerProps) {
   }, [open]);
 
   function toggle() {
-    if (!open && btnRef.current) setAnchor(btnRef.current.getBoundingClientRect());
+    if (!open && btnRef.current) {
+      setAnchor(btnRef.current.getBoundingClientRect());
+      const now = new Date();
+      setViewYear(now.getFullYear());
+      setViewMonth(now.getMonth());
+    }
     setOpen(o => !o);
   }
 
@@ -355,10 +361,11 @@ function DatePicker({ label, value, minDate, onChange }: DatePickerProps) {
 
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-500 mb-1">{label}</label>
+      <label className="block text-xs font-semibold mb-1" style={{ color: required && !value ? '#F59E0B' : '#6B7280' }}>{label}{required && !value ? ' *' : ''}</label>
       <button ref={btnRef} type="button" onClick={toggle}
-        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-left focus:outline-none focus:ring-2 focus:ring-teal/30 hover:border-gray-300 transition-colors"
-        style={value ? { color: '#111' } : { color: '#9ca3af' }}>
+        className="w-full border rounded-xl px-4 py-3 text-sm text-left focus:outline-none focus:ring-2 focus:ring-teal/30 hover:border-gray-300 transition-colors"
+        style={{ color: value ? '#111' : '#9ca3af', borderColor: required && !value ? '#F59E0B' : undefined }}
+      >
         {value ? fmtDate(value) : 'Select date'}
       </button>
       {popup}
@@ -582,11 +589,11 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
         <AirportInput label="TO" value={to} onChange={setTo} />
         <DatePicker label="DEPART" value={depart} onChange={setDepart} />
         {tripType === 'round' && (
-          <DatePicker label="RETURN" value={ret} minDate={depart || undefined} onChange={setRet} />
+          <DatePicker label="RETURN" value={ret} minDate={depart || undefined} required onChange={setRet} />
         )}
       </div>
       <button type="button" onClick={handleSearch}
-        disabled={!from || !to || !depart}
+        disabled={!from || !to || !depart || (tripType === 'round' && !ret)}
         className="w-full py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
         style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
         Search Flights →
