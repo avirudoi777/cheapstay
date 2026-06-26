@@ -27,6 +27,17 @@ interface CompanionData {
   isChild?: boolean;
 }
 
+function passportExpiryStatus(expiry: string): 'expired' | 'soon' | 'ok' | 'none' {
+  if (!expiry) return 'none';
+  const exp = new Date(expiry + 'T12:00:00');
+  const now = new Date();
+  if (exp < now) return 'expired';
+  const sixMonths = new Date();
+  sixMonths.setMonth(sixMonths.getMonth() + 6);
+  if (exp <= sixMonths) return 'soon';
+  return 'ok';
+}
+
 const EMPTY_COMPANION: CompanionData = {
   id: '', nickname: '', title: 'mr', givenName: '', familyName: '',
   gender: 'm', bornOn: '', phone: '', passports: [], isChild: false,
@@ -166,8 +177,9 @@ export default function AccountPage() {
       setAvatarUrl('');
     } else {
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
-      setAvatarUrl(publicUrl + '?t=' + Date.now());
-      const { error: dbError } = await supabase.from('user_profiles').upsert({ id: user.id, avatar_url: publicUrl });
+      const urlWithBust = publicUrl + '?t=' + Date.now();
+      setAvatarUrl(urlWithBust);
+      const { error: dbError } = await supabase.from('user_profiles').upsert({ id: user.id, avatar_url: urlWithBust });
       if (dbError) setError('Save failed: ' + dbError.message);
     }
     URL.revokeObjectURL(localPreview);
@@ -177,15 +189,22 @@ export default function AccountPage() {
 
   async function handleSave() {
     if (!user) return;
-    setSaving(true);
     setError('');
+    // Block save if any passport with a number has an expired expiry date
+    const expiredPassports = travPassports.filter(p => p.passportNumber && p.passportExpiry && passportExpiryStatus(p.passportExpiry) === 'expired');
+    if (expiredPassports.length > 0) {
+      const names = expiredPassports.map(p => COUNTRIES.find(c => c.code === p.country)?.name ?? p.country).join(', ');
+      setError(`Passport expired: ${names}. Please update the expiry date or remove it before saving.`);
+      return;
+    }
+    setSaving(true);
     const supabase = createClient();
 
     const nationalities = travPassports.filter(p => p.country).map(p => p.country);
     const payload: Record<string, unknown> = {
       id: user.id,
       display_name: displayName,
-      avatar_url: avatarUrl.split('?')[0] || null,
+      avatar_url: avatarUrl || null,
       travel_styles: styles,
       preferred_regions: regions,
       budget_range: budget,
@@ -320,16 +339,35 @@ export default function AccountPage() {
             {travPassports.map(p => {
               const country = COUNTRIES.find(c => c.code === p.country);
               const isOpen = expandedPassportId === p.id;
+              const expiryStatus = passportExpiryStatus(p.passportExpiry);
+              const borderColor = expiryStatus === 'expired'
+                ? (isOpen ? '#EF4444' : '#FEE2E2')
+                : expiryStatus === 'soon'
+                  ? (isOpen ? '#F59E0B' : '#FEF3C7')
+                  : (isOpen ? '#1D9E75' : '#E5E7EB');
+              const bgColor = expiryStatus === 'expired'
+                ? (isOpen ? '#FEF2F2' : '#FAFAFA')
+                : expiryStatus === 'soon'
+                  ? (isOpen ? '#FFFBEB' : '#FAFAFA')
+                  : (isOpen ? '#F0FBF7' : '#FAFAFA');
               return (
                 <div key={p.id} className="rounded-2xl border overflow-hidden transition-all"
-                  style={{ borderColor: isOpen ? '#1D9E75' : '#E5E7EB' }}>
+                  style={{ borderColor }}>
                   {/* Header row — always visible */}
                   <div className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none"
-                    style={{ background: isOpen ? '#F0FBF7' : '#FAFAFA' }}
+                    style={{ background: bgColor }}
                     onClick={() => setExpandedId(isOpen ? null : p.id)}>
                     <span className="text-2xl flex-shrink-0">{flagEmoji(p.country)}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-gray-900">{country?.name ?? p.country}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-gray-900">{country?.name ?? p.country}</p>
+                        {expiryStatus === 'expired' && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">Expired</span>
+                        )}
+                        {expiryStatus === 'soon' && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">⚠ Expiring soon</span>
+                        )}
+                      </div>
                       {p.passportNumber
                         ? <p className="text-[11px] text-gray-400">···{p.passportNumber.slice(-4)} · Exp {p.passportExpiry || 'N/A'}</p>
                         : <p className="text-[11px] text-teal-600 font-medium">Tap to add passport number →</p>

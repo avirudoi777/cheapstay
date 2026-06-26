@@ -605,6 +605,50 @@ if (runUnit) {
     assert('reverts avatar on upload error', src.includes("setAvatarUrl('')"));
   });
 
+  // ── Avatar cache bust — persists across refresh ───────────────────────────
+  await section('Avatar upload — cache-busted URL saved to DB so image updates on refresh', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/account/page.tsx'), 'utf8');
+    // urlWithBust must be used in both setAvatarUrl and the upsert
+    assert('urlWithBust variable created with ?t= timestamp', src.includes("urlWithBust = publicUrl + '?t=' + Date.now()"));
+    assert('setAvatarUrl uses urlWithBust (not plain publicUrl)', src.includes('setAvatarUrl(urlWithBust)'));
+    assert('upsert saves urlWithBust (not plain publicUrl)', src.includes('avatar_url: urlWithBust'));
+    // handleSave must NOT strip the ?t= param
+    const handleSaveIdx = src.indexOf('async function handleSave');
+    const savePayloadSection = src.slice(handleSaveIdx, handleSaveIdx + 1200);
+    assert('handleSave does not strip ?t= from avatarUrl', !savePayloadSection.includes("avatarUrl.split('?')[0]"));
+    assert('handleSave saves avatarUrl as-is', savePayloadSection.includes('avatar_url: avatarUrl'));
+  });
+
+  // ── Passport expiry — validation + badges + home banner ─────────────────
+  await section('Passport expiry — block save on expired, badge on card, home page banner', async () => {
+    const accountSrc = readFileSync(resolve(__dir, 'frontend-next/app/account/page.tsx'), 'utf8');
+
+    // passportExpiryStatus helper exists
+    assert('passportExpiryStatus helper defined', accountSrc.includes('function passportExpiryStatus'));
+    assert('passportExpiryStatus returns expired', accountSrc.includes("return 'expired'"));
+    assert('passportExpiryStatus returns soon', accountSrc.includes("return 'soon'"));
+
+    // Validation in handleSave blocks expired passports
+    assert('handleSave checks for expired passports', accountSrc.includes("passportExpiryStatus(p.passportExpiry) === 'expired'"));
+    assert('handleSave shows error with country name', accountSrc.includes('Passport expired:'));
+    assert('handleSave returns early on expired passport', accountSrc.includes("setError(`Passport expired:"));
+
+    // Badges rendered on passport cards
+    assert('Expired badge rendered on card', accountSrc.includes("expiryStatus === 'expired'") && accountSrc.includes('Expired</span>'));
+    assert('Expiring soon badge rendered on card', accountSrc.includes("expiryStatus === 'soon'") && accountSrc.includes('Expiring soon</span>'));
+    assert('Expired card gets red border', accountSrc.includes("'#FEE2E2'"));
+    assert('Expiring soon card gets amber border', accountSrc.includes("'#FEF3C7'"));
+
+    // Home page banner
+    const homeSrc = readFileSync(resolve(__dir, 'frontend-next/app/page.tsx'), 'utf8');
+    assert('expiringPassports state on home page', homeSrc.includes('expiringPassports'));
+    assert('home page query fetches traveler_profile', homeSrc.includes("'passport_nationality, passport_nationalities, traveler_profile'"));
+    assert('home page checks passport expiry within 6 months', homeSrc.includes('sixMonths.setMonth'));
+    assert('home page banner links to /account', homeSrc.includes('href="/account"') && homeSrc.includes('expiringPassports'));
+    assert('home page banner is dismissible', homeSrc.includes('passportBannerDismissed'));
+    assert('home page banner shows expired vs soon state', homeSrc.includes("p.expired") && homeSrc.includes('Passport expired'));
+  });
+
   // ── DiDi logo + AppLogo fallback ────────────────────────────────────────
   await section('Ride-share logos — DiDi Clearbit domain and 3-level AppLogo fallback', async () => {
     const tipsSrc = readFileSync(resolve(__dir, 'frontend-next/lib/transport-tips.ts'), 'utf8');

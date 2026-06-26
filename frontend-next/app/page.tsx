@@ -238,6 +238,8 @@ export default function HomePage() {
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const resultsRef  = useRef<HTMLDivElement>(null);
   const [passportCodes, setPassportCodes] = useState<string[]>([]);
+  const [expiringPassports, setExpiringPassports] = useState<{ country: string; expiry: string; expired: boolean }[]>([]);
+  const [passportBannerDismissed, setPassportBannerDismissed] = useState(false);
 
   // Hero tab
   const [activeTab, setActiveTab] = useState<'hotel' | 'flight'>('hotel');
@@ -308,7 +310,7 @@ export default function HomePage() {
       if (!data.user) return;
       const { data: profile } = await createClient()
         .from('user_profiles')
-        .select('passport_nationality, passport_nationalities')
+        .select('passport_nationality, passport_nationalities, traveler_profile')
         .eq('id', data.user.id)
         .single();
       if (profile?.passport_nationalities?.length) {
@@ -316,6 +318,21 @@ export default function HomePage() {
       } else if (profile?.passport_nationality) {
         setPassportCodes([profile.passport_nationality]);
       }
+      // Check passport expiry dates from traveler_profile
+      const passports: { country: string; expiry: string }[] = (profile?.traveler_profile as { passports?: { country: string; expiry: string }[] } | null)?.passports ?? [];
+      const now = new Date();
+      const sixMonths = new Date();
+      sixMonths.setMonth(sixMonths.getMonth() + 6);
+      const flagged = passports.filter(p => {
+        if (!p.expiry) return false;
+        const exp = new Date(p.expiry + 'T12:00:00');
+        return exp <= sixMonths;
+      }).map(p => ({
+        country: p.country,
+        expiry: p.expiry,
+        expired: new Date(p.expiry + 'T12:00:00') < now,
+      }));
+      if (flagged.length > 0) setExpiringPassports(flagged);
     });
   }, []);
 
@@ -518,6 +535,28 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* ── Passport expiry warning banner ───────────────────────────── */}
+      {expiringPassports.length > 0 && !passportBannerDismissed && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-4">
+          <div className={`flex items-start gap-3 rounded-2xl px-4 py-3 border ${expiringPassports.some(p => p.expired) ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+            <span className="text-lg flex-shrink-0 mt-0.5">{expiringPassports.some(p => p.expired) ? '🚨' : '⚠️'}</span>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold ${expiringPassports.some(p => p.expired) ? 'text-red-700' : 'text-amber-700'}`}>
+                {expiringPassports.some(p => p.expired) ? 'Passport expired' : 'Passport expiring soon'}
+              </p>
+              <p className={`text-xs mt-0.5 ${expiringPassports.some(p => p.expired) ? 'text-red-600' : 'text-amber-600'}`}>
+                {expiringPassports.map(p => `${p.country} (${p.expiry})`).join(', ')} —{' '}
+                {expiringPassports.some(p => p.expired)
+                  ? 'you may not be able to board. '
+                  : 'many countries require 6+ months validity. '}
+                <Link href="/account" className="underline font-semibold">Update in your profile →</Link>
+              </p>
+            </div>
+            <button onClick={() => setPassportBannerDismissed(true)} className="text-gray-400 hover:text-gray-600 text-lg leading-none flex-shrink-0 mt-0.5">×</button>
+          </div>
+        </div>
+      )}
 
       {/* ── Flight results ────────────────────────────────────────────── */}
       {flightSearch && (
