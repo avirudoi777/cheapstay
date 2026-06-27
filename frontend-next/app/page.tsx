@@ -228,6 +228,9 @@ const TRAVEL_GEAR = [
 
 const BLOG_FILTERS = ['All posts', 'Booking hacks', 'Hotel reviews', 'Countries', 'Asia', 'Middle East', 'Europe', 'Credit cards', 'Flights'];
 
+// ── Hotel source toggle — change to 'liteapi' to restore Agoda/Booking.com ──
+const HOTEL_SOURCE: 'duffel' | 'liteapi' = 'duffel';
+
 export default function HomePage() {
   const [results, setResults]           = useState<CitySearchResponse | null>(null);
   const [loading, setLoading]           = useState(false);
@@ -353,12 +356,21 @@ export default function HomePage() {
   }
 
   async function handleSearch(v: SearchValues) {
-    setLoading(true);
     setError('');
+    setSearchValues(v);
+
+    if (HOTEL_SOURCE === 'duffel') {
+      // DuffelStaysSection handles its own search — just set params and scroll
+      const nights = Math.max(1, Math.round((new Date(v.checkout).getTime() - new Date(v.checkin).getTime()) / 86400000));
+      analytics.search(v.location || v.query, v.checkin, v.checkout, nights, v.adults);
+      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+      return;
+    }
+
+    setLoading(true);
     setResults(null);
     setBookingDone(false);
     setBookingCount(0);
-    setSearchValues(v);
     startProgress();
     try {
       let searchLocation = v.location || v.query;
@@ -582,37 +594,9 @@ export default function HomePage() {
 
       {/* ── Search results / destinations ────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-20 gap-5">
-            <div className="relative w-16 h-16">
-              <div className="absolute inset-0 rounded-full border-4 border-gray-100" />
-              <div className="absolute inset-0 rounded-full border-4 border-t-teal border-r-transparent border-b-transparent border-l-transparent animate-spin" />
-            </div>
-            <div className="text-center">
-              <p className="text-navy font-semibold text-base">Searching hotels in {searchValues?.location || searchValues?.query}…</p>
-              <p className="text-gray-400 text-sm mt-1">Comparing prices across Agoda & Booking.com</p>
-            </div>
-          </div>
-        )}
 
-        {error && !loading && (
-          <p className="text-center text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl py-4 px-6 mt-4">{error}</p>
-        )}
-
-        {bookingDone && !loading && (
-          <div className="flex items-center gap-3 my-4">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-teal flex items-center justify-center">
-                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <span className="text-xs font-semibold text-teal">{bookingCount} hotels found · Best prices</span>
-            </div>
-          </div>
-        )}
-
-        {results && searchValues && (
+        {/* Duffel hotel results — active when HOTEL_SOURCE === 'duffel' */}
+        {HOTEL_SOURCE === 'duffel' && searchValues && (
           <div ref={resultsRef} className="mt-2">
             {passportCodes.length > 0 && (
               <VisaBanner
@@ -620,24 +604,68 @@ export default function HomePage() {
                 city={searchValues.location || searchValues.query}
               />
             )}
-            <HotelGrid
-              initialData={results}
-              location={searchValues.location || searchValues.query}
-              checkin={searchValues.checkin}
-              checkout={searchValues.checkout}
-              adults={searchValues.adults}
-              agodaPrices={null}
-            />
             <DuffelStaysSection
               location={searchValues.location || searchValues.query}
               checkin={searchValues.checkin}
               checkout={searchValues.checkout}
               adults={searchValues.adults}
+              isPrimary
             />
           </div>
         )}
 
-        {!results && !loading && (
+        {/* Liteapi (Agoda / Booking.com) results — active when HOTEL_SOURCE === 'liteapi' */}
+        {HOTEL_SOURCE === 'liteapi' && (
+          <>
+            {loading && (
+              <div className="flex flex-col items-center justify-center py-20 gap-5">
+                <div className="relative w-16 h-16">
+                  <div className="absolute inset-0 rounded-full border-4 border-gray-100" />
+                  <div className="absolute inset-0 rounded-full border-4 border-t-teal border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+                </div>
+                <div className="text-center">
+                  <p className="text-navy font-semibold text-base">Searching hotels in {searchValues?.location || searchValues?.query}…</p>
+                  <p className="text-gray-400 text-sm mt-1">Comparing prices across Agoda & Booking.com</p>
+                </div>
+              </div>
+            )}
+            {error && !loading && (
+              <p className="text-center text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl py-4 px-6 mt-4">{error}</p>
+            )}
+            {bookingDone && !loading && (
+              <div className="flex items-center gap-3 my-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-teal flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-semibold text-teal">{bookingCount} hotels found · Best prices</span>
+                </div>
+              </div>
+            )}
+            {results && searchValues && (
+              <div ref={resultsRef} className="mt-2">
+                {passportCodes.length > 0 && (
+                  <VisaBanner
+                    passportCodes={passportCodes}
+                    city={searchValues.location || searchValues.query}
+                  />
+                )}
+                <HotelGrid
+                  initialData={results}
+                  location={searchValues.location || searchValues.query}
+                  checkin={searchValues.checkin}
+                  checkout={searchValues.checkout}
+                  adults={searchValues.adults}
+                  agodaPrices={null}
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {!searchValues && !loading && (
           <section className="py-8">
             <h2 className="text-xl font-bold text-navy mb-1">Popular Destinations</h2>
             <p className="text-sm text-gray-400 mb-4">Average savings vs. booking on US IP</p>

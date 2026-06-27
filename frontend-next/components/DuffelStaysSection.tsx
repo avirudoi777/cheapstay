@@ -322,9 +322,10 @@ interface DuffelStaysSectionProps {
   checkin: string;
   checkout: string;
   adults: number;
+  isPrimary?: boolean;
 }
 
-export default function DuffelStaysSection({ location, checkin, checkout, adults }: DuffelStaysSectionProps) {
+export default function DuffelStaysSection({ location, checkin, checkout, adults, isPrimary = false }: DuffelStaysSectionProps) {
   const [status, setStatus] = useState<'loading' | 'done' | 'error' | 'empty'>('loading');
   const [results, setResults] = useState<DuffelResult[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
@@ -354,12 +355,14 @@ export default function DuffelStaysSection({ location, checkin, checkout, adults
 
   if (status === 'error') {
     return (
-      <div className="mt-8">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-base">🏨</span>
-          <h2 className="font-bold text-navy text-lg">More hotels via Duffel</h2>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">BETA</span>
-        </div>
+      <div className={isPrimary ? 'mt-2' : 'mt-8'}>
+        {!isPrimary && (
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-base">🏨</span>
+            <h2 className="font-bold text-navy text-lg">More hotels via Duffel</h2>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">BETA</span>
+          </div>
+        )}
         <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{errorMsg}</p>
       </div>
     );
@@ -368,15 +371,17 @@ export default function DuffelStaysSection({ location, checkin, checkout, adults
   if (status === 'empty') return null;
 
   return (
-    <div className="mt-8">
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-base">🏨</span>
-        <h2 className="font-bold text-navy text-lg">More hotels via Duffel</h2>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">BETA</span>
-        {status === 'loading' && (
-          <div className="w-4 h-4 rounded-full border-2 border-gray-200 border-t-teal animate-spin" />
-        )}
-      </div>
+    <div className={isPrimary ? 'mt-2' : 'mt-8'}>
+      {!isPrimary && (
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-base">🏨</span>
+          <h2 className="font-bold text-navy text-lg">More hotels via Duffel</h2>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">BETA</span>
+          {status === 'loading' && (
+            <div className="w-4 h-4 rounded-full border-2 border-gray-200 border-t-teal animate-spin" />
+          )}
+        </div>
+      )}
 
       {status === 'loading' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
