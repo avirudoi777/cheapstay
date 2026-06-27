@@ -11,6 +11,7 @@ import type { CitySearchResponse } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 import VisaBanner from '@/components/VisaBanner';
 import FlightResults from '@/components/FlightResults';
+import DuffelStaysSection from '@/components/DuffelStaysSection';
 
 const DESTINATIONS = [
   { city: 'Bangkok',   country: 'Thailand',  flag: '🇹🇭', img: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=400&h=200&fit=crop&auto=format', savings: 35 },
@@ -626,6 +627,12 @@ export default function HomePage() {
               checkout={searchValues.checkout}
               adults={searchValues.adults}
               agodaPrices={null}
+            />
+            <DuffelStaysSection
+              location={searchValues.location || searchValues.query}
+              checkin={searchValues.checkin}
+              checkout={searchValues.checkout}
+              adults={searchValues.adults}
             />
           </div>
         )}
