@@ -19,7 +19,10 @@ async function duffelPost(path: string, body: unknown) {
     body: JSON.stringify(body),
     cache: 'no-store',
   });
-  const data = await res.json();
+  const text = await res.text();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let data: any;
+  try { data = JSON.parse(text); } catch { data = { errors: [{ message: text }] }; }
   if (!res.ok) throw data;
   return data;
 }

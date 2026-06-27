@@ -348,7 +348,13 @@ export default function DuffelStaysSection({ location, checkin, checkout, adults
         setStatus(list.length === 0 ? 'empty' : 'done');
       })
       .catch(err => {
-        setErrorMsg(err instanceof Error ? err.message : 'Search failed');
+        const msg = err instanceof Error ? err.message : 'Search failed';
+        // Duffel Stays not enabled on this account — hide silently in primary mode
+        if (isPrimary && (msg.toLowerCase().includes('feature') || msg.toLowerCase().includes('not available') || msg.toLowerCase().includes('not enabled'))) {
+          setStatus('empty');
+          return;
+        }
+        setErrorMsg(msg);
         setStatus('error');
       });
   }, [location, checkin, checkout, adults]);
