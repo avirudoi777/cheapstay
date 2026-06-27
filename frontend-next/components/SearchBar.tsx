@@ -151,12 +151,15 @@ function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProp
     ? Math.max(0, Math.round((new Date(checkout).getTime() - new Date(checkin).getTime()) / 86400000))
     : 0;
 
-  const left = Math.min(anchor.left, window.innerWidth - 660 - 16);
-  const top = anchor.bottom + 8;
+  const calW = Math.min(660, window.innerWidth - 16);
+  const left = Math.min(Math.max(8, anchor.left), window.innerWidth - calW - 8);
+  const calH = 420;
+  const spaceBelow = window.innerHeight - anchor.bottom;
+  const top = spaceBelow < calH + 12 ? anchor.top - calH - 8 : anchor.bottom + 8;
 
   return createPortal(
     <div ref={ref}
-      style={{ position: 'fixed', top, left, width: 660, zIndex: 9999 }}
+      style={{ position: 'fixed', top, left, width: calW, zIndex: 9999 }}
       className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
 
       {/* Header */}
@@ -201,7 +204,7 @@ function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProp
           </button>
           <div className="flex flex-1 gap-8">
             {renderMonth(viewYear, viewMonth)}
-            {renderMonth(nextYear, nextMonthIdx)}
+            {calW >= 500 && renderMonth(nextYear, nextMonthIdx)}
           </div>
           <button type="button" onClick={nextMonth}
             className="mt-0.5 p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
