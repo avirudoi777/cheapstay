@@ -39,13 +39,25 @@ function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProp
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let scrolling = false;
+    let scrollTimer: ReturnType<typeof setTimeout>;
+    function onScroll() {
+      scrolling = true;
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => { scrolling = false; }, 150);
+    }
     function handler(e: MouseEvent) {
+      if (scrolling) return;
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
     }
+    window.addEventListener('scroll', onScroll, { passive: true });
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      window.removeEventListener('scroll', onScroll);
+      clearTimeout(scrollTimer);
+    };
   }, [onClose]);
-
 
   function handleDay(ds: string) {
     if (ds < today) return;
@@ -331,21 +343,6 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Reposition calendar on scroll — close only if button scrolls off screen
-  useEffect(() => {
-    if (!calAnchor) return;
-    function handleScroll() {
-      if (!dateBtnRef.current) return;
-      const rect = dateBtnRef.current.getBoundingClientRect();
-      if (rect.bottom < 0 || rect.top > window.innerHeight) {
-        setCalAnchor(null);
-      } else {
-        setCalAnchor(rect);
-      }
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [calAnchor]);
 
   const fetchSuggestions = useCallback((q: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
