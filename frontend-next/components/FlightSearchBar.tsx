@@ -266,9 +266,10 @@ function DatePicker({ label, value, minDate, required, onChange }: DatePickerPro
   function toggle() {
     if (!open && btnRef.current) {
       setAnchor(btnRef.current.getBoundingClientRect());
-      const now = new Date();
-      setViewYear(now.getFullYear());
-      setViewMonth(now.getMonth());
+      // Open at selected date's month if one exists, otherwise today
+      const d = value ? new Date(value + 'T12:00:00') : new Date();
+      setViewYear(d.getFullYear());
+      setViewMonth(d.getMonth());
     }
     setOpen(o => !o);
   }

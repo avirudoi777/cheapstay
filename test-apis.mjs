@@ -788,11 +788,12 @@ if (runUnit) {
   });
 
   // ── Calendar opens at today's month ──────────────────────────────────────
-  await section('Date picker — calendar resets to today\'s month on open', async () => {
+  await section('Date picker — calendar opens at selected date month, falls back to today', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightSearchBar.tsx'), 'utf8');
-    // toggle() must reset viewYear/viewMonth to today when opening
-    assert('toggle resets viewYear to today on open', src.includes('setViewYear(now.getFullYear())'));
-    assert('toggle resets viewMonth to today on open', src.includes('setViewMonth(now.getMonth())'));
+    // toggle() opens at value's month if set, otherwise today
+    assert('toggle uses value date when set', src.includes('value ? new Date(value +'));
+    assert('toggle sets viewYear from resolved date', src.includes('setViewYear(d.getFullYear())'));
+    assert('toggle sets viewMonth from resolved date', src.includes('setViewMonth(d.getMonth())'));
   });
 
   // ── Round trip requires return date ──────────────────────────────────────

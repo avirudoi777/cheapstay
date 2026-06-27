@@ -46,11 +46,6 @@ function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProp
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
-  useEffect(() => {
-    const handler = () => onClose();
-    window.addEventListener('scroll', handler, { passive: true });
-    return () => window.removeEventListener('scroll', handler);
-  }, [onClose]);
 
   function handleDay(ds: string) {
     if (ds < today) return;
@@ -335,6 +330,22 @@ export default function SearchBar({ onSearch, loading = false, initialValues }: 
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  // Reposition calendar on scroll — close only if button scrolls off screen
+  useEffect(() => {
+    if (!calAnchor) return;
+    function handleScroll() {
+      if (!dateBtnRef.current) return;
+      const rect = dateBtnRef.current.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > window.innerHeight) {
+        setCalAnchor(null);
+      } else {
+        setCalAnchor(rect);
+      }
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [calAnchor]);
 
   const fetchSuggestions = useCallback((q: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
