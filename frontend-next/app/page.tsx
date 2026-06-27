@@ -229,7 +229,7 @@ const TRAVEL_GEAR = [
 const BLOG_FILTERS = ['All posts', 'Booking hacks', 'Hotel reviews', 'Countries', 'Asia', 'Middle East', 'Europe', 'Credit cards', 'Flights'];
 
 // ── Hotel source toggle — change to 'liteapi' to restore Agoda/Booking.com ──
-const HOTEL_SOURCE: 'duffel' | 'liteapi' = 'duffel';
+const HOTEL_SOURCE: 'duffel' | 'liteapi' = 'liteapi';
 
 export default function HomePage() {
   const [results, setResults]           = useState<CitySearchResponse | null>(null);
