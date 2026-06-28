@@ -1045,6 +1045,49 @@ if (runUnit) {
     assert('phone_number prefixed with + always', src.includes("startsWith('+') ? p.phoneNumber : `+${p.phoneNumber}`"));
   });
 
+  // ── hold_not_supported — Business/fare hold rejection ────────────────────
+  await section('Duffel order route — hold_not_supported error (Business fare hold)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');
+    // Route must detect the Duffel "'type' was incorrect" error for hold requests
+    assert("hold_not_supported error returned when Duffel rejects type field", src.includes("'hold_not_supported'"));
+    assert("detection only fires when hold=true (not for instant bookings)", src.includes("if (hold && detail.toLowerCase().includes(\"'type'\")")  || (src.includes('hold &&') && src.includes("'type'")));
+    assert("error message lowercased for case-insensitive match", src.includes("detail.toLowerCase()") && src.includes("'type'"));
+    assert("non-hold booking_failed path still present as fallback", src.includes("'booking_failed'"));
+    assert("hold_not_supported returns 502 status", src.includes("{ error: 'hold_not_supported'") && src.includes('status: 502'));
+    assert("regular booking errors still reach booking_failed path (hold_not_supported not over-broad)", src.includes("return NextResponse.json({ error: 'booking_failed'"));
+  });
+
+  // ── hold_not_supported — Frontend recovery ────────────────────────────────
+  await section('FlightResults — hold_not_supported auto-switches to instant payment', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert("hold_not_supported error checked in frontend", src.includes("order.error === 'hold_not_supported'"));
+    assert("holdMode disabled on hold_not_supported", src.includes("setHoldMode(false)") && src.includes("hold_not_supported"));
+    assert("user-facing message explains switch to instant", src.includes("Switched to instant payment"));
+    assert("message tells user to click Pay (not hold)", src.includes("click Pay to confirm"));
+    assert("hold_not_supported throws so error banner shows (not silently ignored)", (() => {
+      const idx = src.indexOf("hold_not_supported");
+      // The throw must appear after the hold_not_supported check
+      return src.indexOf('throw new Error', idx) > idx && src.indexOf('throw new Error', idx) < src.indexOf('\n\n', idx + 500);
+    })());
+  });
+
+  // ── Stale status auto-sync — detail page ─────────────────────────────────
+  await section('Booking detail — auto-syncs stale Supabase status from Duffel', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    // When Duffel says 'cancelled' but Supabase has an old status, page self-heals
+    assert("page fetches Duffel order to get live status", src.includes('duffel_order_id') && src.includes('/api/flights/duffel-order-detail') || src.includes('duffelRes') || src.includes('/api/flights/duffel'));
+    assert("mismatch detected: Duffel cancelled vs Supabase not cancelled", src.includes("json.status === 'cancelled'") && src.includes("data.status !== 'cancelled'"));
+    assert("local state fixed immediately on mismatch", src.includes("status: 'cancelled'") && src.includes("setBooking(prev"));
+    assert("sync API called to persist fix in Supabase", src.includes("action: 'sync'") && src.includes("status: 'cancelled'"));
+    assert("sync is fire-and-forget (catch swallowed)", src.includes("action: 'sync'") && src.includes('.catch('));
+
+    const routeSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
+    assert("sync action accepted in cancel route", routeSrc.includes("body.action === 'sync'"));
+    assert("sync updates the correct Supabase row by bookingId", routeSrc.includes('body.bookingId') && routeSrc.includes("body.status"));
+    assert("sync returns { ok: true } on success", routeSrc.includes("{ ok: true }"));
+    assert("sync errors logged but don't throw (resilient)", routeSrc.includes("action === 'sync'") && routeSrc.includes('console.error'));
+  });
+
   // ══════════════════════════════════════════════════════════════════════════
   // DEEP LOGIC TESTS — run the actual algorithms inline
   // ══════════════════════════════════════════════════════════════════════════

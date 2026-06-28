@@ -200,6 +200,14 @@ export async function POST(req: NextRequest) {
     console.error('Duffel order error:', JSON.stringify(err));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const detail = (err as any)?.errors?.[0]?.message || 'Booking failed';
+
+    // Duffel rejects hold orders with "The specified `type` was incorrect" when
+    // the airline/fare doesn't support holds (even if requiresInstantPayment was false).
+    // Return a distinct error so the frontend can switch to instant payment gracefully.
+    if (hold && detail.toLowerCase().includes("'type'")) {
+      return NextResponse.json({ error: 'hold_not_supported', detail }, { status: 502 });
+    }
+
     return NextResponse.json({ error: 'booking_failed', detail }, { status: 502 });
   }
 }

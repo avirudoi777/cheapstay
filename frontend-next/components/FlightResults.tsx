@@ -836,6 +836,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         if (order.error === 'offer_expired') {
           throw new Error('This offer is no longer available (sold out or expired). Please go back and search again.');
         }
+        // Airline doesn't support holds for this fare class (e.g. Business on some carriers).
+        // Switch to instant mode and prompt the user to pay normally.
+        if (order.error === 'hold_not_supported') {
+          setHoldMode(false);
+          throw new Error('This airline doesn\'t support seat holds for this fare. Switched to instant payment — click Pay to confirm your booking.');
+        }
         const detail: string = order.detail || order.error || '';
         if (detail.toLowerCase().includes('internal_error') || detail.toLowerCase().includes('internal error')) {
           throw new Error('__retryable__The airline system had a temporary error. Please try again — this usually resolves on the next attempt.');
