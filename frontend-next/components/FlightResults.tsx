@@ -1566,11 +1566,19 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       <p className="text-base font-extrabold text-gray-900">💺 Seat selection</p>
                       <p className="text-xs text-gray-400 mt-0.5">Optional — choose your seat before booking</p>
                     </div>
-                    {Object.keys(seatSelections).length > 0 && (
-                      <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#E6F7F1', color: '#1D9E75' }}>
-                        {Object.keys(seatSelections).length} seat{Object.keys(seatSelections).length > 1 ? 's' : ''} selected
-                      </span>
-                    )}
+                    {Object.keys(seatSelections).length > 0 && (() => {
+                      const selectedCount = Object.values(seatSelections).filter(Boolean).length;
+                      const legCount = seatMaps?.length ?? 1;
+                      const paxCount = offer.passengerIds.length;
+                      const label = legCount > 1
+                        ? `${selectedCount / paxCount} of ${legCount} legs seated`
+                        : `${selectedCount} seat${selectedCount > 1 ? 's' : ''} selected`;
+                      return (
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#E6F7F1', color: '#1D9E75' }}>
+                          {label}
+                        </span>
+                      );
+                    })()}
                   </div>
                   {seatMapsLoading && (
                     <p className="text-xs text-gray-400">Checking seat availability…</p>
@@ -1585,11 +1593,25 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         const cabin = sm.cabins[0];
                         if (!cabin) return null;
                         const cabinLabel = fmtCabin(seg?.cabinClass ?? cabin.cabinClass);
+                        const smIdx = seatMaps!.indexOf(sm);
                         return (
                           <div key={sm.segmentId}>
-                            <p className="text-xs font-bold text-gray-500 mb-3">
-                              {seg ? `${seg.depCode} → ${seg.arrCode} · ${cabinLabel}` : `Segment ${seatMaps!.indexOf(sm) + 1} · ${cabinLabel}`}
-                            </p>
+                            {seatMaps!.length > 1 && (
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: '#0F172A', color: 'white' }}>
+                                  LEG {smIdx + 1}
+                                </span>
+                                <p className="text-sm font-bold text-gray-800">
+                                  {seg ? `${seg.depCode} → ${seg.arrCode}` : `Segment ${smIdx + 1}`}
+                                </p>
+                                <span className="text-xs text-gray-400">{cabinLabel}</span>
+                              </div>
+                            )}
+                            {seatMaps!.length === 1 && (
+                              <p className="text-xs font-bold text-gray-500 mb-3">
+                                {seg ? `${seg.depCode} → ${seg.arrCode} · ${cabinLabel}` : `Segment 1 · ${cabinLabel}`}
+                              </p>
+                            )}
                             {offer.passengerIds.map((paxId, pi) => (
                               <div key={paxId} className="mb-4">
                                 {offer.passengerIds.length > 1 && (
