@@ -1418,6 +1418,12 @@ if (runUnit) {
     assert('cabin_class field in FlightBooking interface', src.includes('cabin_class: string | null'));
   });
 
+  await section('Booking detail — seat shows "at check-in" when no seat selected', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    assert('fallback seat label when no seat service present', src.includes('Seat at check-in'));
+    assert('assigned seat shown when service present', src.includes("Seat {s.metadata?.designator ?? '—'}"));
+  });
+
   await section('Booking detail — cabin class badge falls back to booking.cabin_class when seg.cabin_class is null', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
     // Must use booking.cabin_class as fallback — Duffel test airline doesn't always return cabin_class on order segments

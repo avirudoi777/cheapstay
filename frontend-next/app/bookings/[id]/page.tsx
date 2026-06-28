@@ -674,12 +674,23 @@ export default function ManageBookingPage() {
                       const seats = (order?.services ?? []).filter(s =>
                         s.type === 'seat' && s.segment_ids?.includes(seg.id)
                       );
-                      return seats.map((s, si) => (
-                        <span key={si} className="text-[11px] px-2.5 py-1 rounded-full font-bold"
-                          style={{ background: '#EFF6FF', color: '#1D4ED8' }}>
-                          💺 Seat {s.metadata?.designator ?? '—'}
-                        </span>
-                      ));
+                      if (seats.length > 0) {
+                        return seats.map((s, si) => (
+                          <span key={si} className="text-[11px] px-2.5 py-1 rounded-full font-bold"
+                            style={{ background: '#EFF6FF', color: '#1D4ED8' }}>
+                            💺 Seat {s.metadata?.designator ?? '—'}
+                          </span>
+                        ));
+                      }
+                      if (!isCancelled) {
+                        return (
+                          <span className="text-[11px] px-2.5 py-1 rounded-full font-medium"
+                            style={{ background: '#F8FAFC', color: '#94A3B8' }}>
+                            💺 Seat at check-in
+                          </span>
+                        );
+                      }
+                      return null;
                     })()}
                     <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#F1F5F9', color: '#475569' }}>
                       ✈ {seg.marketing_carrier.name}
