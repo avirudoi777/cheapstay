@@ -835,6 +835,38 @@ if (runUnit) {
     assert('toggle sets viewMonth from resolved date', src.includes('setViewMonth(d.getMonth())'));
   });
 
+  // ── Hotel calendar opens at today's month ────────────────────────────────
+  await section('Hotel calendar — always opens at today\'s month (not pre-selected checkin month)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/SearchBar.tsx'), 'utf8');
+    assert('viewYear initialised from new Date() not checkin', src.includes('useState(() => new Date().getFullYear())'));
+    assert('viewMonth initialised from new Date() not checkin', src.includes('useState(() => new Date().getMonth())'));
+    // Must NOT initialise from checkin value
+    assert('checkin not used to seed viewYear/viewMonth', !src.includes('checkin ? new Date(checkin'));
+  });
+
+  // ── Hotel calendar stays open on scroll ──────────────────────────────────
+  await section('Hotel calendar — click-based outside-close, not mousedown (survives scroll)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/SearchBar.tsx'), 'utf8');
+    assert('click event used (not mousedown) so scroll never closes calendar', src.includes("addEventListener('click', handler)"));
+    assert('opening click excluded via setTimeout(0)', src.includes('setTimeout(() => document.addEventListener'));
+    assert('cleanup removes click listener', src.includes("removeEventListener('click', handler)"));
+    assert('no scroll listener needed (click approach)', !src.includes("addEventListener('scroll', onScroll"));
+  });
+
+  // ── Default search dates are tomorrow ────────────────────────────────────
+  await section('Search bars — default dates start tomorrow, not days/weeks ahead', async () => {
+    const hotelSrc = readFileSync(resolve(__dir, 'frontend-next/components/SearchBar.tsx'), 'utf8');
+    assert('hotel checkin defaults to +1 day', hotelSrc.includes('Date.now() + 1 * 86400000'));
+    assert('hotel checkout defaults to +4 days (3 nights)', hotelSrc.includes('Date.now() + 4 * 86400000'));
+    // Not the old +30 day offset
+    assert('hotel does not default 30 days out', !hotelSrc.includes('30 * 86400000'));
+
+    const flightSrc = readFileSync(resolve(__dir, 'frontend-next/components/FlightSearchBar.tsx'), 'utf8');
+    assert('flight depart defaults to +1 day', flightSrc.includes("d.getDate() + 1"));
+    // Not the old +7 day offset
+    assert('flight does not default 7 days out', !flightSrc.includes("d.getDate() + 7"));
+  });
+
   // ── Round trip requires return date ──────────────────────────────────────
   await section('Flight search — round trip blocks search without return date', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightSearchBar.tsx'), 'utf8');
