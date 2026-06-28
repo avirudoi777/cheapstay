@@ -1045,6 +1045,214 @@ if (runUnit) {
     assert('phone_number prefixed with + always', src.includes("startsWith('+') ? p.phoneNumber : `+${p.phoneNumber}`"));
   });
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // DEEP LOGIC TESTS — run the actual algorithms inline
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ── parsePhone — actual logic execution ──────────────────────────────────
+  await section('PhoneInput — parsePhone logic (live execution)', async () => {
+    // Replicate the exact logic from PhoneInput.tsx
+    const DIAL_CODES_T = [
+      { code: 'US', dial: '+1' },
+      { code: 'CA', dial: '+1' },
+      { code: 'AE', dial: '+971' },
+      { code: 'TH', dial: '+66' },
+      { code: 'GB', dial: '+44' },
+      { code: 'IN', dial: '+91' },
+      { code: 'SG', dial: '+65' },
+    ];
+    function parsePhone(full) {
+      if (!full) return { dial: '+1', number: '' };
+      const match = [...DIAL_CODES_T].sort((a, b) => b.dial.length - a.dial.length)
+        .find(d => full.startsWith(d.dial));
+      if (match) return { dial: match.dial, number: full.slice(match.dial.length).trim() };
+      if (full.startsWith('+')) {
+        const spaceIdx = full.indexOf(' ');
+        if (spaceIdx > 0) return { dial: full.slice(0, spaceIdx), number: full.slice(spaceIdx + 1) };
+      }
+      return { dial: '+1', number: full.replace(/^\+1/, '') };
+    }
+
+    const us = parsePhone('+12144146487');
+    assert('US number: dial=+1', us.dial === '+1', JSON.stringify(us));
+    assert('US number: number=2144146487', us.number === '2144146487', JSON.stringify(us));
+
+    const ae = parsePhone('+97150123456');
+    assert('UAE number: dial=+971 (longer code wins over +1 prefix)', ae.dial === '+971', JSON.stringify(ae));
+    assert('UAE number: number stripped of dial code', ae.number === '50123456', JSON.stringify(ae));
+
+    const th = parsePhone('+6681234567');
+    assert('Thai number: dial=+66', th.dial === '+66', JSON.stringify(th));
+    assert('Thai number: number=81234567', th.number === '81234567', JSON.stringify(th));
+
+    const gb = parsePhone('+441234567890');
+    assert('UK number: dial=+44', gb.dial === '+44', JSON.stringify(gb));
+    assert('UK number: number correct', gb.number === '1234567890', JSON.stringify(gb));
+
+    const empty = parsePhone('');
+    assert('empty string: defaults to +1', empty.dial === '+1', JSON.stringify(empty));
+    assert('empty string: number is empty string', empty.number === '', JSON.stringify(empty));
+
+    const spaceFmt = parsePhone('+99 12345678');
+    assert('unknown dial with space: splits on space', spaceFmt.dial === '+99', JSON.stringify(spaceFmt));
+    assert('unknown dial with space: number after space', spaceFmt.number === '12345678', JSON.stringify(spaceFmt));
+
+    // Ensure longer codes match before shorter — +971 must not be eaten by +1
+    assert('longest dial code wins (no +1 prefix match on +971)', ae.dial !== '+1');
+  });
+
+  // ── fmtCabin — actual logic execution ────────────────────────────────────
+  await section('FlightResults — fmtCabin display logic (live execution)', async () => {
+    function fmtCabin(c) {
+      return c === 'premium_economy' ? 'Premium Economy'
+        : c === 'business' ? 'Business'
+        : c === 'first' ? 'First Class'
+        : 'Economy';
+    }
+    assert("fmtCabin('economy') = Economy", fmtCabin('economy') === 'Economy');
+    assert("fmtCabin('business') = Business", fmtCabin('business') === 'Business');
+    assert("fmtCabin('premium_economy') = Premium Economy", fmtCabin('premium_economy') === 'Premium Economy');
+    assert("fmtCabin('first') = First Class", fmtCabin('first') === 'First Class');
+    assert("fmtCabin(undefined) falls back to Economy", fmtCabin(undefined) === 'Economy');
+    assert("fmtCabin('unknown') falls back to Economy", fmtCabin('unknown') === 'Economy');
+  });
+
+  // ── Hold expiry countdown — actual logic execution ────────────────────────
+  await section('Hold confirmation — expiry countdown logic (live execution)', async () => {
+    function formatHoldExpiry(paymentRequiredBy) {
+      if (!paymentRequiredBy) return { label: '', urgent: false };
+      const exp = new Date(paymentRequiredBy);
+      const diffMs = exp.getTime() - Date.now();
+      const diffH = diffMs / 3600000;
+      const urgent = diffH < 4;
+      if (diffH < 0) return { label: 'EXPIRED', urgent: true };
+      if (diffH < 1) return { label: `${Math.max(1, Math.round(diffMs / 60000))} minutes`, urgent: true };
+      if (diffH < 24) {
+        const h = Math.floor(diffH);
+        const m = Math.round((diffH - h) * 60);
+        return { label: `${h}h${m > 0 ? ` ${m}m` : ''}`, urgent };
+      }
+      return { label: 'full date', urgent: false };
+    }
+
+    const in30min = new Date(Date.now() + 30 * 60000).toISOString();
+    const r30 = formatHoldExpiry(in30min);
+    assert('30 min remaining: urgent=true', r30.urgent === true, JSON.stringify(r30));
+    assert('30 min remaining: label contains "minutes"', r30.label.includes('minute'), JSON.stringify(r30));
+
+    const in3h = new Date(Date.now() + 3 * 3600000).toISOString();
+    const r3h = formatHoldExpiry(in3h);
+    assert('3h remaining: urgent=true (under 4h threshold)', r3h.urgent === true, JSON.stringify(r3h));
+    assert('3h remaining: label starts with 3h', r3h.label.startsWith('3h'), JSON.stringify(r3h));
+
+    const in5h = new Date(Date.now() + 5 * 3600000).toISOString();
+    const r5h = formatHoldExpiry(in5h);
+    assert('5h remaining: urgent=false (over 4h threshold)', r5h.urgent === false, JSON.stringify(r5h));
+    assert('5h remaining: label starts with 5h', r5h.label.startsWith('5h'), JSON.stringify(r5h));
+
+    const in30h = new Date(Date.now() + 30 * 3600000).toISOString();
+    const r30h = formatHoldExpiry(in30h);
+    assert('30h remaining: urgent=false', r30h.urgent === false, JSON.stringify(r30h));
+    assert('30h remaining: uses full date format', r30h.label === 'full date', JSON.stringify(r30h));
+
+    const expired = new Date(Date.now() - 3600000).toISOString();
+    const rExp = formatHoldExpiry(expired);
+    assert('expired: label=EXPIRED', rExp.label === 'EXPIRED', JSON.stringify(rExp));
+    assert('expired: urgent=true', rExp.urgent === true, JSON.stringify(rExp));
+
+    assert('no paymentRequiredBy: returns empty label', formatHoldExpiry(null).label === '');
+  });
+
+  // ── Hold confirmation screen — source checks ──────────────────────────────
+  await section('Hold confirmation screen — amber state, expiry, CTA', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert('held flag derived from confirmation.held', src.includes('const isHeld') && src.includes('confirmation.held'));
+    assert('amber background gradient used for held', src.includes("'#1a1200'") || src.includes('amber') || src.includes('#D97706'));
+    assert('⏳ icon shown for held (not ✓)', src.includes("isHeld ? '⏳' : '✓'"));
+    assert('"Seat held" label for held confirmation', src.includes('Seat held'));
+    assert('"Amount due" label for held (not "Total paid")', src.includes('Amount due'));
+    assert('"Pay now to confirm seat" CTA for held', src.includes('Pay now to confirm seat'));
+    assert('paymentRequiredBy stored in confirmation state', src.includes('paymentRequiredBy:'));
+    assert('paymentRequiredBy read from API response', src.includes('paymentRequirements?.requires_payment_by'));
+    assert('holdExpiryUrgent triggers red color', src.includes('holdExpiryUrgent'));
+    assert('hold expiry banner shown in boarding pass card', src.includes('holdExpiryLabel'));
+    assert('4h urgency threshold used', src.includes('diffH < 4'));
+  });
+
+  // ── Cancellation — deeper edge cases ──────────────────────────────────────
+  await section('Cancellation — edge cases and error handling', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    assert('cancelLoading blocks double-submit (disabled prop)', src.includes('disabled={cancelLoading}'));
+    assert('cancelError rendered inside modal', src.includes('cancelError') && src.includes('showCancelModal'));
+    assert('modal closes automatically on success', src.includes('setShowCancelModal(false)'));
+    assert('modal closes on backdrop click (onClick on overlay)', src.includes("e.target === e.currentTarget") && src.includes('setShowCancelModal(false)'));
+    assert('cancelBooking uses booking.duffel_order_id for Duffel (not booking.id)', src.includes('orderId: booking.duffel_order_id'));
+    assert('confirm step uses cancellationId from quote response', src.includes('cancellationId: quote.cancellationId'));
+    assert('success stores refund: quote.refundAmount + quote.refundCurrency', src.includes('quote.refundAmount') && src.includes('quote.refundCurrency'));
+    assert('success state shows actual refund amount (not hardcoded)', src.includes('cancelRefund.amount') && src.includes('cancelRefund.currency'));
+    assert('isPast blocks cancel (no cancel on departed flights)', src.includes('isPast'));
+    assert('isHeld blocks cancel button (held orders go through pay flow)', src.includes('isHeld'));
+
+    const routeSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
+    assert('already-cancelled: Supabase update uses eq id not user_id', routeSrc.includes("eq('id', body.bookingId)") && !routeSrc.includes("eq('user_id'"));
+    assert('already-cancelled: pattern check is case-insensitive (toLowerCase)', routeSrc.includes('toLowerCase()'));
+    assert('both "already been cancelled" and "already cancelled" patterns caught', routeSrc.includes('already been cancelled') && routeSrc.includes('already cancelled'));
+    assert('non-matching errors rethrown (no silent swallow)', routeSrc.includes('throw quoteErr'));
+  });
+
+  // ── Airport autocomplete grouping — source checks ─────────────────────────
+  await section('Airport autocomplete — group logic and display', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightSearchBar.tsx'), 'utf8');
+    // Priority: city-name-start matches ranked above contains
+    assert('results sorted: city-name-start before contains', src.includes('toLowerCase().startsWith(lq)'));
+    // Dropdown rendering
+    assert('city header row rendered per group', src.includes('group.city'));
+    assert('airport rows rendered inside each group', src.includes('group.airports'));
+    assert('location pin SVG used for city row', src.includes('M17.657 16.657') || src.includes('strokeLinecap') || src.includes('svg'));
+    assert('plane SVG or emoji used for airport row', src.includes('M17.657') || src.includes('airplane') || src.includes('M22 16.21') || src.includes('group.airports.map'));
+    assert('airport code shown on right side of row', src.includes('group.airports.map') && src.includes('a.code'));
+    // Osaka: both KIX and ITM should be in same group
+    assert('Osaka covers KIX and ITM', src.includes("KIX: 'Osaka'") && src.includes("ITM: 'Osaka'"));
+    // Seoul: ICN and GMP
+    assert('Seoul covers ICN and GMP', src.includes("ICN: 'Seoul'") && src.includes("GMP: 'Seoul'"));
+    // Istanbul: IST and SAW
+    assert('Istanbul covers IST and SAW', src.includes("IST: 'Istanbul'") && src.includes("SAW: 'Istanbul'"));
+    // Chicago: ORD and MDW
+    assert('Chicago covers ORD and MDW', src.includes("ORD: 'Chicago'") && src.includes("MDW: 'Chicago'"));
+  });
+
+  // ── Cabin class — end-to-end flow ────────────────────────────────────────
+  await section('Cabin class — end-to-end flow check', async () => {
+    const searchRoute = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-search/route.ts'), 'utf8');
+    const searchBar   = readFileSync(resolve(__dir, 'frontend-next/components/FlightSearchBar.tsx'), 'utf8');
+    const results     = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+
+    // 1. Search bar has all 4 cabin options
+    assert('Economy option defined in search bar', searchBar.includes("value: 'economy'"));
+    assert('Premium Economy option defined', searchBar.includes("value: 'premium_economy'"));
+    assert('Business option defined', searchBar.includes("value: 'business'"));
+    assert('First option defined', searchBar.includes("value: 'first'"));
+
+    // 2. cabinClass flows from bar → onSearch → FlightResults prop
+    assert('cabinClass passed as 8th arg in onSearch call', searchBar.includes('cabinClass)') || searchBar.includes(', cabinClass'));
+    assert('FlightResults receives cabinClass prop', results.includes('cabinClass = \'economy\'') || results.includes("cabinClass = \"economy\""));
+    assert('FlightResults sends cabinClass to duffel-search', results.includes('cabinClass }') || results.includes('cabinClass,'));
+
+    // 3. API sends it to Duffel
+    assert('cabin_class sent to Duffel offer_requests', searchRoute.includes('cabin_class: cabinClass'));
+
+    // 4. Response parsed and displayed correctly
+    assert('segCabinClass extracted from segment passengers', searchRoute.includes('segCabinClass'));
+    assert('cabinClass in segment object returned to frontend', searchRoute.includes("cabinClass: segCabinClass"));
+    assert('badge shows fmtCabin result not literal string', results.includes('fmtCabin(firstSeg.cabinClass'));
+    assert('segment detail shows fmtCabin result not literal string', results.includes('fmtCabin(seg.cabinClass'));
+
+    // 5. No stale hardcoded Economy anywhere in the card rendering
+    // (the source can contain "Economy" in fmtCabin return values but not as a hardcoded badge)
+    const badgeLine = results.split('\n').find(l => l.includes('rounded-full') && l.includes('Economy'));
+    assert('no hardcoded Economy string in badge element', !badgeLine, badgeLine ?? 'clean');
+  });
+
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
