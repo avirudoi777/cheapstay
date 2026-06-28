@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 // Lightweight middleware — auth checks happen client-side via Supabase browser client.
 // Only redirect /account if no session cookie present (rough check, not cryptographic).
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith('/account')) {
