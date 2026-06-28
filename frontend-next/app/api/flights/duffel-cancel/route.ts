@@ -74,16 +74,22 @@ export async function POST(req: NextRequest) {
       // Step 2: confirm the cancellation
       await duffelReq('POST', `/air/order_cancellations/${body.cancellationId}/actions/confirm`);
 
-      // Update status in Supabase — match by id only (no user_id filter to avoid null mismatch)
-      const { error: dbError } = await supabase
-        .from('flight_bookings')
-        .update({ status: 'cancelled' })
-        .eq('id', body.bookingId);
+      // Update by duffel_order_id (from body.orderId) so ALL rows for this order are
+      // marked cancelled — handles the case where both server + client inserted rows.
+      // Fall back to id-match if orderId missing.
+      const { data: updated, error: dbError } = body.orderId
+        ? await supabase.from('flight_bookings').update({ status: 'cancelled' })
+            .eq('duffel_order_id', body.orderId).select('id')
+        : await supabase.from('flight_bookings').update({ status: 'cancelled' })
+            .eq('id', body.bookingId).select('id');
 
       if (dbError) {
         console.error('Supabase cancel update error:', dbError.message);
-        // Duffel cancellation already confirmed — return success but log the DB failure
         return NextResponse.json({ success: true, dbWarning: dbError.message });
+      }
+      if (!updated || updated.length === 0) {
+        console.error('Supabase cancel update: 0 rows affected', { orderId: body.orderId, bookingId: body.bookingId });
+        return NextResponse.json({ success: true, dbWarning: 'no_rows_updated' });
       }
 
       return NextResponse.json({ success: true });

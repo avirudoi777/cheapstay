@@ -56,29 +56,37 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
 
-  useEffect(() => {
+  const fetchBookings = async () => {
     const supabase = createClient();
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      setAuthChecked(true);
-      if (!user) { router.push('/auth'); return; }
-      const { data } = await supabase
-        .from('flight_bookings')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (data) {
-        // Deduplicate by duffel_order_id — keep the most recent record per order
-        const seen = new Set<string>();
-        const deduped = data.filter(b => {
-          const key = b.duffel_order_id || b.booking_reference;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-        setBookings(deduped);
-      }
-      setLoading(false);
-    });
-  }, [router]);
+    const { data: { user } } = await supabase.auth.getUser();
+    setAuthChecked(true);
+    if (!user) { router.push('/auth'); return; }
+    const { data } = await supabase
+      .from('flight_bookings')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (data) {
+      // Deduplicate by duffel_order_id — keep the most recent record per order
+      const seen = new Set<string>();
+      const deduped = data.filter(b => {
+        const key = b.duffel_order_id || b.booking_reference;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      setBookings(deduped);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchBookings();
+    // Refetch when user returns to this tab — catches cancellations made on detail page
+    const onFocus = () => fetchBookings();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!authChecked || loading) {
     return (

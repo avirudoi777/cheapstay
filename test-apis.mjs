@@ -1262,6 +1262,11 @@ if (runUnit) {
     assert('isHeld blocks cancel button (held orders go through pay flow)', src.includes('isHeld'));
 
     const routeSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
+    assert('confirm step updates by duffel_order_id (not just id) to catch all duplicate rows', routeSrc.includes("eq('duffel_order_id', body.orderId)"));
+    assert('confirm step falls back to id-match if orderId missing', routeSrc.includes("eq('id', body.bookingId)"));
+    assert('confirm step detects 0 rows updated and returns dbWarning', routeSrc.includes('no_rows_updated'));
+    assert('orderId sent from detail page to cancel confirm', readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8').includes("orderId: booking.duffel_order_id") && readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8').includes("action: 'confirm'"));
+    assert('bookings list refetches on window focus (catches nav-back stale state)', readFileSync(resolve(__dir, 'frontend-next/app/bookings/page.tsx'), 'utf8').includes("window.addEventListener('focus'") && readFileSync(resolve(__dir, 'frontend-next/app/bookings/page.tsx'), 'utf8').includes('fetchBookings'));
     assert('already-cancelled: Supabase update uses eq id not user_id', routeSrc.includes("eq('id', body.bookingId)") && !routeSrc.includes("eq('user_id'"));
     assert('already-cancelled: pattern check is case-insensitive (toLowerCase)', routeSrc.includes('toLowerCase()'));
     assert('both "already been cancelled" and "already cancelled" patterns caught', routeSrc.includes('already been cancelled') && routeSrc.includes('already cancelled'));

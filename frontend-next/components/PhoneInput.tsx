@@ -166,7 +166,7 @@ export default function PhoneInput({ value, onChange, className = '', required }
         onChange={e => { setNumber(e.target.value); emit(dial, e.target.value); }}
         placeholder="2144146487"
         required={required}
-        className="flex-1 px-3 py-2 text-sm bg-white focus:outline-none text-gray-900 min-w-0"
+        className="flex-1 px-3 py-2 text-sm bg-white focus:outline-none text-gray-900 font-medium min-w-0"
       />
 
       {/* Dropdown portal */}
