@@ -1057,6 +1057,21 @@ if (runUnit) {
     assert("regular booking errors still reach booking_failed path (hold_not_supported not over-broad)", src.includes("return NextResponse.json({ error: 'booking_failed'"));
   });
 
+  // ── offer sold out during booking attempt ─────────────────────────────────
+  await section('Duffel order route — offer_expired on "select another offer" Duffel error', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');
+    assert("'select another offer' pattern detected and mapped to offer_expired", src.includes("select another offer"));
+    assert("'new offer request' pattern also caught", src.includes("new offer request"));
+    assert("'latest availability' pattern also caught", src.includes("latest availability"));
+    assert("offer_expired returned (not booking_failed) for sold-out errors", src.includes("error: 'offer_expired'") && src.includes('status: 410'));
+    assert("detection uses toLowerCase for case-insensitivity", src.includes("dl = detail.toLowerCase()") || (src.includes(".toLowerCase()") && src.includes("select another offer")));
+
+    // Frontend: offer_expired triggers "no longer available" message and search-again button
+    const frontSrc = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert("frontend maps offer_expired to human-readable message", frontSrc.includes("offer_expired") && frontSrc.includes("no longer available"));
+    assert("search-again button shown for 'no longer available' error", frontSrc.includes("no longer available") && frontSrc.includes("Search again"));
+  });
+
   // ── hold_not_supported — Frontend recovery ────────────────────────────────
   await section('FlightResults — hold_not_supported auto-switches to instant payment', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');

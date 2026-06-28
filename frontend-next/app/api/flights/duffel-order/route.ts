@@ -208,6 +208,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'hold_not_supported', detail }, { status: 502 });
     }
 
+    // "Please select another offer, or create a new offer request to get the latest availability."
+    // Duffel returns this when the offer is sold out or expired during order creation.
+    // Treat as offer_expired so the frontend shows "Search again" instead of a dead error.
+    const dl = detail.toLowerCase();
+    if (dl.includes('select another offer') || dl.includes('new offer request') || dl.includes('latest availability')) {
+      return NextResponse.json({ error: 'offer_expired', detail }, { status: 410 });
+    }
+
     return NextResponse.json({ error: 'booking_failed', detail }, { status: 502 });
   }
 }
