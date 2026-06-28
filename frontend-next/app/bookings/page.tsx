@@ -223,8 +223,14 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-1">
-              <p className="text-xl font-extrabold text-gray-900">
-                {b.origin_code} → {b.destination_code}
+              <p className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+                {b.origin_code}
+                <span className="flex items-center gap-1 text-gray-300 font-normal">
+                  <svg className="w-4 h-4" style={{ color: '#1D9E75' }} viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1l3.5 1v-1.5L13 19v-5.5z"/>
+                  </svg>
+                </span>
+                {b.destination_code}
               </p>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full`}
                 style={isCancelled
