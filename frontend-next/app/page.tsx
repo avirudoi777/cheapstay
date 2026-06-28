@@ -448,9 +448,11 @@ export default function HomePage() {
     c.categories.includes(cardFilter)
   );
 
-  const calcOriginal = calcPrice * calcNights;
-  const calcThaiIP   = Math.round(calcOriginal * 0.70);
-  const calcSaved    = calcOriginal - Math.round(calcThaiIP * (1 - calcCashback / 100));
+  const calcOriginal  = calcPrice * calcNights;
+  const calcThaiIP    = Math.round(calcOriginal * 0.70);
+  const calcCashbackAmt = Math.round(calcThaiIP * calcCashback / 100);
+  const calcNetCost   = calcThaiIP - calcCashbackAmt;
+  const calcSaved     = calcOriginal - calcNetCost;
 
   return (
     <>
@@ -763,18 +765,32 @@ export default function HomePage() {
               <div className="flex justify-between text-[10px] text-gray-400 mt-0.5"><span>2%</span><span>10%</span></div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-gray-100">
-              <div className="text-center p-3 rounded-xl bg-gray-50">
-                <div className="text-xs text-gray-400 mb-1">Original price</div>
-                <div className="text-lg font-bold text-navy">${calcOriginal}</div>
+            <div className="pt-2 border-t border-gray-100 space-y-2">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="text-center p-3 rounded-xl bg-gray-50">
+                  <div className="text-xs text-gray-400 mb-1">Retail price</div>
+                  <div className="text-lg font-bold text-navy line-through decoration-red-400">${calcOriginal}</div>
+                </div>
+                <div className="text-center p-3 rounded-xl" style={{ background: '#E1F5EE' }}>
+                  <div className="text-xs mb-0.5" style={{ color: '#0F6E56' }}>Thai IP price</div>
+                  <div className="text-[10px] text-gray-400 mb-1">−30% avg</div>
+                  <div className="text-lg font-bold" style={{ color: '#1D9E75' }}>${calcThaiIP}</div>
+                </div>
+                <div className="text-center p-3 rounded-xl" style={{ background: '#EEF2FF' }}>
+                  <div className="text-xs text-indigo-500 mb-0.5">Cashback back</div>
+                  <div className="text-[10px] text-gray-400 mb-1">{calcCashback}% via portal</div>
+                  <div className="text-lg font-bold text-indigo-600">+${calcCashbackAmt}</div>
+                </div>
               </div>
-              <div className="text-center p-3 rounded-xl" style={{ background: '#E1F5EE' }}>
-                <div className="text-xs mb-1" style={{ color: '#0F6E56' }}>With CheapStay</div>
-                <div className="text-lg font-bold" style={{ color: '#1D9E75' }}>${calcThaiIP}</div>
-              </div>
-              <div className="text-center p-3 rounded-xl" style={{ background: '#fff7ed' }}>
-                <div className="text-xs text-orange-500 mb-1">Total you save</div>
-                <div className="text-lg font-bold text-orange-600">${calcSaved}</div>
+              <div className="flex items-center justify-between px-4 py-3 rounded-xl" style={{ background: '#fff7ed' }}>
+                <div>
+                  <div className="text-xs text-orange-500 font-semibold">Total you save</div>
+                  <div className="text-[10px] text-gray-400">vs. booking at retail on a US IP</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xl font-extrabold text-orange-600">${calcSaved}</div>
+                  <div className="text-[10px] text-gray-400">net cost ${calcNetCost}</div>
+                </div>
               </div>
             </div>
           </div>

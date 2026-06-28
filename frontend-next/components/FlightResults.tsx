@@ -1582,10 +1582,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         const seg = offer.segments.find(s => s.segmentId === sm.segmentId);
                         const cabin = sm.cabins[0];
                         if (!cabin) return null;
+                        const cabinLabel = fmtCabin(seg?.cabinClass ?? cabin.cabinClass);
                         return (
                           <div key={sm.segmentId}>
                             <p className="text-xs font-bold text-gray-500 mb-3">
-                              {seg ? `${seg.depCode} → ${seg.arrCode} · ${cabin.cabinClassName ?? cabin.cabinClass}` : `Segment ${seatMaps!.indexOf(sm) + 1} · ${cabin.cabinClassName ?? cabin.cabinClass}`}
+                              {seg ? `${seg.depCode} → ${seg.arrCode} · ${cabinLabel}` : `Segment ${seatMaps!.indexOf(sm) + 1} · ${cabinLabel}`}
                             </p>
                             {offer.passengerIds.map((paxId, pi) => (
                               <div key={paxId} className="mb-4">
@@ -1911,10 +1912,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             const seg = offer.segments.find(s => s.segmentId === sm.segmentId);
                             const cabin = sm.cabins[0];
                             if (!cabin) return null;
+                            const cabinLabel = fmtCabin(seg?.cabinClass ?? cabin.cabinClass);
                             return (
                               <div key={sm.segmentId}>
                                 <p className="text-xs font-bold text-gray-500 mb-3">
-                                  {seg ? `${seg.depCode} → ${seg.arrCode} · ${cabin.cabinClassName ?? cabin.cabinClass}` : `Segment ${seatMaps!.indexOf(sm) + 1} · ${cabin.cabinClassName ?? cabin.cabinClass}`}
+                                  {seg ? `${seg.depCode} → ${seg.arrCode} · ${cabinLabel}` : `Segment ${seatMaps!.indexOf(sm) + 1} · ${cabinLabel}`}
                                 </p>
                                 {offer.passengerIds.map((paxId, pi) => (
                                   <div key={paxId} className="mb-4">

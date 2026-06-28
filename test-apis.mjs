@@ -1289,6 +1289,25 @@ if (runUnit) {
     assert('Chicago covers ORD and MDW', src.includes("ORD: 'Chicago'") && src.includes("MDW: 'Chicago'"));
   });
 
+  // ── Seat map cabin label — uses segment cabin not seat map cabin ──────────
+  await section('Seat map — cabin label uses segment cabinClass (not seat map API cabin)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Duffel seat map API returns 'economy' cabin even for Business/First in test mode.
+    // We must use seg.cabinClass (from the offer search) which is correct.
+    assert('cabinLabel derived from seg.cabinClass (not cabin.cabinClass directly)', src.includes("fmtCabin(seg?.cabinClass ?? cabin.cabinClass)"));
+    assert('cabinLabel used in seat map header (not raw cabin.cabinClass)', (() => {
+      // Count how many times raw cabin.cabinClass appears in seat map label context
+      const matches = [...src.matchAll(/cabinClassName.*cabin\.cabinClass/g)];
+      return matches.length === 0; // both occurrences replaced
+    })());
+    assert('fmtCabin applied to seat map label (First Class not "first")', src.includes('cabinLabel') && src.includes('fmtCabin(seg?.cabinClass'));
+    assert('fallback to cabin.cabinClass when seg not found', src.includes('seg?.cabinClass ?? cabin.cabinClass'));
+    assert('both seat map sections updated (passenger step + review step)', (() => {
+      const count = (src.match(/fmtCabin\(seg\?\.cabinClass \?\? cabin\.cabinClass\)/g) ?? []).length;
+      return count >= 2;
+    })());
+  });
+
   // ── Cabin class — end-to-end flow ────────────────────────────────────────
   await section('Cabin class — end-to-end flow check', async () => {
     const searchRoute = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-search/route.ts'), 'utf8');
