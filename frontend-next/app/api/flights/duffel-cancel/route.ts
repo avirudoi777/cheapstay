@@ -96,12 +96,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Sync: fix a stale Supabase status from Duffel's source-of-truth.
-    // Called automatically when the detail page loads and detects a mismatch.
+    // Called from list page (by duffel_order_id) and detail page (by id).
     if (body.action === 'sync') {
-      const { error } = await supabase
-        .from('flight_bookings')
-        .update({ status: body.status })
-        .eq('id', body.bookingId);
+      const q = body.orderId
+        ? supabase.from('flight_bookings').update({ status: body.status }).eq('duffel_order_id', body.orderId)
+        : supabase.from('flight_bookings').update({ status: body.status }).eq('id', body.bookingId);
+      const { error } = await q;
       if (error) console.error('sync status error:', error.message);
       return NextResponse.json({ ok: true });
     }

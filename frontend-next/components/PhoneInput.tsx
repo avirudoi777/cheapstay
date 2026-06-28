@@ -164,9 +164,9 @@ export default function PhoneInput({ value, onChange, className = '', required }
         type="tel"
         value={number}
         onChange={e => { setNumber(e.target.value); emit(dial, e.target.value); }}
-        placeholder="2144146487"
+        placeholder="Phone number"
         required={required}
-        className="flex-1 px-3 py-2 text-sm bg-white focus:outline-none text-gray-900 font-medium min-w-0"
+        className="flex-1 px-3 py-2 text-sm bg-white focus:outline-none text-gray-900 font-semibold min-w-0"
       />
 
       {/* Dropdown portal */}

@@ -65,18 +65,57 @@ export default function BookingsPage() {
       .from('flight_bookings')
       .select('*')
       .order('created_at', { ascending: false });
-    if (data) {
-      // Deduplicate by duffel_order_id — keep the most recent record per order
-      const seen = new Set<string>();
-      const deduped = data.filter(b => {
-        const key = b.duffel_order_id || b.booking_reference;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-      setBookings(deduped);
-    }
+    if (!data) { setLoading(false); return; }
+
+    // Deduplicate by duffel_order_id — keep the most recent record per order
+    const seen = new Set<string>();
+    const deduped = data.filter(b => {
+      const key = b.duffel_order_id || b.booking_reference;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    setBookings(deduped);
     setLoading(false);
+
+    // Background-sync: check Duffel status for confirmed bookings and fix stale Supabase records.
+    // Runs after rendering so the user sees bookings immediately, then statuses correct themselves.
+    const confirmed = deduped.filter(b => b.status === 'confirmed' && b.duffel_order_id);
+    if (confirmed.length === 0) return;
+    const results = await Promise.allSettled(
+      confirmed.map(b =>
+        fetch('/api/flights/duffel-order-detail', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: b.duffel_order_id }),
+        }).then(r => r.json()).then(order => ({ booking: b, status: order?.status as string | undefined }))
+      )
+    );
+    const updates: string[] = [];
+    for (const r of results) {
+      if (r.status !== 'fulfilled') continue;
+      const { booking, status } = r.value;
+      if (status && status !== booking.status) {
+        updates.push(booking.duffel_order_id);
+        // Persist fix in Supabase via sync action
+        fetch('/api/flights/duffel-cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'sync', bookingId: booking.id, status, orderId: booking.duffel_order_id }),
+        }).catch(() => {});
+      }
+    }
+    if (updates.length > 0) {
+      // Build a map of orderId → corrected status, then patch local state
+      const statusMap = new Map<string, FlightBooking['status']>();
+      for (const r of results) {
+        if (r.status !== 'fulfilled' || !r.value.status) continue;
+        statusMap.set(r.value.booking.duffel_order_id, r.value.status as FlightBooking['status']);
+      }
+      setBookings(prev => prev.map(b =>
+        statusMap.has(b.duffel_order_id) ? { ...b, status: statusMap.get(b.duffel_order_id)! } : b
+      ));
+    }
   };
 
   useEffect(() => {
