@@ -176,8 +176,29 @@ export default function ManageBookingPage() {
           body: JSON.stringify({ orderId: data.duffel_order_id }),
         });
         const json = await res.json();
-        if (res.ok) setOrder(json);
-        else setOrderError(json.error ?? 'Could not load full order details');
+        if (res.ok) {
+          setOrder(json);
+          // Auto-fix stale Supabase status: Duffel is source of truth.
+          // Covers the case where a previous cancellation succeeded in Duffel
+          // but Supabase wasn't updated (e.g. due to the old router.refresh() race).
+          if (json.status === 'cancelled' && data.status !== 'cancelled') {
+            setBooking(prev => prev ? { ...prev, status: 'cancelled' } : prev);
+            fetch('/api/flights/duffel-cancel', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'sync', bookingId: data.id, status: 'cancelled' }),
+            }).catch(() => {});
+          } else if (json.status === 'held' && data.status !== 'held') {
+            setBooking(prev => prev ? { ...prev, status: 'held' } : prev);
+            fetch('/api/flights/duffel-cancel', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'sync', bookingId: data.id, status: 'held' }),
+            }).catch(() => {});
+          }
+        } else {
+          setOrderError(json.error ?? 'Could not load full order details');
+        }
       } catch {
         setOrderError('Could not reach Duffel');
       } finally {

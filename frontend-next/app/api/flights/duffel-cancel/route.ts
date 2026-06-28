@@ -89,6 +89,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
+    // Sync: fix a stale Supabase status from Duffel's source-of-truth.
+    // Called automatically when the detail page loads and detects a mismatch.
+    if (body.action === 'sync') {
+      const { error } = await supabase
+        .from('flight_bookings')
+        .update({ status: body.status })
+        .eq('id', body.bookingId);
+      if (error) console.error('sync status error:', error.message);
+      return NextResponse.json({ ok: true });
+    }
+
     return NextResponse.json({ error: 'invalid action' }, { status: 400 });
   } catch (err) {
     console.error('Duffel cancel error:', JSON.stringify(err));
