@@ -289,8 +289,8 @@ interface SearchBarProps {
 }
 
 export default function SearchBar({ onSearch, loading = false, initialValues }: SearchBarProps) {
-  const defaultCi = toDateStr(new Date(Date.now() + 30 * 86400000));
-  const defaultCo = toDateStr(new Date(Date.now() + 33 * 86400000));
+  const defaultCi = toDateStr(new Date(Date.now() + 1 * 86400000));
+  const defaultCo = toDateStr(new Date(Date.now() + 4 * 86400000));
 
   const [query, setQuery]       = useState(initialValues?.query ?? '');
   const [location, setLocation] = useState(initialValues?.location ?? '');
