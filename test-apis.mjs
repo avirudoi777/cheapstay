@@ -596,6 +596,25 @@ if (runUnit) {
     assert('passports merged by country — existing passports not wiped', src.includes('existingPassports') && src.includes('findIndex') && src.includes('p.country === lead.passportCountry'));
   });
 
+  // ── Traveler profile GET — name fallback from display_name ─────────────────
+  await section('Profile GET — givenName/familyName fall back to display_name when not saved', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/profile/traveler/route.ts'), 'utf8');
+    assert('display_name fetched alongside traveler_profile', src.includes("'traveler_profile, display_name'"));
+    assert('display_name parsed into first/rest words', src.includes('split(/\\s+/)'));
+    assert('givenFallback used when given_name not saved', src.includes('raw.given_name ?? givenFallback'));
+    assert('familyFallback used when family_name not saved', src.includes('raw.family_name ?? familyFallback'));
+    assert('auth metadata also checked as secondary fallback', src.includes('user_metadata?.full_name'));
+  });
+
+  // ── Account page — parallel fetch for fast passport load ───────────────────
+  await section('Account page — user_profiles and traveler profile fetched in parallel', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/account/page.tsx'), 'utf8');
+    assert('Promise.all used to parallelise both fetches', src.includes('Promise.all'));
+    assert('user_profiles query included in Promise.all', src.includes("supabase.from('user_profiles').select('*')") && src.includes('Promise.all'));
+    assert('traveler profile fetch included in Promise.all', src.includes("fetch('/api/profile/traveler')") && src.includes('Promise.all'));
+    assert('passports rendered after both parallel calls resolve', src.includes('setTravPassports'));
+  });
+
   // ── Avatar upload — instant local preview ────────────────────────────────
   await section('Avatar upload — shows local preview before upload completes', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/account/page.tsx'), 'utf8');

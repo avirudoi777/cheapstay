@@ -110,11 +110,11 @@ export default function AccountPage() {
       const meta = data.user.user_metadata;
       setName(meta?.full_name || meta?.name || '');
 
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
+      // Fetch both in parallel — cuts load time roughly in half
+      const [{ data: profile }, tpRes] = await Promise.all([
+        supabase.from('user_profiles').select('*').eq('id', data.user.id).single(),
+        fetch('/api/profile/traveler').catch(() => null),
+      ]);
 
       if (profile) {
         setStyles(profile.travel_styles || []);
@@ -134,10 +134,9 @@ export default function AccountPage() {
         id: code + '_legacy', country: code, label: code, passportNumber: '', passportExpiry: '',
       }));
 
-      // Load traveler profile (sensitive fields decrypted server-side)
+      // Process traveler profile (sensitive fields decrypted server-side)
       try {
-        const tpRes = await fetch('/api/profile/traveler');
-        if (tpRes.ok) {
+        if (tpRes?.ok) {
           const tp = await tpRes.json();
           if (tp.givenName)  setGivenName(tp.givenName);
           if (tp.familyName) setFamilyName(tp.familyName);
@@ -145,11 +144,9 @@ export default function AccountPage() {
           if (tp.gender)     setTravGender(tp.gender);
           if (tp.bornOn)     setBornOn(tp.bornOn);
           if (tp.phone)      setPhoneNumber(tp.phone);
-          // Use saved passports if available, otherwise fall back to legacy nationality chips
           setTravPassports(tp.passports?.length ? tp.passports : legacyPassports);
           if (tp.companions?.length) setCompanions(tp.companions);
         } else {
-          // API unavailable (traveler_profile column may not exist yet) — load legacy
           if (legacyPassports.length) setTravPassports(legacyPassports);
         }
       } catch {

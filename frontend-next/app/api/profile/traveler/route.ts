@@ -63,11 +63,19 @@ export async function GET() {
 
   const { data: row } = await supabase
     .from('user_profiles')
-    .select('traveler_profile')
+    .select('traveler_profile, display_name')
     .eq('id', user.id)
     .single();
 
   const raw = ((row?.traveler_profile ?? {}) as TravelerProfileRaw);
+
+  // Fall back to display_name (or auth metadata) when name fields not yet saved
+  const displayName: string = (row as { display_name?: string } | null)?.display_name
+    || (user.user_metadata?.full_name as string | undefined)
+    || '';
+  const [firstWord = '', ...restWords] = displayName.trim().split(/\s+/);
+  const givenFallback = firstWord;
+  const familyFallback = restWords.join(' ');
 
   const companions = (raw.companions ?? []).map(c => ({
     id: c.id,
@@ -84,8 +92,8 @@ export async function GET() {
 
   return NextResponse.json({
     title:      raw.title ?? 'mr',
-    givenName:  raw.given_name ?? '',
-    familyName: raw.family_name ?? '',
+    givenName:  raw.given_name ?? givenFallback,
+    familyName: raw.family_name ?? familyFallback,
     gender:     raw.gender ?? 'm',
     bornOn:     raw.born_on_enc ? (decryptField(raw.born_on_enc) || '') : '',
     phone:      raw.phone ?? '',
