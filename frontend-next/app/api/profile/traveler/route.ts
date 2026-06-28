@@ -145,13 +145,19 @@ export async function POST(req: NextRequest) {
       is_child:    c.isChild ?? false,
     }));
 
+    // Read existing profile so we can preserve fields not included in this save (e.g. phone)
+    const { data: existingRow } = await supabase
+      .from('user_profiles').select('traveler_profile').eq('id', user.id).single();
+    const existingRaw = ((existingRow?.traveler_profile ?? {}) as TravelerProfileRaw);
+
     const travelerProfile: TravelerProfileRaw = {
       title:       body.title || 'mr',
       given_name:  body.givenName || undefined,
       family_name: body.familyName || undefined,
       gender:      body.gender || 'm',
       born_on_enc: body.bornOn ? encryptField(body.bornOn) : undefined,
-      phone:       body.phone || undefined,
+      // Preserve existing phone if no new value supplied — prevents accidental wipe
+      phone:       body.phone || existingRaw.phone || undefined,
       passports:   encodePassports(body.passports ?? []),
       companions,
     };
