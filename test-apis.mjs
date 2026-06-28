@@ -1009,6 +1009,15 @@ if (runUnit) {
     assert('Supabase updated to cancelled when already-cancelled detected', src.includes('alreadyCancelled') && src.includes("status: 'cancelled'"));
     assert('bookingId accepted in quote action to enable Supabase fix', src.includes('body.bookingId'));
     assert('already-cancelled error rethrown if pattern does not match (avoid swallowing)', src.includes('throw quoteErr'));
+
+    // Belt-and-suspenders: alreadyCancelled path must update by BOTH duffel_order_id AND id
+    // so duplicate rows (server+client inserts) all get fixed, not just the row matching bookingId
+    // Search from the condition line, not the comment above it
+    const alreadyIdx = src.indexOf("msg.toLowerCase().includes('already been cancelled')");
+    const alreadyBlock = src.slice(alreadyIdx, alreadyIdx + 700);
+    assert('alreadyCancelled path updates by duffel_order_id (catches duplicate rows)', alreadyBlock.includes("duffel_order_id"));
+    assert('alreadyCancelled path updates by id as well', alreadyBlock.includes("body.bookingId") && alreadyBlock.includes(".eq('id',"));
+    assert('alreadyCancelled path uses admin client for RLS bypass', alreadyBlock.includes('getAdminClient()'));
   });
 
   // ── PhoneInput component ─────────────────────────────────────────────────

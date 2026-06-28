@@ -63,8 +63,12 @@ export async function POST(req: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const msg: string = (quoteErr as any)?.errors?.[0]?.message ?? '';
         if (msg.toLowerCase().includes('already been cancelled') || msg.toLowerCase().includes('already cancelled')) {
+          const db = getAdminClient() ?? supabase;
+          // Belt-and-suspenders: update by both duffel_order_id AND id to catch all duplicate rows
+          if (body.orderId) {
+            await db.from('flight_bookings').update({ status: 'cancelled' }).eq('duffel_order_id', body.orderId);
+          }
           if (body.bookingId) {
-            const db = getAdminClient() ?? supabase;
             await db.from('flight_bookings').update({ status: 'cancelled' }).eq('id', body.bookingId);
           }
           return NextResponse.json({ alreadyCancelled: true, refundAmount: 0, refundCurrency: 'USD' });
