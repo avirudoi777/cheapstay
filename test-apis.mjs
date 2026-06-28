@@ -1019,6 +1019,23 @@ if (runUnit) {
     assert('groups state used instead of flat suggestions', src.includes('useState<CityGroup[]>'));
   });
 
+  // ── Cabin class — not hardcoded Economy ─────────────────────────────────
+  await section('Flight results — cabin class from API, not hardcoded Economy', async () => {
+    const searchSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-search/route.ts'), 'utf8');
+    assert('cabin_class extracted per segment from passengers[0]', searchSrc.includes('cabin_class') && searchSrc.includes('segCabinClass'));
+    assert('cabinClass added to segment return object', searchSrc.includes("cabinClass: segCabinClass"));
+    assert('falls back to economy when cabin_class missing', searchSrc.includes("?? 'economy'"));
+
+    const resultsSrc = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert('fmtCabin helper converts snake_case to display name', resultsSrc.includes('function fmtCabin'));
+    assert("fmtCabin maps 'business' to Business", resultsSrc.includes("'business' ? 'Business'"));
+    assert("fmtCabin maps 'premium_economy' to Premium Economy", resultsSrc.includes("'premium_economy' ? 'Premium Economy'"));
+    assert("fmtCabin maps 'first' to First Class", resultsSrc.includes("'first' ? 'First Class'"));
+    assert('cabin badge uses fmtCabin not hardcoded Economy', resultsSrc.includes('fmtCabin(firstSeg.cabinClass') && !resultsSrc.includes('>Economy<'));
+    assert('segment detail uses fmtCabin not hardcoded Economy', resultsSrc.includes('fmtCabin(seg.cabinClass'));
+    assert('Segment type has optional cabinClass field', resultsSrc.includes('cabinClass?: string'));
+  });
+
   // ── Duffel hold order — type field required ───────────────────────────────
   await section('Duffel order route — hold type field', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');

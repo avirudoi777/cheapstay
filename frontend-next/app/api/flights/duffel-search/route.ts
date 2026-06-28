@@ -114,6 +114,8 @@ function formatOffer(offer: any) {
         power: ca.power?.cost !== 'not_provided' ? { desc: ca.power?.description || 'Power outlet', cost: ca.power?.cost as string } : null,
         seat: ca.seat ? { type: ca.seat.type as string, pitch: ca.seat.pitch as string | null } : null,
       } : null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const segCabinClass: string = ((seg.passengers as any[])?.[0]?.cabin_class) ?? 'economy';
       return {
         segmentId: seg.id as string,
         depCode: origin.iata_code,
@@ -127,6 +129,7 @@ function formatOffer(offer: any) {
         flightNumber: `${carrier.iata_code}${seg.marketing_carrier_flight_number}`,
         duration: parseISODur(seg.duration as string),
         aircraft: aircraft?.name || '',
+        cabinClass: segCabinClass,
         layoverAfter: layover,
         baggage: { checkedBags, carryOn },
         amenities,

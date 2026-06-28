@@ -8,11 +8,19 @@ import { createClient } from '@/lib/supabase/client';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 interface SegmentAmenity { desc: string; cost: string }
+function fmtCabin(c: string) {
+  return c === 'premium_economy' ? 'Premium Economy'
+    : c === 'business' ? 'Business'
+    : c === 'first' ? 'First Class'
+    : 'Economy';
+}
+
 interface Segment {
   depCode: string; depCity: string; depAt: string;
   arrCode: string; arrCity: string; arrAt: string;
   airline: string; airlineCode: string; flightNumber: string;
   duration: string; aircraft: string; layoverAfter: string;
+  cabinClass?: string;
   baggage?: { checkedBags: number; carryOn: number };
   segmentId?: string;
   amenities?: {
@@ -2645,7 +2653,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       )}
                     </div>
                   </div>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>Economy</span>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>{fmtCabin(firstSeg.cabinClass ?? 'economy')}</span>
                 </div>
 
                 {/* ── Main row: times + price ── */}
@@ -2759,7 +2767,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                   <span className="text-sm font-bold text-gray-800">{seg.airline}</span>
                                 </div>
                                 <p className="text-xs text-gray-500 leading-relaxed">
-                                  Economy · {seg.flightNumber}{seg.aircraft ? ` · ${seg.aircraft}` : ''} · {seg.duration}
+                                  {fmtCabin(seg.cabinClass ?? 'economy')} · {seg.flightNumber}{seg.aircraft ? ` · ${seg.aircraft}` : ''} · {seg.duration}
                                 </p>
                                 {seg.baggage && (seg.baggage.checkedBags > 0 || seg.baggage.carryOn > 0) && (
                                   <p className="text-xs text-gray-500 mt-1">
