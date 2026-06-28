@@ -682,14 +682,6 @@ export default function ManageBookingPage() {
                           </span>
                         ));
                       }
-                      if (!isCancelled) {
-                        return (
-                          <span className="text-[11px] px-2.5 py-1 rounded-full font-medium"
-                            style={{ background: '#F8FAFC', color: '#94A3B8' }}>
-                            💺 Seat at check-in
-                          </span>
-                        );
-                      }
                       return null;
                     })()}
                     <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#F1F5F9', color: '#475569' }}>

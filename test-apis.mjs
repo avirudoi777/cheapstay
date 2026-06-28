@@ -1418,10 +1418,10 @@ if (runUnit) {
     assert('cabin_class field in FlightBooking interface', src.includes('cabin_class: string | null'));
   });
 
-  await section('Booking detail — seat shows "at check-in" when no seat selected', async () => {
+  await section('Booking detail — seat badge only shown when seat is actually assigned', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
-    assert('fallback seat label when no seat service present', src.includes('Seat at check-in'));
     assert('assigned seat shown when service present', src.includes("Seat {s.metadata?.designator ?? '—'}"));
+    assert('no fallback "at check-in" label shown when no seat', !src.includes('Seat at check-in'));
   });
 
   await section('Booking detail — cabin class badge falls back to booking.cabin_class when seg.cabin_class is null', async () => {
