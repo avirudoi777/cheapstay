@@ -155,6 +155,7 @@ export async function POST(req: NextRequest) {
         departure_at: firstSeg?.departing_at ?? null,
         arrival_at: lastSeg?.arriving_at ?? null,
         airline: firstSeg?.marketing_carrier?.name ?? null,
+        cabin_class: firstSeg?.cabin_class ?? null,
         total_amount: parseFloat(order.total_amount),
         currency: order.total_currency,
         passengers_count: order.passengers?.length ?? 1,

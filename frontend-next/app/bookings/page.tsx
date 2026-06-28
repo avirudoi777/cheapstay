@@ -26,6 +26,7 @@ interface FlightBooking {
   currency: string;
   passengers_count: number;
   passenger_names: string[];
+  cabin_class: string | null;
   cancellation_policy: CancellationPolicy | null;
   created_at: string;
 }
@@ -36,6 +37,12 @@ function cancellationBadge(policy: CancellationPolicy | null) {
   if (!policy.penalty_amount) return { label: 'Free cancellation', bg: '#ECFDF5', color: '#15803D', icon: '✓' };
   const fee = fmtPrice(policy.penalty_amount, policy.penalty_currency ?? 'USD');
   return { label: `Cancel for ${fee} fee`, bg: '#FFFBEB', color: '#B45309', icon: '~' };
+}
+
+function fmtCabin(c: string | null) {
+  if (!c) return null;
+  const map: Record<string, string> = { economy: 'Economy', premium_economy: 'Premium Economy', business: 'Business', first: 'First Class' };
+  return map[c] ?? c.replace('_', ' ');
 }
 
 function fmtDate(iso: string) {
@@ -97,7 +104,10 @@ export default function BookingsPage() {
       const { booking, status } = r.value;
       if (status && status !== booking.status) {
         updates.push(booking.duffel_order_id);
-        // Persist fix in Supabase via sync action
+        // Update directly from browser client (has auth session, bypasses any server-side key issues)
+        supabase.from('flight_bookings').update({ status }).eq('duffel_order_id', booking.duffel_order_id).then(() => {});
+        supabase.from('flight_bookings').update({ status }).eq('id', booking.id).then(() => {});
+        // Also call server sync as fallback (uses admin client for rows with null user_id)
         fetch('/api/flights/duffel-cancel', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -246,8 +256,17 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
             <p className="text-sm text-gray-500">
               {b.origin_city} → {b.destination_city}
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {b.airline} · {fmtDate(b.departure_at)} · {fmtTime(b.departure_at)}
+            <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+              <span>{b.airline}</span>
+              {fmtCabin(b.cabin_class) && (
+                <span className="font-semibold px-1.5 py-0.5 rounded text-[10px]"
+                  style={b.cabin_class === 'business' || b.cabin_class === 'first'
+                    ? { background: '#FEF3C7', color: '#B45309' }
+                    : { background: '#F1F5F9', color: '#475569' }}>
+                  {fmtCabin(b.cabin_class)}
+                </span>
+              )}
+              <span>· {fmtDate(b.departure_at)} · {fmtTime(b.departure_at)}</span>
             </p>
             {badge && !isCancelled && (
               <span className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold px-2.5 py-1 rounded-full"

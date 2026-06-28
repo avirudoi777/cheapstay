@@ -257,6 +257,14 @@ export default function ManageBookingPage() {
     setTimeout(() => setShareCopied(false), 2000);
   }
 
+  async function clientMarkCancelled(b: FlightBooking) {
+    const supabase = createClient();
+    if (b.duffel_order_id) {
+      await supabase.from('flight_bookings').update({ status: 'cancelled' }).eq('duffel_order_id', b.duffel_order_id);
+    }
+    await supabase.from('flight_bookings').update({ status: 'cancelled' }).eq('id', b.id);
+  }
+
   async function cancelBooking() {
     if (!booking) return;
     setCancelLoading(true);
@@ -273,6 +281,7 @@ export default function ManageBookingPage() {
 
       // Duffel already cancelled this order (Supabase had a stale status) — treat as success
       if (quote.alreadyCancelled) {
+        await clientMarkCancelled(booking);
         setBooking(prev => prev ? { ...prev, status: 'cancelled' } : prev);
         setCancelDone(true);
         setShowCancelModal(false);
@@ -290,9 +299,10 @@ export default function ManageBookingPage() {
       const confirmed = await confirmRes.json();
       if (confirmed.error) throw new Error(confirmed.detail || confirmed.error);
 
-      // Update local state only — no router.refresh() to avoid race where
-      // Supabase hasn't propagated the new status yet and the page re-mounts
-      // showing the old confirmed state
+      // Also update directly from browser client — belt-and-suspenders in case
+      // server-side admin client update didn't persist (e.g. wrong service role key)
+      await clientMarkCancelled(booking);
+
       setBooking(prev => prev ? { ...prev, status: 'cancelled' } : prev);
       setCancelRefund({ amount: quote.refundAmount, currency: quote.refundCurrency });
       setCancelDone(true);

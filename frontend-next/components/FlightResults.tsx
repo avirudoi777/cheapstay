@@ -878,6 +878,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           departure_at: fs.depAt,
           arrival_at: ls.arrAt,
           airline: fs.airline,
+          cabin_class: fs.cabinClass ?? null,
           total_amount: grossAmount,
           currency: offer.totalCurrency,
           passengers_count: forms.length,
