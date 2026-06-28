@@ -41,10 +41,26 @@ export async function POST(req: NextRequest) {
   try {
     if (body.action === 'quote') {
       // Step 1: create order cancellation (get refund quote)
-      const data = await duffelReq('POST', '/air/order_cancellations', {
-        data: { order_id: body.orderId },
-      });
-      const c = data.data;
+      let quoteData;
+      try {
+        quoteData = await duffelReq('POST', '/air/order_cancellations', {
+          data: { order_id: body.orderId },
+        });
+      } catch (quoteErr) {
+        // Duffel returns "already been cancelled" when the order is already cancelled
+        // but Supabase wasn't updated (e.g. due to a previous router.refresh() race).
+        // Fix the stale record and return a clean signal so the UI shows cancelled.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const msg: string = (quoteErr as any)?.errors?.[0]?.message ?? '';
+        if (msg.toLowerCase().includes('already been cancelled') || msg.toLowerCase().includes('already cancelled')) {
+          if (body.bookingId) {
+            await supabase.from('flight_bookings').update({ status: 'cancelled' }).eq('id', body.bookingId);
+          }
+          return NextResponse.json({ alreadyCancelled: true, refundAmount: 0, refundCurrency: 'USD' });
+        }
+        throw quoteErr;
+      }
+      const c = quoteData.data;
       return NextResponse.json({
         cancellationId: c.id,
         refundAmount: c.refund_amount ? parseFloat(c.refund_amount) : 0,

@@ -207,12 +207,22 @@ export default function ManageBookingPage() {
     setCancelError('');
     try {
       // Step 1: get cancellationId from Duffel (required to confirm)
+      // Also send bookingId so the route can fix a stale Supabase record if already cancelled
       const quoteRes = await fetch('/api/flights/duffel-cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'quote', orderId: booking.duffel_order_id }),
+        body: JSON.stringify({ action: 'quote', orderId: booking.duffel_order_id, bookingId: booking.id }),
       });
       const quote = await quoteRes.json();
+
+      // Duffel already cancelled this order (Supabase had a stale status) — treat as success
+      if (quote.alreadyCancelled) {
+        setBooking(prev => prev ? { ...prev, status: 'cancelled' } : prev);
+        setCancelDone(true);
+        setShowCancelModal(false);
+        return;
+      }
+
       if (quote.error) throw new Error(quote.detail || quote.error);
 
       // Step 2: confirm the cancellation
@@ -682,7 +692,7 @@ export default function ManageBookingPage() {
               <div className="px-6 pb-6 flex gap-3">
                 <button onClick={() => setShowCancelModal(false)} disabled={cancelLoading}
                   className="flex-1 py-3 rounded-xl text-sm font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition">
-                  Keep booking
+                  Never mind
                 </button>
                 <button onClick={cancelBooking} disabled={cancelLoading}
                   className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition disabled:opacity-60"

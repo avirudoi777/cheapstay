@@ -943,11 +943,24 @@ if (runUnit) {
     assert('confirm modal shown on cancel button click', src.includes('showCancelModal'));
     assert('old "Check live cancellation" button removed', !src.includes('Check live cancellation'));
     assert('cancel button opens modal not quote flow', src.includes('setShowCancelModal(true)'));
-    assert('modal has Keep booking + Yes cancel buttons', src.includes("Keep booking") && src.includes("Yes, cancel"));
+    assert('modal has Never mind + Yes cancel buttons', src.includes("Never mind") && src.includes("Yes, cancel"));
     assert('modal shows cancellation fee from stored policy', src.includes('cancelPolicyLabel') && src.includes('showCancelModal'));
     assert('non-refundable fares show blocked state without cancel button', src.includes("cp?.allowed === false"));
     assert('cancelRefund stores refund amount for success message', src.includes('setCancelRefund'));
     assert('local state update: booking.status set to cancelled', src.includes("status: 'cancelled'"));
+    assert('bookingId sent with quote request (needed for stale-status fix)', src.includes('bookingId: booking.id') && src.includes("action: 'quote'"));
+    assert('alreadyCancelled signal handled — shows cancelled state without error', src.includes('quote.alreadyCancelled'));
+    assert('alreadyCancelled updates booking local state', src.includes('alreadyCancelled') && src.includes("status: 'cancelled'"));
+  });
+
+  // ── Cancel route — already-cancelled recovery ─────────────────────────────
+  await section('Cancel route — recovers stale Supabase status on already-cancelled order', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
+    assert('quote step wraps duffelReq in try/catch for already-cancelled detection', src.includes('already been cancelled') || src.includes('already cancelled'));
+    assert('alreadyCancelled response returned (not an error) when Duffel says already done', src.includes('alreadyCancelled: true'));
+    assert('Supabase updated to cancelled when already-cancelled detected', src.includes('alreadyCancelled') && src.includes("status: 'cancelled'"));
+    assert('bookingId accepted in quote action to enable Supabase fix', src.includes('body.bookingId'));
+    assert('already-cancelled error rethrown if pattern does not match (avoid swallowing)', src.includes('throw quoteErr'));
   });
 
   // ── PhoneInput component ─────────────────────────────────────────────────
