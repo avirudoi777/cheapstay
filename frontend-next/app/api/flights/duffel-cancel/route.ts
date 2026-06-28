@@ -87,23 +87,41 @@ export async function POST(req: NextRequest) {
 
       // Use admin client to bypass RLS — rows may have null user_id (test bookings)
       // which would cause the user-session client to silently update 0 rows.
-      const db = getAdminClient() ?? supabase;
-      const { data: updated, error: dbError } = body.orderId
-        ? await db.from('flight_bookings').update({ status: 'cancelled' })
-            .eq('duffel_order_id', body.orderId).select('id')
-        : await db.from('flight_bookings').update({ status: 'cancelled' })
-            .eq('id', body.bookingId).select('id');
+      const adminClient = getAdminClient();
+      const db = adminClient ?? supabase;
+      const hasAdmin = !!adminClient;
+      let rowsUpdated = 0;
+      let dbError: string | null = null;
+
+      // Try by duffel_order_id first (catches all duplicate rows for same order)
+      if (body.orderId) {
+        const { data: byOrder, error: e1 } = await db
+          .from('flight_bookings').update({ status: 'cancelled' })
+          .eq('duffel_order_id', body.orderId).select('id');
+        rowsUpdated = byOrder?.length ?? 0;
+        if (e1) dbError = e1.message;
+      }
+
+      // Always also update by bookingId as belt-and-suspenders (catches cases where
+      // duffel_order_id is null or mismatched)
+      if (body.bookingId) {
+        const { data: byId, error: e2 } = await db
+          .from('flight_bookings').update({ status: 'cancelled' })
+          .eq('id', body.bookingId).select('id');
+        if ((byId?.length ?? 0) > 0) rowsUpdated += byId!.length;
+        if (e2 && !dbError) dbError = e2.message;
+      }
 
       if (dbError) {
-        console.error('Supabase cancel update error:', dbError.message);
-        return NextResponse.json({ success: true, dbWarning: dbError.message });
+        console.error('Supabase cancel update error:', dbError);
+        return NextResponse.json({ success: true, dbWarning: dbError, hasAdmin, rowsUpdated });
       }
-      if (!updated || updated.length === 0) {
-        console.error('Supabase cancel update: 0 rows affected', { orderId: body.orderId, bookingId: body.bookingId });
-        return NextResponse.json({ success: true, dbWarning: 'no_rows_updated' });
+      if (rowsUpdated === 0) {
+        console.error('Supabase cancel update: 0 rows affected', { orderId: body.orderId, bookingId: body.bookingId, hasAdmin });
+        return NextResponse.json({ success: true, dbWarning: 'no_rows_updated', hasAdmin, rowsUpdated });
       }
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, hasAdmin, rowsUpdated });
     }
 
     // Sync: fix a stale Supabase status from Duffel's source-of-truth.
