@@ -1564,7 +1564,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         return (
                           <div key={sm.segmentId}>
                             <p className="text-xs font-bold text-gray-500 mb-3">
-                              {seg ? `${seg.depCode} → ${seg.arrCode} · ${cabin.cabinClassName ?? cabin.cabinClass}` : sm.segmentId}
+                              {seg ? `${seg.depCode} → ${seg.arrCode} · ${cabin.cabinClassName ?? cabin.cabinClass}` : `Segment ${seatMaps!.indexOf(sm) + 1} · ${cabin.cabinClassName ?? cabin.cabinClass}`}
                             </p>
                             {offer.passengerIds.map((paxId, pi) => (
                               <div key={paxId} className="mb-4">
@@ -1583,7 +1583,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                               const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
                                               const available = !!paxSvc;
                                               const mapKey = `${sm.segmentId}_${paxId}`;
-                                              const selected = seatSelections[mapKey] === paxSvc?.id;
+                                              const selected = !!paxSvc?.id && seatSelections[mapKey] === paxSvc.id;
                                               return (
                                                 <button key={ei} disabled={!available}
                                                   onClick={() => paxSvc && selectSeat(sm.segmentId, paxId, paxSvc.id)}
@@ -1893,7 +1893,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             return (
                               <div key={sm.segmentId}>
                                 <p className="text-xs font-bold text-gray-500 mb-3">
-                                  {seg ? `${seg.depCode} → ${seg.arrCode} · ${cabin.cabinClassName ?? cabin.cabinClass}` : sm.segmentId}
+                                  {seg ? `${seg.depCode} → ${seg.arrCode} · ${cabin.cabinClassName ?? cabin.cabinClass}` : `Segment ${seatMaps!.indexOf(sm) + 1} · ${cabin.cabinClassName ?? cabin.cabinClass}`}
                                 </p>
                                 {offer.passengerIds.map((paxId, pi) => (
                                   <div key={paxId} className="mb-4">
@@ -1912,7 +1912,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                                   const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
                                                   const available = !!paxSvc;
                                                   const key = `${sm.segmentId}_${paxId}`;
-                                                  const selected = seatSelections[key] === paxSvc?.id;
+                                                  const selected = !!paxSvc?.id && seatSelections[key] === paxSvc.id;
                                                   const price = paxSvc ? parseFloat(paxSvc.total_amount) : 0;
                                                   return (
                                                     <button key={ei} disabled={!available}

@@ -596,6 +596,26 @@ if (runUnit) {
     assert('passports merged by country — existing passports not wiped', src.includes('existingPassports') && src.includes('findIndex') && src.includes('p.country === lead.passportCountry'));
   });
 
+  // ── Seat map — selected/available/taken logic ──────────────────────────────
+  await section('Seat map — undefined paxSvc does not mark seat as selected', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Both copies of the seat map must guard against undefined === undefined
+    const badPattern = /const selected = seatSelections\[.*\] === paxSvc\?\.id;/g;
+    const goodPattern = /const selected = !!paxSvc\?\.id && seatSelections\[.*\] === paxSvc\.id;/g;
+    const badMatches = [...src.matchAll(badPattern)].length;
+    const goodMatches = [...src.matchAll(goodPattern)].length;
+    assert('no unguarded selected = ... === paxSvc?.id comparisons', badMatches === 0);
+    assert('both seat map copies use !!paxSvc?.id guard (2 occurrences)', goodMatches === 2);
+  });
+
+  // ── Seat map — segment ID never shown as raw ID ─────────────────────────────
+  await section('Seat map — raw segment ID never exposed in the UI', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // The old fallback was `sm.segmentId` — should now be human-readable
+    assert('raw sm.segmentId not used as segment header fallback', !src.includes(': sm.segmentId}'));
+    assert('human-readable fallback used instead (Segment N · class)', src.includes('`Segment ${seatMaps!.indexOf(sm) + 1}'));
+  });
+
   // ── Traveler profile GET — name fallback from display_name ─────────────────
   await section('Profile GET — givenName/familyName fall back to display_name when not saved', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/api/profile/traveler/route.ts'), 'utf8');
