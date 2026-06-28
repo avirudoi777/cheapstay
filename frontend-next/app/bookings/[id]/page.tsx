@@ -20,6 +20,7 @@ interface FlightBooking {
   departure_at: string;
   arrival_at: string;
   airline: string;
+  cabin_class: string | null;
   total_amount: number;
   currency: string;
   passengers_count: number;
@@ -423,13 +424,20 @@ export default function ManageBookingPage() {
   const allSegs = order?.slices?.flatMap(s => s.segments) ?? [];
   const lastSeg = allSegs[allSegs.length - 1];
 
+  const isPremiumCabin = booking.cabin_class === 'business' || booking.cabin_class === 'first';
+  const isFirstClass = booking.cabin_class === 'first';
+  const premiumAccent = isFirstClass ? '#C4B5FD' : '#D4AF37';
+  const premiumAccentRgb = isFirstClass ? '139,92,246' : '212,175,55';
+
   return (
-    <div className="min-h-screen" style={{ background: '#F8FAFC' }}>
+    <div className="min-h-screen" style={{ background: isPremiumCabin && !isCancelled ? '#080510' : '#F8FAFC' }}>
       {/* Top bar */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <div className="sticky top-0 z-10"
+        style={{ background: isPremiumCabin && !isCancelled ? 'rgba(8,5,16,0.9)' : '#fff', borderBottom: `1px solid ${isPremiumCabin && !isCancelled ? `rgba(${premiumAccentRgb},0.2)` : '#F1F5F9'}`, backdropFilter: 'blur(12px)' }}>
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           <button onClick={() => router.push('/bookings')}
-            className="text-sm text-gray-400 hover:text-gray-700 flex items-center gap-1.5 transition">
+            className="text-sm flex items-center gap-1.5 transition"
+            style={{ color: isPremiumCabin && !isCancelled ? `rgba(${premiumAccentRgb},0.8)` : '#9CA3AF' }}>
             ← My Bookings
           </button>
         </div>
@@ -438,11 +446,32 @@ export default function ManageBookingPage() {
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
 
         {/* ── Route header ───────────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="rounded-2xl p-6"
+          style={isPremiumCabin && !isCancelled
+            ? {
+                background: isFirstClass
+                  ? 'linear-gradient(160deg, #0d0618 0%, #1a0b2e 100%)'
+                  : 'linear-gradient(160deg, #0f0d00 0%, #1a1500 100%)',
+                border: `1.5px solid rgba(${premiumAccentRgb},0.35)`,
+                boxShadow: `0 8px 32px rgba(${premiumAccentRgb},0.12)`,
+              }
+            : { background: '#fff', border: '1px solid #F1F5F9', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+
+          {/* Premium label */}
+          {isPremiumCabin && !isCancelled && (
+            <div className="flex items-center gap-2 mb-3">
+              <span style={{ color: premiumAccent, fontSize: 12 }}>✦</span>
+              <p className="text-[10px] font-bold tracking-widest uppercase" style={{ color: premiumAccent }}>
+                {isFirstClass ? 'First Class' : 'Business Class'}
+              </p>
+            </div>
+          )}
+
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                <h1 className="text-3xl font-extrabold tracking-tight"
+                  style={{ color: isPremiumCabin && !isCancelled ? '#fff' : '#111827' }}>
                   {booking.origin_code} → {booking.destination_code}
                 </h1>
                 <span className="text-xs font-bold px-3 py-1 rounded-full"
@@ -452,12 +481,16 @@ export default function ManageBookingPage() {
                     ? { background: '#FEF3C7', color: '#B45309' }
                     : isPast
                     ? { background: '#F3F4F6', color: '#6B7280' }
+                    : isPremiumCabin
+                    ? { background: `rgba(${premiumAccentRgb},0.2)`, color: premiumAccent }
                     : { background: '#ECFDF5', color: '#15803D' }}>
                   {isCancelled ? 'Cancelled' : isHeld ? '⏳ Held — pay to confirm' : isPast ? 'Completed' : 'Confirmed ✓'}
                 </span>
               </div>
-              <p className="text-base text-gray-500">{booking.origin_city} → {booking.destination_city}</p>
-              <p className="text-sm text-gray-400 mt-0.5">
+              <p className="text-base" style={{ color: isPremiumCabin && !isCancelled ? 'rgba(255,255,255,0.55)' : '#6B7280' }}>
+                {booking.origin_city} → {booking.destination_city}
+              </p>
+              <p className="text-sm mt-0.5" style={{ color: isPremiumCabin && !isCancelled ? 'rgba(255,255,255,0.4)' : '#9CA3AF' }}>
                 {booking.airline} · {fmtDate(booking.departure_at)}
               </p>
               {!isCancelled && !isPast && (() => {
@@ -485,26 +518,39 @@ export default function ManageBookingPage() {
               })()}
             </div>
             <div className="text-right flex-shrink-0">
-              <p className="text-2xl font-extrabold" style={{ color: '#DC2626' }}>
+              <p className="text-2xl font-extrabold"
+                style={{ color: isPremiumCabin && !isCancelled ? premiumAccent : '#DC2626' }}>
                 {fmtPrice(booking.total_amount, booking.currency)}
               </p>
-              <p className="text-xs text-gray-400">{booking.passengers_count} passenger{booking.passengers_count > 1 ? 's' : ''}</p>
+              <p className="text-xs" style={{ color: isPremiumCabin && !isCancelled ? 'rgba(255,255,255,0.4)' : '#9CA3AF' }}>
+                {booking.passengers_count} passenger{booking.passengers_count > 1 ? 's' : ''}
+              </p>
             </div>
           </div>
         </div>
 
         {/* ── Booking reference ───────────────────────────────────────── */}
-        <div className="rounded-2xl overflow-hidden shadow-sm" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)' }}>
+        <div className="rounded-2xl overflow-hidden shadow-sm"
+          style={{ background: isPremiumCabin && !isCancelled
+            ? (isFirstClass ? 'linear-gradient(135deg, #1a0b2e 0%, #0d0618 100%)' : 'linear-gradient(135deg, #1a1500 0%, #0f0d00 100%)')
+            : 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+            border: isPremiumCabin && !isCancelled ? `1px solid rgba(${premiumAccentRgb},0.3)` : 'none' }}>
           <div className="px-6 py-5">
-            <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#94A3B8' }}>Booking Reference</p>
-            <p className="text-4xl font-black tracking-[0.12em]" style={{ color: '#F0FDF4', fontFamily: 'monospace' }}>
+            <p className="text-xs font-bold uppercase tracking-widest mb-1"
+              style={{ color: isPremiumCabin && !isCancelled ? `rgba(${premiumAccentRgb},0.6)` : '#94A3B8' }}>
+              Booking Reference
+            </p>
+            <p className="text-4xl font-black tracking-[0.12em]"
+              style={{ color: isPremiumCabin && !isCancelled ? premiumAccent : '#F0FDF4', fontFamily: 'monospace',
+                textShadow: isPremiumCabin && !isCancelled ? `0 0 30px rgba(${premiumAccentRgb},0.4)` : 'none' }}>
               {booking.booking_reference}
             </p>
             <p className="text-xs mt-2" style={{ color: '#64748B' }}>
               Order ID: {booking.duffel_order_id}
             </p>
           </div>
-          <div className="border-t px-6 py-3 flex items-center justify-between" style={{ borderColor: '#1E293B', background: 'rgba(0,0,0,0.2)' }}>
+          <div className="border-t px-6 py-3 flex items-center justify-between"
+            style={{ borderColor: isPremiumCabin && !isCancelled ? `rgba(${premiumAccentRgb},0.2)` : '#1E293B', background: 'rgba(0,0,0,0.2)' }}>
             <p className="text-xs" style={{ color: '#64748B' }}>
               Booked {fmtDate(booking.created_at)}
             </p>
@@ -610,9 +656,11 @@ export default function ManageBookingPage() {
                   </div>
                   {/* Segment meta — cabin class + seat + airline */}
                   <div className="flex flex-wrap gap-2 mt-3">
-                    {seg.cabin_class && (() => {
-                      const isBizFirst = seg.cabin_class === 'business' || seg.cabin_class === 'first';
-                      const label = seg.cabin_class === 'first' ? 'First Class' : seg.cabin_class === 'business' ? 'Business' : seg.cabin_class === 'premium_economy' ? 'Premium Economy' : 'Economy';
+                    {(() => {
+                      const cls = seg.cabin_class ?? (i === 0 ? booking.cabin_class : null);
+                      if (!cls) return null;
+                      const isBizFirst = cls === 'business' || cls === 'first';
+                      const label = cls === 'first' ? 'First Class' : cls === 'business' ? 'Business' : cls === 'premium_economy' ? 'Premium Economy' : 'Economy';
                       return (
                         <span className="text-[11px] px-2.5 py-1 rounded-full font-bold"
                           style={isBizFirst
@@ -652,26 +700,41 @@ export default function ManageBookingPage() {
             </div>
           ) : !orderLoading && (
             /* Fallback to saved data */
-            <div className="flex items-start gap-4">
-              <div className="flex-1">
-                <p className="text-2xl font-extrabold text-gray-900">{fmtTime(booking.departure_at)}</p>
-                <p className="text-sm font-bold text-gray-700">{booking.origin_code}</p>
-                <p className="text-xs text-gray-400">{booking.origin_city}</p>
-                <p className="text-xs text-gray-400">{fmtDate(booking.departure_at)}</p>
-              </div>
-              <div className="text-center pt-2">
-                <div className="flex items-center gap-1 my-1">
-                  <div className="w-2 h-2 rounded-full border-2" style={{ borderColor: '#1D9E75' }} />
-                  <div className="w-10 h-px" style={{ background: '#1D9E75' }} />
-                  <div className="w-2 h-2 rounded-full" style={{ background: '#1D9E75' }} />
+            <div className="space-y-3">
+              <div className="flex items-start gap-4">
+                <div className="flex-1">
+                  <p className="text-2xl font-extrabold text-gray-900">{fmtTime(booking.departure_at)}</p>
+                  <p className="text-sm font-bold text-gray-700">{booking.origin_code}</p>
+                  <p className="text-xs text-gray-400">{booking.origin_city}</p>
+                  <p className="text-xs text-gray-400">{fmtDate(booking.departure_at)}</p>
+                </div>
+                <div className="text-center pt-2">
+                  <div className="flex items-center gap-1 my-1">
+                    <div className="w-2 h-2 rounded-full border-2" style={{ borderColor: '#1D9E75' }} />
+                    <div className="w-10 h-px" style={{ background: '#1D9E75' }} />
+                    <div className="w-2 h-2 rounded-full" style={{ background: '#1D9E75' }} />
+                  </div>
+                </div>
+                <div className="flex-1 text-right">
+                  <p className="text-2xl font-extrabold text-gray-900">{fmtTime(booking.arrival_at)}</p>
+                  <p className="text-sm font-bold text-gray-700">{booking.destination_code}</p>
+                  <p className="text-xs text-gray-400">{booking.destination_city}</p>
+                  <p className="text-xs text-gray-400">{fmtDate(booking.arrival_at)}</p>
                 </div>
               </div>
-              <div className="flex-1 text-right">
-                <p className="text-2xl font-extrabold text-gray-900">{fmtTime(booking.arrival_at)}</p>
-                <p className="text-sm font-bold text-gray-700">{booking.destination_code}</p>
-                <p className="text-xs text-gray-400">{booking.destination_city}</p>
-                <p className="text-xs text-gray-400">{fmtDate(booking.arrival_at)}</p>
-              </div>
+              {booking.cabin_class && (() => {
+                const cls = booking.cabin_class!;
+                const isBizFirst = cls === 'business' || cls === 'first';
+                const label = cls === 'first' ? 'First Class' : cls === 'business' ? 'Business' : cls === 'premium_economy' ? 'Premium Economy' : 'Economy';
+                return (
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-[11px] px-2.5 py-1 rounded-full font-bold"
+                      style={isBizFirst ? { background: '#FEF3C7', color: '#B45309' } : { background: '#F1F5F9', color: '#475569' }}>
+                      {isBizFirst ? '✦ ' : ''}{label}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </Section>

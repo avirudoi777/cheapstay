@@ -225,44 +225,69 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
   const isCancelled = b.status === 'cancelled';
   const isHeld = b.status === 'held';
   const badge = cancellationBadge(b.cancellation_policy);
+  const isPremium = b.cabin_class === 'business' || b.cabin_class === 'first';
+  const isFirst = b.cabin_class === 'first';
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="rounded-2xl overflow-hidden"
+      style={isPremium && !isCancelled
+        ? {
+            background: isFirst
+              ? 'linear-gradient(135deg, #0d0618 0%, #1a0b2e 100%)'
+              : 'linear-gradient(135deg, #0f0d00 0%, #1a1500 100%)',
+            border: `1.5px solid ${isFirst ? 'rgba(139,92,246,0.45)' : 'rgba(212,175,55,0.45)'}`,
+            boxShadow: `0 4px 24px ${isFirst ? 'rgba(139,92,246,0.15)' : 'rgba(212,175,55,0.12)'}`,
+          }
+        : { background: '#fff', border: '1px solid #F1F5F9', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+
+      {/* Premium banner */}
+      {isPremium && !isCancelled && (
+        <div className="px-5 pt-3 pb-0 flex items-center gap-2">
+          <span style={{ color: isFirst ? '#A78BFA' : '#D4AF37', fontSize: 11 }}>✦</span>
+          <p className="text-[10px] font-bold tracking-widest uppercase"
+            style={{ color: isFirst ? '#A78BFA' : '#D4AF37' }}>
+            {isFirst ? 'First Class' : 'Business Class'}
+          </p>
+        </div>
+      )}
+
       {/* Route header */}
       <div className="p-5 pb-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-1">
-              <p className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+              <p className="text-xl font-extrabold flex items-center gap-2"
+                style={{ color: isPremium && !isCancelled ? '#fff' : '#111827' }}>
                 {b.origin_code}
-                <span className="flex items-center gap-1 text-gray-300 font-normal">
-                  <svg className="w-4 h-4" style={{ color: '#1D9E75' }} viewBox="0 0 24 24" fill="currentColor">
+                <span className="flex items-center gap-1 font-normal">
+                  <svg className="w-4 h-4" style={{ color: isPremium && !isCancelled ? (isFirst ? '#A78BFA' : '#D4AF37') : '#1D9E75' }} viewBox="0 0 24 24" fill="currentColor">
                     <path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1l3.5 1v-1.5L13 19v-5.5z"/>
                   </svg>
                 </span>
                 {b.destination_code}
               </p>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full`}
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                 style={isCancelled
                   ? { background: '#FEE2E2', color: '#DC2626' }
                   : isHeld
                   ? { background: '#FEF3C7', color: '#B45309' }
                   : isPast
                   ? { background: '#F3F4F6', color: '#6B7280' }
+                  : isPremium
+                  ? { background: isFirst ? 'rgba(139,92,246,0.2)' : 'rgba(212,175,55,0.2)', color: isFirst ? '#C4B5FD' : '#D4AF37' }
                   : { background: '#ECFDF5', color: '#15803D' }}>
                 {isCancelled ? 'Cancelled' : isHeld ? '⏳ Held' : isPast ? 'Completed' : 'Confirmed ✓'}
               </span>
             </div>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm" style={{ color: isPremium && !isCancelled ? 'rgba(255,255,255,0.55)' : '#6B7280' }}>
               {b.origin_city} → {b.destination_city}
             </p>
-            <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+            <p className="text-xs mt-0.5 flex items-center gap-1.5 flex-wrap"
+              style={{ color: isPremium && !isCancelled ? 'rgba(255,255,255,0.4)' : '#9CA3AF' }}>
               <span>{b.airline}</span>
-              {fmtCabin(b.cabin_class) && (
+              {!isPremium && fmtCabin(b.cabin_class) && (
                 <span className="font-semibold px-1.5 py-0.5 rounded text-[10px]"
-                  style={b.cabin_class === 'business' || b.cabin_class === 'first'
-                    ? { background: '#FEF3C7', color: '#B45309' }
-                    : { background: '#F1F5F9', color: '#475569' }}>
+                  style={{ background: '#F1F5F9', color: '#475569' }}>
                   {fmtCabin(b.cabin_class)}
                 </span>
               )}
@@ -276,10 +301,13 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
             )}
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-xl font-extrabold" style={{ color: '#DC2626' }}>
+            <p className="text-xl font-extrabold"
+              style={{ color: isPremium && !isCancelled ? (isFirst ? '#C4B5FD' : '#D4AF37') : '#DC2626' }}>
               {fmtPrice(b.total_amount, b.currency)}
             </p>
-            <p className="text-[10px] text-gray-400">{b.passengers_count} passenger{b.passengers_count > 1 ? 's' : ''}</p>
+            <p className="text-[10px]" style={{ color: isPremium && !isCancelled ? 'rgba(255,255,255,0.4)' : '#9CA3AF' }}>
+              {b.passengers_count} passenger{b.passengers_count > 1 ? 's' : ''}
+            </p>
           </div>
         </div>
 
@@ -287,7 +315,10 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
         {b.passenger_names?.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3">
             {b.passenger_names.map((name, i) => (
-              <span key={i} className="text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize" style={{ background: '#F1F5F9', color: '#475569' }}>
+              <span key={i} className="text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize"
+                style={isPremium && !isCancelled
+                  ? { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.65)' }
+                  : { background: '#F1F5F9', color: '#475569' }}>
                 👤 {name}
               </span>
             ))}
@@ -296,14 +327,25 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
       </div>
 
       {/* Footer bar */}
-      <div className="px-5 py-3 flex items-center justify-between" style={{ background: '#F8FAFC', borderTop: '1px solid #F1F5F9' }}>
+      <div className="px-5 py-3 flex items-center justify-between"
+        style={isPremium && !isCancelled
+          ? { background: 'rgba(0,0,0,0.25)', borderTop: `1px solid ${isFirst ? 'rgba(139,92,246,0.25)' : 'rgba(212,175,55,0.25)'}` }
+          : { background: '#F8FAFC', borderTop: '1px solid #F1F5F9' }}>
         <div>
-          <p className="text-[10px] text-gray-400 uppercase tracking-wide">Booking ref</p>
-          <p className="text-sm font-extrabold text-gray-900 font-mono tracking-wide">{b.booking_reference}</p>
+          <p className="text-[10px] uppercase tracking-wide"
+            style={{ color: isPremium && !isCancelled ? 'rgba(255,255,255,0.35)' : '#9CA3AF' }}>
+            Booking ref
+          </p>
+          <p className="text-sm font-extrabold font-mono tracking-wide"
+            style={{ color: isPremium && !isCancelled ? '#fff' : '#111827' }}>
+            {b.booking_reference}
+          </p>
         </div>
         <Link href={`/bookings/${b.id}`}
           className="text-xs font-bold px-4 py-2 rounded-lg transition"
-          style={{ color: '#1D9E75', background: '#ECFDF5', border: '1px solid #BBF7D0' }}>
+          style={isPremium && !isCancelled
+            ? { color: isFirst ? '#C4B5FD' : '#D4AF37', background: isFirst ? 'rgba(139,92,246,0.18)' : 'rgba(212,175,55,0.15)', border: `1px solid ${isFirst ? 'rgba(139,92,246,0.35)' : 'rgba(212,175,55,0.35)'}` }
+            : { color: '#1D9E75', background: '#ECFDF5', border: '1px solid #BBF7D0' }}>
           Manage →
         </Link>
       </div>

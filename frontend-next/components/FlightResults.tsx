@@ -2335,21 +2335,37 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
           {/* Top section — route + status icon */}
           <div className="px-8 pt-8 pb-6 text-center">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl mx-auto mb-5"
-              style={{ background: `rgba(${accentRgb},0.18)`, border: `1.5px solid rgba(${accentRgb},0.4)` }}>
-              {isHeld ? '⏳' : '✓'}
+            {/* Icon — larger + gold for Business/First */}
+            <div className={`${isBusinessOrFirst ? 'w-16 h-16' : 'w-14 h-14'} rounded-full flex items-center justify-center mx-auto mb-5`}
+              style={{
+                background: `rgba(${accentRgb},${isBusinessOrFirst ? '0.22' : '0.18'})`,
+                border: `${isBusinessOrFirst ? '2px' : '1.5px'} solid rgba(${accentRgb},${isBusinessOrFirst ? '0.6' : '0.4'})`,
+                boxShadow: isBusinessOrFirst ? `0 0 32px rgba(${accentRgb},0.25)` : 'none',
+              }}>
+              <span style={{ fontSize: isBusinessOrFirst ? 28 : 22 }}>
+                {isHeld ? '⏳' : isBusinessOrFirst ? '✦' : '✓'}
+              </span>
             </div>
-            <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: `rgba(${accentRgb},0.9)` }}>
-              {isHeld ? 'Seat held — payment pending' : 'Booking confirmed'}
+            <p className="font-bold tracking-widest uppercase mb-1"
+              style={{ fontSize: isBusinessOrFirst ? 11 : 10, color: `rgba(${accentRgb},0.95)` }}>
+              {isHeld ? 'Seat held — payment pending' : isBusinessOrFirst ? `${cabinLabel} confirmed` : 'Booking confirmed'}
             </p>
-            <h2 className="text-2xl font-extrabold text-white mb-1">{fromName} → {toName}</h2>
+            <h2 className="font-extrabold text-white mb-1"
+              style={{ fontSize: isBusinessOrFirst ? 26 : 22 }}>
+              {fromName} → {toName}
+            </h2>
             <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
               {firstSeg.airline} · {fmtDate(depart + 'T12:00')}
             </p>
-            <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full"
-              style={{ background: `rgba(${accentRgb},0.15)`, border: `1px solid rgba(${accentRgb},0.35)` }}>
-              {isBusinessOrFirst && <span style={{ color: accentHex }}>✦</span>}
-              <span className="text-xs font-bold tracking-wide" style={{ color: accentHex }}>{cabinLabel}</span>
+            {/* Cabin pill — more prominent for premium cabins */}
+            <div className="mt-3 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full"
+              style={{
+                background: `rgba(${accentRgb},${isBusinessOrFirst ? '0.25' : '0.15'})`,
+                border: `1px solid rgba(${accentRgb},${isBusinessOrFirst ? '0.55' : '0.35'})`,
+                boxShadow: isBusinessOrFirst ? `0 0 16px rgba(${accentRgb},0.2)` : 'none',
+              }}>
+              {isBusinessOrFirst && <span style={{ color: accentHex, fontSize: 12 }}>✦</span>}
+              <span className="font-bold tracking-wide" style={{ fontSize: isBusinessOrFirst ? 13 : 11, color: accentHex }}>{cabinLabel}</span>
             </div>
           </div>
 
@@ -2372,7 +2388,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             </p>
 
             {/* 3-col detail row */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-3 gap-4 mb-4">
               <div>
                 <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>From</p>
                 <p className="text-sm font-bold text-white">{firstSeg.depCode}</p>
@@ -2390,6 +2406,15 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 <p className="text-sm font-bold text-white">{lastSeg.arrCode}</p>
                 <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{lastSeg.arrCity}</p>
               </div>
+            </div>
+
+            {/* Cabin class row — clearly labeled */}
+            <div className="flex items-center justify-between mb-5 py-2.5 px-3 rounded-xl"
+              style={{ background: `rgba(${accentRgb},0.12)`, border: `1px solid rgba(${accentRgb},0.3)` }}>
+              <p className="text-[9px] font-bold tracking-wider uppercase" style={{ color: 'rgba(255,255,255,0.4)' }}>Cabin class</p>
+              <p className="text-sm font-extrabold" style={{ color: accentHex }}>
+                {isBusinessOrFirst ? '✦ ' : ''}{cabinLabel}
+              </p>
             </div>
 
             {/* Passenger + price row */}

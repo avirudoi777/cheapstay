@@ -1293,7 +1293,7 @@ if (runUnit) {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
     assert('held flag derived from confirmation.held', src.includes('const isHeld') && src.includes('confirmation.held'));
     assert('amber background gradient used for held', src.includes("'#1a1200'") || src.includes('amber') || src.includes('#D97706'));
-    assert('⏳ icon shown for held (not ✓)', src.includes("isHeld ? '⏳' : '✓'"));
+    assert('⏳ icon shown for held, ✦ for premium, ✓ for economy', src.includes("isHeld ? '⏳' : isBusinessOrFirst ? '✦' : '✓'"));
     assert('"Seat held" label for held confirmation', src.includes('Seat held'));
     assert('"Amount due" label for held (not "Total paid")', src.includes('Amount due'));
     assert('"Pay now to confirm seat" CTA for held', src.includes('Pay now to confirm seat'));
@@ -1400,6 +1400,53 @@ if (runUnit) {
     // (the source can contain "Economy" in fmtCabin return values but not as a hardcoded badge)
     const badgeLine = results.split('\n').find(l => l.includes('rounded-full') && l.includes('Economy'));
     assert('no hardcoded Economy string in badge element', !badgeLine, badgeLine ?? 'clean');
+  });
+
+  await section('Confirmation card — cabin class shown as labeled row (not just tiny pill)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Must have a clearly labeled "Cabin class" row in the lower details section of the boarding pass
+    assert('Cabin class label present in confirmation card', src.includes('Cabin class') || src.includes('cabin class'));
+    // cabinLabel must be displayed in the details section (after the 3-col grid)
+    const detailIdx = src.indexOf('3-col detail row');
+    assert('cabinLabel rendered after the 3-col grid', detailIdx !== -1 && src.indexOf('cabinLabel', detailIdx) > detailIdx);
+    // The row must use the accentHex color so it matches the booking theme
+    assert('cabin class row uses accentHex color', src.includes('accentHex') && src.indexOf('Cabin class') !== -1);
+  });
+
+  await section('Booking detail — FlightBooking interface includes cabin_class', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    assert('cabin_class field in FlightBooking interface', src.includes('cabin_class: string | null'));
+  });
+
+  await section('Booking detail — cabin class badge falls back to booking.cabin_class when seg.cabin_class is null', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    // Must use booking.cabin_class as fallback — Duffel test airline doesn't always return cabin_class on order segments
+    assert('fallback to booking.cabin_class for first segment', src.includes('seg.cabin_class ?? (i === 0 ? booking.cabin_class : null)'));
+    // Must NOT check seg.cabin_class alone for the badge condition
+    const segOnlyCheck = src.includes('{seg.cabin_class && (() => {');
+    assert('no longer gates badge on seg.cabin_class alone', !segOnlyCheck);
+  });
+
+  await section('Booking detail — cabin class shown in offline fallback view (Duffel fetch failed)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    // The offline fallback section (when allSegs.length === 0) must also show cabin class from booking
+    assert('fallback view renders cabin_class badge from booking row', src.includes('booking.cabin_class && (() => {') || src.includes('{booking.cabin_class && (()'));
+    assert('fallback cabin badge uses Business/First style (amber)', src.includes("isBizFirst ? { background: '#FEF3C7'"));
+  });
+
+  await section('Duffel order route — cabin_class saved to Supabase at booking time', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');
+    // Must save cabin_class from the first segment of the order
+    assert('cabin_class saved from firstSeg in baseRow', src.includes('cabin_class: firstSeg?.cabin_class ?? null'));
+    // The baseRow must use user.id (non-null — guaranteed by 401 guard before Duffel call)
+    assert('baseRow uses user.id not user?.id for user_id', src.includes('user_id: user.id'));
+  });
+
+  await section('Booking list — FlightBooking interface includes cabin_class', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/page.tsx'), 'utf8');
+    assert('cabin_class in FlightBooking interface on list page', src.includes('cabin_class: string | null'));
+    assert('fmtCabin helper defined on list page', src.includes('fmtCabin'));
+    assert('amber badge for Business/First on list card', src.includes("'business'" ) && src.includes("'first'") && src.includes('#B45309'));
   });
 
 }
