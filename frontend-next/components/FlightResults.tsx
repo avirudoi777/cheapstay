@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import VisaBanner from '@/components/VisaBanner';
 import { getLayoverGuide, parseLayoverMinutes, LAYOVER_GUIDE_THRESHOLD_MIN } from '@/lib/layover-guides';
 import { flagEmoji, COUNTRIES } from '@/lib/visa-data';
+import PhoneInput from '@/components/PhoneInput';
 import { createClient } from '@/lib/supabase/client';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
@@ -1216,7 +1217,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           </Field>
                           <div className="mt-3">
                             <Field label="Phone (with country code) *">
-                              <input type="tel" value={paxForm.phoneNumber} onChange={e => updatePassenger(idx, 'phoneNumber', e.target.value)} placeholder="+1 555 000 0000" className={inputCls} />
+                              <PhoneInput value={paxForm.phoneNumber} onChange={v => updatePassenger(idx, 'phoneNumber', v)} required />
                               {paxErrors.phoneNumber && <p className="text-xs text-red-500 mt-0.5">{paxErrors.phoneNumber}</p>}
                             </Field>
                           </div>

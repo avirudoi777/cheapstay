@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         data: {
+          type: hold ? 'hold' : 'instant',
           selected_offers: [offerId],
           passengers: passengers.map(p => ({
             id: p.passengerId,

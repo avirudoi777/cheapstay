@@ -927,6 +927,71 @@ if (runUnit) {
     assert('transport-tips imported', src.includes("from '@/lib/transport-tips'"));
   });
 
+  // ── PhoneInput component ─────────────────────────────────────────────────
+  await section('PhoneInput — component structure', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/PhoneInput.tsx'), 'utf8');
+    assert('DIAL_CODES array defined', src.includes('const DIAL_CODES'));
+    assert('parsePhone handles full number', src.includes('function parsePhone'));
+    assert('parsePhone defaults to +1 for empty', src.includes("dial: '+1'"));
+    assert('flagEmoji converts country code to emoji', src.includes('function flagEmoji'));
+    assert('flagEmoji uses regional indicator technique', src.includes('127397'));
+    assert('dropdown uses portal (createPortal)', src.includes('createPortal'));
+    assert('search filter in dropdown', src.includes("Search country or code"));
+    assert('closes on outside click', src.includes("document.addEventListener('click', handler)"));
+    assert('US entry in DIAL_CODES', src.includes("code: 'US'") && src.includes("dial: '+1'"));
+    assert('Thailand in DIAL_CODES', src.includes("code: 'TH'") && src.includes("dial: '+66'"));
+    assert('UAE in DIAL_CODES', src.includes("code: 'AE'") && src.includes("dial: '+971'"));
+    assert('UK in DIAL_CODES', src.includes("code: 'GB'") && src.includes("dial: '+44'"));
+    assert('India in DIAL_CODES', src.includes("code: 'IN'") && src.includes("dial: '+91'"));
+    assert('emits dial+number concatenated', src.includes('`${d}${n}`'));
+    assert('syncs when value prop changes externally', src.includes('parsePhone(value)') && src.includes('[value]'));
+    assert('no plain tel input — PhoneInput replaces it', !src.includes("type=\"tel\"") || src.includes('<input\n        type="tel"'));
+  });
+
+  // ── PhoneInput wired into FlightResults ─────────────────────────────────
+  await section('FlightResults — phone field uses PhoneInput', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert('PhoneInput imported', src.includes("import PhoneInput from '@/components/PhoneInput'"));
+    assert('PhoneInput used for phone field', src.includes('<PhoneInput value={paxForm.phoneNumber}'));
+    assert('onChange delegates to updatePassenger', src.includes("onChange={v => updatePassenger(idx, 'phoneNumber', v)}"));
+    assert('old plain tel input removed from phone field', !src.includes('type="tel" value={paxForm.phoneNumber}'));
+  });
+
+  // ── PhoneInput wired into account page ───────────────────────────────────
+  await section('Account page — phone fields use PhoneInput', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/account/page.tsx'), 'utf8');
+    assert('PhoneInput imported', src.includes("import PhoneInput from '@/components/PhoneInput'"));
+    assert('main profile phone uses PhoneInput', src.includes('<PhoneInput value={phoneNumber} onChange={setPhoneNumber}'));
+    assert('companion phone uses PhoneInput', src.includes('<PhoneInput value={companionForm.phone}'));
+    assert('plain tel inputs removed from phone fields', !src.includes('type="tel" value={phoneNumber}'));
+  });
+
+  // ── Airport autocomplete — grouped by city ───────────────────────────────
+  await section('FlightSearchBar — airport autocomplete grouped by city', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightSearchBar.tsx'), 'utf8');
+    assert('METRO_CITY map defined', src.includes('const METRO_CITY'));
+    assert('Bangkok group covers BKK and DMK', src.includes("BKK: 'Bangkok'") && src.includes("DMK: 'Bangkok'"));
+    assert('Tokyo group covers NRT and HND', src.includes("NRT: 'Tokyo'") && src.includes("HND: 'Tokyo'"));
+    assert('London group covers LHR and LGW', src.includes("LHR: 'London'") && src.includes("LGW: 'London'"));
+    assert('New York group covers JFK and EWR', src.includes("JFK: 'New York'") && src.includes("EWR: 'New York'"));
+    assert('CityGroup type defined', src.includes('type CityGroup'));
+    assert('searchAirportsGrouped function defined', src.includes('function searchAirportsGrouped'));
+    assert('groups capped at 6 city groups', src.includes('map.size >= 6'));
+    assert('AIRPORT_FULL_NAMES map defined', src.includes('const AIRPORT_FULL_NAMES'));
+    assert('city display uses METRO_CITY fallback', src.includes('METRO_CITY[a.code] ?? a.name'));
+    assert('dropdown renders city groups', src.includes('groups.map(group =>'));
+    assert('groups state used instead of flat suggestions', src.includes('useState<CityGroup[]>'));
+  });
+
+  // ── Duffel hold order — type field required ───────────────────────────────
+  await section('Duffel order route — hold type field', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');
+    assert("type: 'hold' sent for hold orders", src.includes("type: hold ? 'hold' : 'instant'"));
+    assert('hold orders omit payments array', src.includes('hold ? null'));
+    assert('instant orders include balance payment in test mode', src.includes("type: 'balance'"));
+    assert('phone_number prefixed with + always', src.includes("startsWith('+') ? p.phoneNumber : `+${p.phoneNumber}`"));
+  });
+
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

@@ -207,25 +207,73 @@ export const AIRPORTS = [
 
 type Airport = typeof AIRPORTS[number];
 
-function searchAirports(q: string): Airport[] {
+// Metro city groupings — maps IATA code to the city all airports share
+const METRO_CITY: Record<string, string> = {
+  BKK: 'Bangkok', DMK: 'Bangkok',
+  NRT: 'Tokyo', HND: 'Tokyo',
+  KIX: 'Osaka', ITM: 'Osaka',
+  ICN: 'Seoul', GMP: 'Seoul',
+  PEK: 'Beijing', PKX: 'Beijing',
+  PVG: 'Shanghai', SHA: 'Shanghai',
+  LHR: 'London', LGW: 'London', STN: 'London', LTN: 'London',
+  CDG: 'Paris', ORY: 'Paris',
+  IST: 'Istanbul', SAW: 'Istanbul',
+  JFK: 'New York', EWR: 'New York',
+  ORD: 'Chicago', MDW: 'Chicago',
+};
+
+// Full airport names for the grouped display
+const AIRPORT_FULL_NAMES: Record<string, string> = {
+  BKK: 'Suvarnabhumi Airport', DMK: 'Don Mueang International Airport',
+  NRT: 'Narita International Airport', HND: 'Haneda Airport',
+  KIX: 'Kansai International Airport', ITM: 'Itami Airport',
+  ICN: 'Incheon International Airport', GMP: 'Gimpo International Airport',
+  PEK: 'Capital International Airport', PKX: 'Daxing International Airport',
+  PVG: 'Pudong International Airport', SHA: 'Hongqiao International Airport',
+  LHR: 'Heathrow Airport', LGW: 'Gatwick Airport', STN: 'Stansted Airport', LTN: 'Luton Airport',
+  CDG: 'Charles de Gaulle Airport', ORY: 'Orly Airport',
+  IST: 'Istanbul Airport', SAW: 'Sabiha Gökçen Airport',
+  JFK: 'John F. Kennedy International Airport', EWR: 'Newark Liberty International Airport',
+  ORD: "O'Hare International Airport", MDW: 'Midway International Airport',
+  SIN: 'Changi Airport', HKG: 'International Airport',
+  DXB: 'Dubai International Airport', AUH: 'Zayed International Airport',
+  DOH: 'Hamad International Airport', TLV: 'Ben Gurion Airport',
+  SYD: 'Kingsford Smith Airport', LAX: 'Los Angeles International Airport',
+  DPS: 'Ngurah Rai International Airport', CGK: 'Soekarno-Hatta International Airport',
+};
+
+type CityGroup = { city: string; country: string; airports: Airport[] };
+
+function searchAirportsGrouped(q: string): CityGroup[] {
   if (q.length < 1) return [];
   const lq = q.toLowerCase();
   const exact = AIRPORTS.filter(a => a.code.toLowerCase() === lq);
   const starts = AIRPORTS.filter(a =>
     a.code.toLowerCase() !== lq && (
-      a.name.toLowerCase().startsWith(lq) ||
-      a.country.toLowerCase().startsWith(lq)
+      a.name.toLowerCase().startsWith(lq) || a.country.toLowerCase().startsWith(lq) ||
+      (METRO_CITY[a.code] ?? '').toLowerCase().startsWith(lq)
     )
   );
   const rest = AIRPORTS.filter(a =>
     a.code.toLowerCase() !== lq &&
-    !a.name.toLowerCase().startsWith(lq) &&
-    !a.country.toLowerCase().startsWith(lq) && (
-      a.name.toLowerCase().includes(lq) ||
-      a.country.toLowerCase().includes(lq)
+    !a.name.toLowerCase().startsWith(lq) && !a.country.toLowerCase().startsWith(lq) &&
+    !(METRO_CITY[a.code] ?? '').toLowerCase().startsWith(lq) && (
+      a.name.toLowerCase().includes(lq) || a.country.toLowerCase().includes(lq) ||
+      (METRO_CITY[a.code] ?? '').toLowerCase().includes(lq)
     )
   );
-  return [...exact, ...starts, ...rest].slice(0, 8);
+  const flat = [...exact, ...starts, ...rest];
+
+  // Group by metro city (or airport name for single-airport cities)
+  const map = new Map<string, CityGroup>();
+  for (const a of flat) {
+    const city = METRO_CITY[a.code] ?? a.name;
+    const key = `${city}|${a.country}`;
+    if (!map.has(key)) map.set(key, { city, country: a.country, airports: [] });
+    map.get(key)!.airports.push(a);
+    if (map.size >= 6) break; // cap at 6 city groups
+  }
+  return [...map.values()];
 }
 
 // ── Mini date picker ───────────────────────────────────────────────────────────
@@ -384,42 +432,67 @@ function AirportInput({ label, value, onChange }: { label: string; value: string
 
   useEffect(() => { setQuery(value); }, [value]);
 
+  const [groups, setGroups] = useState<CityGroup[]>([]);
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const v = e.target.value;
     setQuery(v);
-    const results = searchAirports(v);
-    setSuggestions(results);
-    if (results.length && inputRef.current) setAnchor(inputRef.current.getBoundingClientRect());
+    const g = searchAirportsGrouped(v);
+    setGroups(g);
+    if (g.length && inputRef.current) setAnchor(inputRef.current.getBoundingClientRect());
     else setAnchor(null);
   }
 
   function select(a: Airport) {
-    const display = `${a.name} (${a.code})`;
+    const city = METRO_CITY[a.code] ?? a.name;
+    const display = `${city} (${a.code})`;
     setQuery(display);
     onChange(display);
-    setSuggestions([]);
+    setGroups([]);
     setAnchor(null);
   }
 
   function handleBlur(e: React.FocusEvent) {
     if (listRef.current?.contains(e.relatedTarget as Node)) return;
-    setSuggestions([]);
+    setGroups([]);
     setAnchor(null);
   }
 
-  const dropdown = anchor && suggestions.length > 0 && typeof window !== 'undefined'
+  const dropdown = anchor && groups.length > 0 && typeof window !== 'undefined'
     ? createPortal(
         <ul ref={listRef} onMouseDown={e => e.preventDefault()}
-          style={{ position: 'fixed', top: anchor.bottom + 4, left: anchor.left, width: anchor.width, zIndex: 9999 }}
-          className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
-          {suggestions.map(a => (
-            <li key={a.code} onMouseDown={() => select(a)}
-              className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
-              <span className="text-xs font-bold w-9 flex-shrink-0" style={{ color: '#1D9E75' }}>{a.code}</span>
-              <div>
-                <p className="text-sm font-semibold text-gray-900 leading-none">{a.name}</p>
-                <p className="text-xs text-gray-400">{a.country}</p>
-              </div>
+          style={{ position: 'fixed', top: anchor.bottom + 4, left: anchor.left, width: Math.max(anchor.width, 320), zIndex: 9999 }}
+          className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden py-1">
+          {groups.map(group => (
+            <li key={`${group.city}|${group.country}`}>
+              {/* City row */}
+              <button type="button" onMouseDown={() => select(group.airports[0])}
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left transition-colors">
+                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-bold text-gray-900">{group.city}</span>
+                  <span className="text-sm text-gray-400">, {group.country}</span>
+                </div>
+                {group.airports.length > 1 && (
+                  <span className="text-xs text-gray-400 flex-shrink-0">All airports</span>
+                )}
+              </button>
+              {/* Individual airport rows */}
+              {group.airports.map(a => (
+                <button key={a.code} type="button" onMouseDown={() => select(a)}
+                  className="w-full flex items-center gap-3 pl-10 pr-4 py-2 hover:bg-gray-50 text-left transition-colors">
+                  <svg className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                  <span className="text-sm text-gray-700 flex-1 truncate">
+                    {AIRPORT_FULL_NAMES[a.code] ?? a.name}
+                  </span>
+                  <span className="text-xs font-bold flex-shrink-0 ml-2" style={{ color: '#1D9E75' }}>{a.code}</span>
+                </button>
+              ))}
             </li>
           ))}
         </ul>,

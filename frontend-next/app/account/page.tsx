@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import { COUNTRIES, flagEmoji } from '@/lib/visa-data';
+import PhoneInput from '@/components/PhoneInput';
 
 interface TravPassport {
   id: string;
@@ -486,9 +487,7 @@ export default function AccountPage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">Phone (with country code)</label>
-              <input type="tel" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)}
-                placeholder="+1 555 000 0000"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+              <PhoneInput value={phoneNumber} onChange={setPhoneNumber} />
             </div>
           </div>
 
@@ -581,9 +580,7 @@ export default function AccountPage() {
               </label>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Phone (optional)</label>
-                <input type="tel" value={companionForm.phone} onChange={e => setCompanionForm(f => f && ({ ...f, phone: e.target.value }))}
-                  placeholder="+1 555 000 0000"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                <PhoneInput value={companionForm.phone} onChange={v => setCompanionForm(f => f && ({ ...f, phone: v }))} />
               </div>
               <div className="flex gap-2 pt-1">
                 <button onClick={() => {
