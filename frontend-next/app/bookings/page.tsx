@@ -60,7 +60,7 @@ export default function BookingsPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     setAuthChecked(true);
-    if (!user) { router.push('/auth'); return; }
+    if (!user) { router.push('/auth/login'); return; }
     const { data } = await supabase
       .from('flight_bookings')
       .select('*')

@@ -158,10 +158,13 @@ export default function ManageBookingPage() {
   const [payHeldDone, setPayHeldDone] = useState(false);
   const [payHeldError, setPayHeldError] = useState('');
 
+  // Share state
+  const [shareCopied, setShareCopied] = useState(false);
+
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { router.push('/auth'); return; }
+      if (!user) { router.push('/auth/login'); return; }
       const { data } = await supabase.from('flight_bookings').select('*').eq('id', id).single();
       if (!data) { router.push('/bookings'); return; }
       setBooking(data);
@@ -221,6 +224,38 @@ export default function ManageBookingPage() {
       }
     });
   }, [id, router]);
+
+  function buildEmailBody() {
+    if (!booking) return '';
+    const lines = [
+      `Booking Reference: ${booking.booking_reference}`,
+      `Route: ${booking.origin_city} (${booking.origin_code}) → ${booking.destination_city} (${booking.destination_code})`,
+      `Airline: ${booking.airline}`,
+      `Departure: ${fmtDate(booking.departure_at)} at ${fmtTime(booking.departure_at)}`,
+      `Arrival: ${fmtDate(booking.arrival_at)} at ${fmtTime(booking.arrival_at)}`,
+      `Passengers: ${booking.passenger_names.join(', ')}`,
+      `Total: ${fmtPrice(booking.total_amount, booking.currency)}`,
+      ``,
+      `View booking: ${typeof window !== 'undefined' ? window.location.href : ''}`,
+    ];
+    return lines.join('\n');
+  }
+
+  async function shareBooking() {
+    if (!booking) return;
+    const url = window.location.href;
+    const text = `${booking.booking_reference} · ${booking.origin_code} → ${booking.destination_code} · ${fmtDate(booking.departure_at)}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Flight booking ${booking.booking_reference}`, text, url });
+        return;
+      } catch { /* user dismissed */ }
+    }
+    // Fallback: copy URL
+    await navigator.clipboard.writeText(url);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2000);
+  }
 
   async function cancelBooking() {
     if (!booking) return;
@@ -466,6 +501,46 @@ export default function ManageBookingPage() {
               Use this reference at the airport
             </p>
           </div>
+        </div>
+
+        {/* ── Share / Print actions ───────────────────────────────────── */}
+        <div className="no-print flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition shadow-sm">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z" />
+            </svg>
+            Print
+          </button>
+          <a
+            href={`mailto:?subject=Flight booking ${booking.booking_reference}&body=${encodeURIComponent(buildEmailBody())}`}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition shadow-sm">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Email
+          </a>
+          <button
+            onClick={shareBooking}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-white border border-gray-200 hover:bg-gray-50 transition shadow-sm"
+            style={{ color: shareCopied ? '#15803D' : '#374151' }}>
+            {shareCopied ? (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Copied!
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Share
+              </>
+            )}
+          </button>
         </div>
 
         {/* ── Flight details ──────────────────────────────────────────── */}

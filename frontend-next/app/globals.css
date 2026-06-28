@@ -24,3 +24,12 @@ body {
   color: #0F1F3D;
   -webkit-font-smoothing: antialiased;
 }
+
+@media print {
+  .no-print { display: none !important; }
+  nav, header, .sticky { display: none !important; }
+  body { background: white !important; color: black !important; font-size: 12pt; }
+  .shadow-sm, .shadow { box-shadow: none !important; }
+  .rounded-2xl { border-radius: 8pt !important; border: 1px solid #e5e7eb !important; }
+  a[href]:after { content: none !important; }
+}
