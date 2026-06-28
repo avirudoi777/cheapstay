@@ -26,37 +26,19 @@ interface CalendarProps {
 
 function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProps) {
   const today = toDateStr(new Date());
-  const [viewYear, setViewYear] = useState(() => {
-    const d = checkin ? new Date(checkin + 'T12:00:00') : new Date();
-    return d.getFullYear();
-  });
-  const [viewMonth, setViewMonth] = useState(() => {
-    const d = checkin ? new Date(checkin + 'T12:00:00') : new Date();
-    return d.getMonth();
-  });
+  const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
+  const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
   const [hover, setHover] = useState('');
   const [picking, setPicking] = useState<'ci' | 'co'>(checkin && !checkout ? 'co' : 'ci');
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let scrolling = false;
-    let scrollTimer: ReturnType<typeof setTimeout>;
-    function onScroll() {
-      scrolling = true;
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(() => { scrolling = false; }, 150);
-    }
-    function handler(e: MouseEvent) {
-      if (scrolling) return;
+    const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    document.addEventListener('mousedown', handler);
-    return () => {
-      document.removeEventListener('mousedown', handler);
-      window.removeEventListener('scroll', onScroll);
-      clearTimeout(scrollTimer);
     };
+    // Defer so the opening click doesn't immediately trigger close
+    const t = setTimeout(() => document.addEventListener('click', handler), 0);
+    return () => { clearTimeout(t); document.removeEventListener('click', handler); };
   }, [onClose]);
 
   function handleDay(ds: string) {
