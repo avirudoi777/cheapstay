@@ -1424,10 +1424,10 @@ if (runUnit) {
     assert('no fallback "at check-in" label shown when no seat', !src.includes('Seat at check-in'));
   });
 
-  await section('Booking detail — cabin class badge falls back to booking.cabin_class when seg.cabin_class is null', async () => {
+  await section('Booking detail — cabin class badge falls back to booking.cabin_class then economy for ALL segments', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
-    // Must use booking.cabin_class as fallback — Duffel test airline doesn't always return cabin_class on order segments
-    assert('fallback to booking.cabin_class for first segment', src.includes('seg.cabin_class ?? (i === 0 ? booking.cabin_class : null)'));
+    // Must fall back through seg → booking → 'economy' for every segment (not just i===0)
+    assert('fallback chain: seg → booking → economy for all segments', src.includes("seg.cabin_class ?? booking.cabin_class ?? 'economy'"));
     // Must NOT check seg.cabin_class alone for the badge condition
     const segOnlyCheck = src.includes('{seg.cabin_class && (() => {');
     assert('no longer gates badge on seg.cabin_class alone', !segOnlyCheck);
