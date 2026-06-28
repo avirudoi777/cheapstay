@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
+
+// Admin client bypasses RLS — used only for status updates where user session
+// may not match row's user_id (e.g. test bookings with null user_id).
+function getAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createAdminClient(url, key);
+}
 
 const DUFFEL = 'https://api.duffel.com';
 
@@ -54,7 +64,8 @@ export async function POST(req: NextRequest) {
         const msg: string = (quoteErr as any)?.errors?.[0]?.message ?? '';
         if (msg.toLowerCase().includes('already been cancelled') || msg.toLowerCase().includes('already cancelled')) {
           if (body.bookingId) {
-            await supabase.from('flight_bookings').update({ status: 'cancelled' }).eq('id', body.bookingId);
+            const db = getAdminClient() ?? supabase;
+            await db.from('flight_bookings').update({ status: 'cancelled' }).eq('id', body.bookingId);
           }
           return NextResponse.json({ alreadyCancelled: true, refundAmount: 0, refundCurrency: 'USD' });
         }
@@ -74,13 +85,13 @@ export async function POST(req: NextRequest) {
       // Step 2: confirm the cancellation
       await duffelReq('POST', `/air/order_cancellations/${body.cancellationId}/actions/confirm`);
 
-      // Update by duffel_order_id (from body.orderId) so ALL rows for this order are
-      // marked cancelled — handles the case where both server + client inserted rows.
-      // Fall back to id-match if orderId missing.
+      // Use admin client to bypass RLS — rows may have null user_id (test bookings)
+      // which would cause the user-session client to silently update 0 rows.
+      const db = getAdminClient() ?? supabase;
       const { data: updated, error: dbError } = body.orderId
-        ? await supabase.from('flight_bookings').update({ status: 'cancelled' })
+        ? await db.from('flight_bookings').update({ status: 'cancelled' })
             .eq('duffel_order_id', body.orderId).select('id')
-        : await supabase.from('flight_bookings').update({ status: 'cancelled' })
+        : await db.from('flight_bookings').update({ status: 'cancelled' })
             .eq('id', body.bookingId).select('id');
 
       if (dbError) {
@@ -96,11 +107,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Sync: fix a stale Supabase status from Duffel's source-of-truth.
-    // Called from list page (by duffel_order_id) and detail page (by id).
+    // Uses admin client to bypass RLS on rows with null/mismatched user_id.
     if (body.action === 'sync') {
+      const db = getAdminClient() ?? supabase;
       const q = body.orderId
-        ? supabase.from('flight_bookings').update({ status: body.status }).eq('duffel_order_id', body.orderId)
-        : supabase.from('flight_bookings').update({ status: body.status }).eq('id', body.bookingId);
+        ? db.from('flight_bookings').update({ status: body.status }).eq('duffel_order_id', body.orderId)
+        : db.from('flight_bookings').update({ status: body.status }).eq('id', body.bookingId);
       const { error } = await q;
       if (error) console.error('sync status error:', error.message);
       return NextResponse.json({ ok: true });
