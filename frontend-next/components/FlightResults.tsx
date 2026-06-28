@@ -2312,11 +2312,19 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       }
     }
 
-    // Theme: amber for held, green for confirmed
-    const accentRgb    = isHeld ? '217,119,6'   : '29,158,117';
-    const accentHex    = isHeld ? '#D97706'       : '#1D9E75';
+    const cabin = firstSeg.cabinClass ?? 'economy';
+    const isBusinessOrFirst = cabin === 'business' || cabin === 'first';
+    const cabinLabel = cabin === 'first' ? 'First Class' : cabin === 'business' ? 'Business' : cabin === 'premium_economy' ? 'Premium Economy' : 'Economy';
+
+    // Theme: amber=held, gold=business/first, green=economy confirmed
+    const accentRgb    = isHeld ? '217,119,6' : isBusinessOrFirst ? '212,175,55'  : '29,158,117';
+    const accentHex    = isHeld ? '#D97706'    : isBusinessOrFirst ? '#D4AF37'     : '#1D9E75';
     const bgGradient   = isHeld
       ? 'linear-gradient(160deg, #1a1200 0%, #2d1f00 60%, #1a1200 100%)'
+      : isBusinessOrFirst
+      ? cabin === 'first'
+        ? 'linear-gradient(160deg, #0d0618 0%, #1a0b2e 50%, #0f1a10 100%)'
+        : 'linear-gradient(160deg, #0f0d00 0%, #1f1800 50%, #0a1628 100%)'
       : 'linear-gradient(160deg, #0a1628 0%, #0f2e4a 60%, #0d3d2e 100%)';
 
     return (
@@ -2338,6 +2346,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
               {firstSeg.airline} · {fmtDate(depart + 'T12:00')}
             </p>
+            <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full"
+              style={{ background: `rgba(${accentRgb},0.15)`, border: `1px solid rgba(${accentRgb},0.35)` }}>
+              {isBusinessOrFirst && <span style={{ color: accentHex }}>✦</span>}
+              <span className="text-xs font-bold tracking-wide" style={{ color: accentHex }}>{cabinLabel}</span>
+            </div>
           </div>
 
           {/* Tear-line divider */}
@@ -2351,8 +2364,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           <div className="px-8 pt-6 pb-8">
             <p className="text-[10px] font-bold tracking-widest uppercase mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Booking reference</p>
             <p className="text-5xl font-extrabold tracking-widest mb-5" style={{
-              color: 'white',
-              textShadow: `0 0 30px rgba(${accentRgb},0.5)`,
+              color: isBusinessOrFirst ? accentHex : 'white',
+              textShadow: `0 0 40px rgba(${accentRgb},${isBusinessOrFirst ? '0.7' : '0.5'})`,
               letterSpacing: '0.15em',
             }}>
               {confirmation.reference}
