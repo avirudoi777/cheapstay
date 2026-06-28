@@ -1065,6 +1065,16 @@ if (runUnit) {
     assert("'latest availability' pattern also caught", src.includes("latest availability"));
     assert("offer_expired returned (not booking_failed) for sold-out errors", src.includes("error: 'offer_expired'") && src.includes('status: 410'));
     assert("detection uses toLowerCase for case-insensitivity", src.includes("dl = detail.toLowerCase()") || (src.includes(".toLowerCase()") && src.includes("select another offer")));
+    // Must NOT be gated on hold=true — regular Pay bookings hit the same Duffel error
+    assert("offer_expired detection not gated on hold flag (applies to regular Pay too)", (() => {
+      const idx = src.indexOf('select another offer');
+      // walk backwards to find the enclosing if — it must NOT start with 'if (hold'
+      const before = src.slice(Math.max(0, idx - 200), idx);
+      const lastIf = before.lastIndexOf('if (hold');
+      const lastBrace = before.lastIndexOf('{');
+      // if there's an 'if (hold' between the last '{' and the pattern, it's gated
+      return lastIf < lastBrace;
+    })());
 
     // Frontend: offer_expired triggers "no longer available" message and search-again button
     const frontSrc = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
