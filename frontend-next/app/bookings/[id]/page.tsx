@@ -657,7 +657,7 @@ export default function ManageBookingPage() {
                   {/* Segment meta — cabin class + seat + airline */}
                   <div className="flex flex-wrap gap-2 mt-3">
                     {(() => {
-                      const cls = seg.cabin_class ?? (i === 0 ? booking.cabin_class : null);
+                      const cls = seg.cabin_class ?? (i === 0 ? booking.cabin_class : null) ?? (i === 0 ? 'economy' : null);
                       if (!cls) return null;
                       const isBizFirst = cls === 'business' || cls === 'first';
                       const label = cls === 'first' ? 'First Class' : cls === 'business' ? 'Business' : cls === 'premium_economy' ? 'Premium Economy' : 'Economy';

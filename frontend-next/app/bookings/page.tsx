@@ -40,8 +40,8 @@ function cancellationBadge(policy: CancellationPolicy | null) {
 }
 
 function fmtCabin(c: string | null) {
-  if (!c) return null;
   const map: Record<string, string> = { economy: 'Economy', premium_economy: 'Premium Economy', business: 'Business', first: 'First Class' };
+  if (!c) return 'Economy';
   return map[c] ?? c.replace('_', ' ');
 }
 
