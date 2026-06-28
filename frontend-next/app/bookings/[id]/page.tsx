@@ -124,15 +124,11 @@ export default function ManageBookingPage() {
   const [orderLoading, setOrderLoading] = useState(false);
   const [orderError, setOrderError] = useState('');
 
-  // Cancel state
-  const [quoteLoading, setQuoteLoading] = useState(false);
-  const [cancelQuote, setCancelQuote] = useState<{
-    cancellationId: string;
-    refundAmount: number;
-    refundCurrency: string;
-  } | null>(null);
-  const [cancelConfirming, setCancelConfirming] = useState(false);
+  // Cancel state — simplified: modal → quote+confirm in one shot, no router.refresh()
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelDone, setCancelDone] = useState(false);
+  const [cancelRefund, setCancelRefund] = useState<{ amount: number; currency: string } | null>(null);
   const [cancelError, setCancelError] = useState('');
 
   // Post-booking bags state
@@ -205,47 +201,40 @@ export default function ManageBookingPage() {
     });
   }, [id, router]);
 
-  async function getQuote() {
+  async function cancelBooking() {
     if (!booking) return;
-    setQuoteLoading(true);
+    setCancelLoading(true);
     setCancelError('');
     try {
-      const res = await fetch('/api/flights/duffel-cancel', {
+      // Step 1: get cancellationId from Duffel (required to confirm)
+      const quoteRes = await fetch('/api/flights/duffel-cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'quote', orderId: booking.duffel_order_id }),
       });
-      const data = await res.json();
-      if (data.error) throw new Error(data.detail || data.error);
-      setCancelQuote({ cancellationId: data.cancellationId, refundAmount: data.refundAmount, refundCurrency: data.refundCurrency });
-    } catch (err) {
-      setCancelError(err instanceof Error ? err.message : 'Could not get cancellation quote.');
-    } finally {
-      setQuoteLoading(false);
-    }
-  }
+      const quote = await quoteRes.json();
+      if (quote.error) throw new Error(quote.detail || quote.error);
 
-  async function confirmCancel() {
-    if (!cancelQuote || !booking) return;
-    setCancelConfirming(true);
-    setCancelError('');
-    try {
-      const res = await fetch('/api/flights/duffel-cancel', {
+      // Step 2: confirm the cancellation
+      const confirmRes = await fetch('/api/flights/duffel-cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'confirm', cancellationId: cancelQuote.cancellationId, bookingId: booking.id }),
+        body: JSON.stringify({ action: 'confirm', cancellationId: quote.cancellationId, bookingId: booking.id }),
       });
-      const data = await res.json();
-      if (data.error) throw new Error(data.detail || data.error);
+      const confirmed = await confirmRes.json();
+      if (confirmed.error) throw new Error(confirmed.detail || confirmed.error);
+
+      // Update local state only — no router.refresh() to avoid race where
+      // Supabase hasn't propagated the new status yet and the page re-mounts
+      // showing the old confirmed state
       setBooking(prev => prev ? { ...prev, status: 'cancelled' } : prev);
-      setCancelQuote(null);
+      setCancelRefund({ amount: quote.refundAmount, currency: quote.refundCurrency });
       setCancelDone(true);
-      // Refresh router cache so the bookings list reflects the new status immediately
-      router.refresh();
+      setShowCancelModal(false);
     } catch (err) {
       setCancelError(err instanceof Error ? err.message : 'Cancellation failed.');
     } finally {
-      setCancelConfirming(false);
+      setCancelLoading(false);
     }
   }
 
@@ -324,7 +313,6 @@ export default function ManageBookingPage() {
       if (!res.ok) throw new Error(data.error ?? 'Payment failed');
       setBooking(prev => prev ? { ...prev, status: 'confirmed' } : prev);
       setPayHeldDone(true);
-      router.refresh();
     } catch (err) {
       setPayHeldError(err instanceof Error ? err.message : 'Payment failed.');
     } finally {
@@ -623,14 +611,13 @@ export default function ManageBookingPage() {
         {/* ── Cancellation ────────────────────────────────────────────── */}
         <Section title="Cancellation">
           {cancelDone ? (
-            /* Just cancelled this session — show success + back button */
             <div className="space-y-4">
               <div className="rounded-xl p-5 text-center" style={{ background: '#ECFDF5' }}>
                 <p className="text-2xl mb-1">✅</p>
                 <p className="text-base font-extrabold" style={{ color: '#15803D' }}>Booking cancelled</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {cancelQuote && cancelQuote.refundAmount > 0
-                    ? `Your refund of ${fmtPrice(cancelQuote.refundAmount, cancelQuote.refundCurrency)} will appear within 5–10 business days.`
+                  {cancelRefund && cancelRefund.amount > 0
+                    ? `Your refund of ${fmtPrice(cancelRefund.amount, cancelRefund.currency)} will appear within 5–10 business days.`
                     : 'If eligible, your refund will appear within 5–10 business days.'}
                 </p>
               </div>
@@ -641,84 +628,71 @@ export default function ManageBookingPage() {
               </button>
             </div>
           ) : isCancelled ? (
-            /* Was already cancelled before this session */
             <div className="rounded-xl p-4 text-center" style={{ background: '#FEF2F2' }}>
               <p className="text-base font-bold" style={{ color: '#DC2626' }}>This booking has been cancelled</p>
               <p className="text-xs text-gray-500 mt-1">If eligible, your refund will appear within 5–10 business days.</p>
             </div>
           ) : isPast ? (
             <p className="text-sm text-gray-400">This flight has already departed. Cancellations are no longer available.</p>
+          ) : cp?.allowed === false ? (
+            <div className="rounded-xl px-4 py-3" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+              <p className="text-sm font-bold" style={{ color: '#DC2626' }}>Non-refundable fare</p>
+              <p className="text-xs text-gray-500 mt-0.5">This ticket cannot be cancelled for a refund. Contact the airline for exceptions.</p>
+            </div>
           ) : (
-            <div className="space-y-4">
-              {/* Stored policy */}
+            <div className="space-y-3">
               {cancelPolicyLabel && (
                 <div className="flex items-center gap-2 rounded-xl px-4 py-3" style={{ background: cancelPolicyLabel.bg }}>
-                  <span className="text-sm font-bold" style={{ color: cancelPolicyLabel.color }}>
-                    {cancelPolicyLabel.text}
-                  </span>
-                  <span className="text-xs text-gray-400 ml-auto">from booking</span>
+                  <span className="text-sm font-bold" style={{ color: cancelPolicyLabel.color }}>{cancelPolicyLabel.text}</span>
                 </div>
               )}
-
-              {/* Get live quote — only show if policy allows or is unknown */}
-              {!cancelQuote ? (
-                cp?.allowed === false ? (
-                  <div className="rounded-xl px-4 py-3" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-                    <p className="text-sm font-bold" style={{ color: '#DC2626' }}>Cancellation not available</p>
-                    <p className="text-xs text-gray-500 mt-0.5">This fare is non-refundable. No refund will be issued if cancelled.</p>
-                  </div>
-                ) : (
-                <div>
-                  <button onClick={getQuote} disabled={quoteLoading}
-                    className="w-full py-3 rounded-xl text-sm font-bold transition disabled:opacity-50"
-                    style={{ background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FECACA' }}>
-                    {quoteLoading ? 'Checking with airline…' : 'Check live cancellation & refund →'}
-                  </button>
-                  {cancelError && <p className="text-xs text-red-600 mt-2">⚠️ {cancelError}</p>}
-                  <p className="text-xs text-gray-400 mt-2 text-center">
-                    Gets the current refund amount from the airline. No commitment yet.
-                  </p>
-                </div>
-                )
-              ) : (
-                <div className="space-y-3">
-                  {/* Refund quote */}
-                  <div className="rounded-xl p-4" style={{ background: cancelQuote.refundAmount > 0 ? '#ECFDF5' : '#FEF2F2' }}>
-                    {cancelQuote.refundAmount > 0 ? (
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: '#15803D' }}>Estimated refund</p>
-                        <p className="text-3xl font-extrabold" style={{ color: '#15803D' }}>
-                          {fmtPrice(cancelQuote.refundAmount, cancelQuote.refundCurrency)}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">Returned to your original payment method within 5–10 business days</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-base font-bold" style={{ color: '#DC2626' }}>No refund</p>
-                        <p className="text-xs text-gray-500 mt-0.5">This fare is non-refundable. You will not receive any money back.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {cancelError && <p className="text-xs text-red-600">⚠️ {cancelError}</p>}
-
-                  <div className="flex gap-3">
-                    <button onClick={() => { setCancelQuote(null); setCancelError(''); }}
-                      className="flex-1 py-3 rounded-xl text-sm font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition">
-                      Keep booking
-                    </button>
-                    <button onClick={confirmCancel} disabled={cancelConfirming}
-                      className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition disabled:opacity-60"
-                      style={{ background: '#DC2626' }}>
-                      {cancelConfirming ? 'Cancelling…' : 'Confirm cancellation'}
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-400 text-center">This action cannot be undone.</p>
-                </div>
-              )}
+              <button onClick={() => { setCancelError(''); setShowCancelModal(true); }}
+                className="w-full py-3 rounded-xl text-sm font-bold transition"
+                style={{ background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FECACA' }}>
+                Cancel booking
+              </button>
             </div>
           )}
         </Section>
+
+        {/* ── Cancel confirm modal ─────────────────────────────────────── */}
+        {showCancelModal && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.45)' }}
+            onClick={e => { if (e.target === e.currentTarget) setShowCancelModal(false); }}>
+            <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden">
+              <div className="px-6 pt-6 pb-5">
+                <p className="text-base font-extrabold text-gray-900 mb-1">Cancel this booking?</p>
+                <p className="text-sm text-gray-500">
+                  {booking!.origin_code} → {booking!.destination_code} · {fmtDate(booking!.departure_at)}
+                </p>
+                {cancelPolicyLabel && (
+                  <div className="mt-4 rounded-xl px-4 py-3" style={{ background: cancelPolicyLabel.bg }}>
+                    <p className="text-sm font-bold" style={{ color: cancelPolicyLabel.color }}>{cancelPolicyLabel.text}</p>
+                    {cp?.penalty_amount && (
+                      <p className="text-xs text-gray-500 mt-0.5">This fee will be deducted from your refund.</p>
+                    )}
+                    {!cp?.penalty_amount && cp?.allowed && (
+                      <p className="text-xs text-gray-500 mt-0.5">You will receive a full refund within 5–10 business days.</p>
+                    )}
+                  </div>
+                )}
+                {cancelError && <p className="text-sm text-red-600 mt-3 bg-red-50 rounded-xl px-3 py-2">⚠️ {cancelError}</p>}
+              </div>
+              <div className="px-6 pb-6 flex gap-3">
+                <button onClick={() => setShowCancelModal(false)} disabled={cancelLoading}
+                  className="flex-1 py-3 rounded-xl text-sm font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition">
+                  Keep booking
+                </button>
+                <button onClick={cancelBooking} disabled={cancelLoading}
+                  className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition disabled:opacity-60"
+                  style={{ background: '#DC2626' }}>
+                  {cancelLoading ? 'Cancelling…' : 'Yes, cancel'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Change conditions (from Duffel) ─────────────────────────── */}
         {order?.conditions?.change_before_departure && (

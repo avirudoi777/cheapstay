@@ -929,6 +929,27 @@ if (runUnit) {
     assert('transport-tips imported', src.includes("from '@/lib/transport-tips'"));
   });
 
+  // ── Booking page: cancellation flow ──────────────────────────────────────
+  await section('Booking detail — cancellation UX and race-condition fix', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    // No router.refresh() after cancel — prevents race where Supabase hasn't propagated yet
+    // and the page re-renders showing the old confirmed status
+    assert('router.refresh() not called after cancel (no race condition)', !src.includes("router.refresh();"));
+    // Combined quote+confirm in single function — no separate getQuote/confirmCancel
+    assert('cancelBooking does quote then confirm in one shot', src.includes("action: 'quote'") && src.includes("action: 'confirm'") && src.includes('function cancelBooking'));
+    assert('old 2-step getQuote function removed', !src.includes('function getQuote'));
+    assert('old confirmCancel function removed', !src.includes('function confirmCancel'));
+    // Confirmation modal — replace "Check live" button
+    assert('confirm modal shown on cancel button click', src.includes('showCancelModal'));
+    assert('old "Check live cancellation" button removed', !src.includes('Check live cancellation'));
+    assert('cancel button opens modal not quote flow', src.includes('setShowCancelModal(true)'));
+    assert('modal has Keep booking + Yes cancel buttons', src.includes("Keep booking") && src.includes("Yes, cancel"));
+    assert('modal shows cancellation fee from stored policy', src.includes('cancelPolicyLabel') && src.includes('showCancelModal'));
+    assert('non-refundable fares show blocked state without cancel button', src.includes("cp?.allowed === false"));
+    assert('cancelRefund stores refund amount for success message', src.includes('setCancelRefund'));
+    assert('local state update: booking.status set to cancelled', src.includes("status: 'cancelled'"));
+  });
+
   // ── PhoneInput component ─────────────────────────────────────────────────
   await section('PhoneInput — component structure', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/PhoneInput.tsx'), 'utf8');
