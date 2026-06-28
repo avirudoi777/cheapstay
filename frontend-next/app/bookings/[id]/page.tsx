@@ -54,6 +54,7 @@ interface DuffelOrder {
   passengers: DuffelPassenger[];
   slices: {
     segments: {
+      id: string;
       origin: { iata_code: string; name: string; city_name?: string; terminal?: string };
       destination: { iata_code: string; name: string; city_name?: string; terminal?: string };
       departing_at: string;
@@ -69,7 +70,7 @@ interface DuffelOrder {
     refund_before_departure?: { allowed: boolean; penalty_amount?: string; penalty_currency?: string };
     change_before_departure?: { allowed: boolean; penalty_amount?: string; penalty_currency?: string };
   };
-  services?: { id: string; type: string; quantity: number; metadata?: Record<string, unknown> }[];
+  services?: { id: string; type: string; quantity: number; segment_ids?: string[]; passenger_ids?: string[]; metadata?: { designator?: string; name?: string; [k: string]: unknown } }[];
   payment_requirements?: {
     requires_payment_by?: string;
     payment_required_by?: string;
@@ -607,8 +608,31 @@ export default function ManageBookingPage() {
                       <p className="text-xs text-gray-400 mt-0.5">{fmtDate(seg.arriving_at)}</p>
                     </div>
                   </div>
-                  {/* Segment meta */}
+                  {/* Segment meta — cabin class + seat + airline */}
                   <div className="flex flex-wrap gap-2 mt-3">
+                    {seg.cabin_class && (() => {
+                      const isBizFirst = seg.cabin_class === 'business' || seg.cabin_class === 'first';
+                      const label = seg.cabin_class === 'first' ? 'First Class' : seg.cabin_class === 'business' ? 'Business' : seg.cabin_class === 'premium_economy' ? 'Premium Economy' : 'Economy';
+                      return (
+                        <span className="text-[11px] px-2.5 py-1 rounded-full font-bold"
+                          style={isBizFirst
+                            ? { background: '#FEF3C7', color: '#B45309' }
+                            : { background: '#F1F5F9', color: '#475569' }}>
+                          {isBizFirst ? '✦ ' : ''}{label}
+                        </span>
+                      );
+                    })()}
+                    {(() => {
+                      const seats = (order?.services ?? []).filter(s =>
+                        s.type === 'seat' && s.segment_ids?.includes(seg.id)
+                      );
+                      return seats.map((s, si) => (
+                        <span key={si} className="text-[11px] px-2.5 py-1 rounded-full font-bold"
+                          style={{ background: '#EFF6FF', color: '#1D4ED8' }}>
+                          💺 Seat {s.metadata?.designator ?? '—'}
+                        </span>
+                      ));
+                    })()}
                     <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#F1F5F9', color: '#475569' }}>
                       ✈ {seg.marketing_carrier.name}
                     </span>
@@ -620,11 +644,6 @@ export default function ManageBookingPage() {
                     {seg.aircraft && (
                       <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#F1F5F9', color: '#475569' }}>
                         {seg.aircraft.name}
-                      </span>
-                    )}
-                    {seg.cabin_class && (
-                      <span className="text-[11px] px-2.5 py-1 rounded-full font-medium capitalize" style={{ background: '#F1F5F9', color: '#475569' }}>
-                        {seg.cabin_class.replace('_', ' ')}
                       </span>
                     )}
                   </div>
