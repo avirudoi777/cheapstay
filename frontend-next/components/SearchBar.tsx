@@ -41,6 +41,14 @@ function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProp
     return () => { clearTimeout(t); document.removeEventListener('click', handler); };
   }, [onClose]);
 
+  // Close when the page scrolls — fixed-position calendar would otherwise
+  // detach from its anchor button and float at a stale viewport offset
+  useEffect(() => {
+    const onScroll = () => onClose();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [onClose]);
+
   function handleDay(ds: string) {
     if (ds < today) return;
     if (picking === 'ci' || ds <= checkin) {

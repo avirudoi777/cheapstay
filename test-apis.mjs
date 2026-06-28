@@ -844,13 +844,15 @@ if (runUnit) {
     assert('checkin not used to seed viewYear/viewMonth', !src.includes('checkin ? new Date(checkin'));
   });
 
-  // ── Hotel calendar stays open on scroll ──────────────────────────────────
-  await section('Hotel calendar — click-based outside-close, not mousedown (survives scroll)', async () => {
+  // ── Hotel calendar close behavior ────────────────────────────────────────
+  await section('Hotel calendar — close on outside-click and on scroll', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/SearchBar.tsx'), 'utf8');
-    assert('click event used (not mousedown) so scroll never closes calendar', src.includes("addEventListener('click', handler)"));
+    assert('click event used (not mousedown) so click-scroll never closes calendar', src.includes("addEventListener('click', handler)"));
     assert('opening click excluded via setTimeout(0)', src.includes('setTimeout(() => document.addEventListener'));
     assert('cleanup removes click listener', src.includes("removeEventListener('click', handler)"));
-    assert('no scroll listener needed (click approach)', !src.includes("addEventListener('scroll', onScroll"));
+    assert('scroll listener closes calendar (fixed pos detaches from anchor on scroll)', src.includes("window.addEventListener('scroll', onScroll"));
+    assert('scroll listener cleanup removes it', src.includes("window.removeEventListener('scroll', onScroll)"));
+    assert('scroll listener is passive for perf', src.includes("passive: true"));
   });
 
   // ── Default search dates are tomorrow ────────────────────────────────────
