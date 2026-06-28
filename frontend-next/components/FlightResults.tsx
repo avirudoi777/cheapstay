@@ -859,14 +859,15 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       setBookStep('confirmed');
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      // Save booking client-side — avoids server-side session issues
+      // Save booking client-side as belt-and-suspenders (server-side save may fail if cookie not forwarded)
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('no user session — skipping client-side save');
         const fs = offer.segments[0];
         const ls = offer.segments[offer.segments.length - 1];
         await supabase.from('flight_bookings').insert({
-          user_id: user?.id ?? null,
+          user_id: user.id,
           passenger_email: forms[0]?.email ?? null,
           duffel_order_id: order.orderId,
           booking_reference: order.bookingReference,

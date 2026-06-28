@@ -34,6 +34,11 @@ export async function POST(req: NextRequest) {
 
   if (!key) return NextResponse.json({ error: 'no_credentials' }, { status: 503 });
 
+  // Auth check BEFORE calling Duffel — never place a booking we can't attribute to a user
+  const supabaseAuth = await createClient();
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'unauthorized', detail: 'Must be logged in to book' }, { status: 401 });
+
   // DUFFEL_TEST_MODE=true overrides; otherwise infer from key prefix
   const isTestMode = process.env.DUFFEL_TEST_MODE === 'true' || !key.startsWith('duffel_live_');
 
@@ -125,8 +130,9 @@ export async function POST(req: NextRequest) {
 
     // Save booking to Supabase (best-effort — don't fail the booking if this errors)
     try {
-      const supabase = await createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      // Reuse the auth client and user from the top-level check — avoids a second getUser() call
+      const supabase = supabaseAuth;
+      // user is guaranteed non-null here (we returned 401 above if null)
       const slice = order.slices?.[0];
       const segs = slice?.segments ?? [];
       const firstSeg = segs[0];
@@ -143,7 +149,7 @@ export async function POST(req: NextRequest) {
       })();
 
       const baseRow = {
-        user_id: user?.id ?? null,
+        user_id: user.id,
         passenger_email: passengers[0]?.email ?? null,
         duffel_order_id: order.id,
         booking_reference: order.booking_reference,
