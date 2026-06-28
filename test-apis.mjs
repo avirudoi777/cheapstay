@@ -567,6 +567,54 @@ if (runUnit) {
     assert('Duffel cancellation confirmed before DB update', src.includes('order_cancellations') && src.includes('actions/confirm'));
   });
 
+  // ── Cancel booking — belt-and-suspenders DB update ─────────────────────────
+  await section('Cancel — tries BOTH duffel_order_id AND bookingId so neither alone can fail silently', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
+
+    // Must attempt update by duffel_order_id (catches all duplicate rows for same order)
+    assert('update by duffel_order_id attempted', src.includes(".eq('duffel_order_id', body.orderId)"));
+
+    // Must ALSO attempt update by id (fallback when duffel_order_id is null or mismatched)
+    assert('update by bookingId also attempted', src.includes(".eq('id', body.bookingId)"));
+
+    // Both branches under confirm action — not just one or the other
+    const confirmBlock = src.slice(src.indexOf("body.action === 'confirm'"));
+    const endOfConfirm = confirmBlock.indexOf("\n    if (body.action ===");
+    const block = endOfConfirm > 0 ? confirmBlock.slice(0, endOfConfirm) : confirmBlock.slice(0, 2000);
+    assert('both eq calls inside confirm block', block.includes("duffel_order_id") && block.includes("'id', body.bookingId"));
+
+    // Admin client is tried first, user client is fallback
+    assert('admin client used with getAdminClient()', src.includes('getAdminClient()'));
+    assert('falls back to user supabase if no admin key', src.includes('adminClient ?? supabase') || src.includes('getAdminClient() ??'));
+
+    // Response includes debug fields so we can diagnose in DevTools
+    assert('response includes hasAdmin for diagnosis', src.includes('hasAdmin'));
+    assert('response includes rowsUpdated for diagnosis', src.includes('rowsUpdated'));
+
+    // rowsUpdated accumulates across both update attempts
+    assert('rowsUpdated accumulates from both attempts', /rowsUpdated\s*\+=/.test(src) || src.includes('rowsUpdated += '));
+
+    // No silent failure — 0 rows always logged
+    assert('0 rows affected is logged as error', src.includes("'no_rows_updated'") || src.includes('"no_rows_updated"'));
+    assert('0 rows returns dbWarning not hard error (cancel succeeded in Duffel)', src.includes('dbWarning') && src.includes('success: true'));
+  });
+
+  // ── Cancel booking — admin client availability ──────────────────────────────
+  await section('Cancel — admin client requires service role key, not anon key', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
+
+    // Must use SUPABASE_SERVICE_ROLE_KEY (not the anon key) for RLS bypass
+    assert('uses SUPABASE_SERVICE_ROLE_KEY env var', src.includes('SUPABASE_SERVICE_ROLE_KEY'));
+    assert('does NOT use NEXT_PUBLIC_SUPABASE_ANON_KEY for admin', !src.includes('ANON_KEY'));
+
+    // Admin client must be a raw createClient call (not the SSR wrapper)
+    assert('imports createAdminClient from supabase-js directly', src.includes("from '@supabase/supabase-js'") || src.includes('from "@supabase/supabase-js"'));
+    assert('createAdminClient called with url and service role key', src.includes('createAdminClient(url, key)'));
+
+    // getAdminClient returns null when key missing — never throws
+    assert('getAdminClient returns null when key missing', src.includes('if (!url || !key) return null'));
+  });
+
   // ── Companion isChild flag ───────────────────────────────────────────────
   await section('Companions — isChild flag', async () => {
     const accountSrc = readFileSync(resolve(__dir, 'frontend-next/app/account/page.tsx'), 'utf8');
