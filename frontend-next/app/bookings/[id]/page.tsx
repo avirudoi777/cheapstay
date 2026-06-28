@@ -70,6 +70,10 @@ interface DuffelOrder {
     change_before_departure?: { allowed: boolean; penalty_amount?: string; penalty_currency?: string };
   };
   services?: { id: string; type: string; quantity: number; metadata?: Record<string, unknown> }[];
+  payment_requirements?: {
+    requires_payment_by?: string;
+    payment_required_by?: string;
+  };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -742,21 +746,62 @@ export default function ManageBookingPage() {
         )}
 
         {/* ── Pay Now — held orders ───────────────────────────────────── */}
-        {isHeld && !payHeldDone && (
-          <Section title="Complete Your Booking">
-            <div className="rounded-xl p-4 mb-4" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-              <p className="text-sm font-bold text-amber-800">Your seat is held — payment required to confirm</p>
-              <p className="text-xs text-amber-700 mt-1">Pay now to lock in this ticket. Held seats can expire — check your booking reference for the deadline.</p>
-            </div>
-            <p className="text-lg font-extrabold text-gray-900 mb-4">{fmtPrice(booking.total_amount, booking.currency)}</p>
-            {payHeldError && <p className="text-sm text-red-500 bg-red-50 rounded-xl px-3 py-2 mb-3">{payHeldError}</p>}
-            <button onClick={payHeldOrder} disabled={payHeldLoading}
-              className="w-full py-3.5 rounded-xl text-sm font-bold text-white transition disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
-              {payHeldLoading ? 'Processing…' : `Pay ${fmtPrice(booking.total_amount, booking.currency)} → Confirm booking`}
-            </button>
-          </Section>
-        )}
+        {isHeld && !payHeldDone && (() => {
+          const rawExpiry = order?.payment_requirements?.requires_payment_by
+            ?? order?.payment_requirements?.payment_required_by;
+          let expiryLabel = '';
+          let isUrgent = false;
+          if (rawExpiry) {
+            const exp = new Date(rawExpiry);
+            const diffMs = exp.getTime() - Date.now();
+            const diffH = diffMs / 3600000;
+            isUrgent = diffH < 4;
+            if (diffH < 0) {
+              expiryLabel = 'EXPIRED';
+            } else if (diffH < 1) {
+              expiryLabel = `${Math.max(1, Math.round(diffMs / 60000))} minutes remaining`;
+            } else if (diffH < 24) {
+              const h = Math.floor(diffH);
+              const m = Math.round((diffH - h) * 60);
+              expiryLabel = `${h}h ${m > 0 ? m + 'm' : ''} remaining`.trim();
+            } else {
+              expiryLabel = 'Pay by ' + exp.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) +
+                ' at ' + exp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            }
+          }
+          return (
+            <Section title="Complete Your Booking">
+              <div className="rounded-xl p-4 mb-4" style={{
+                background: isUrgent ? '#FEF2F2' : '#FFFBEB',
+                border: `1px solid ${isUrgent ? '#FECACA' : '#FDE68A'}`,
+              }}>
+                <p className="text-sm font-bold" style={{ color: isUrgent ? '#991B1B' : '#92400E' }}>
+                  {isUrgent ? '🚨' : '⏳'} Your seat is held — payment required to confirm
+                </p>
+                {expiryLabel && (
+                  <p className="text-base font-extrabold mt-1" style={{ color: isUrgent ? '#DC2626' : '#D97706' }}>
+                    {expiryLabel}
+                  </p>
+                )}
+                {!expiryLabel && (
+                  <p className="text-xs mt-1" style={{ color: isUrgent ? '#991B1B' : '#92400E' }}>
+                    Check your booking confirmation email for the payment deadline.
+                  </p>
+                )}
+                <p className="text-xs mt-1.5" style={{ color: isUrgent ? '#B91C1C' : '#A16207' }}>
+                  Airlines release held seats automatically once the deadline passes.
+                </p>
+              </div>
+              <p className="text-lg font-extrabold text-gray-900 mb-4">{fmtPrice(booking.total_amount, booking.currency)}</p>
+              {payHeldError && <p className="text-sm text-red-500 bg-red-50 rounded-xl px-3 py-2 mb-3">{payHeldError}</p>}
+              <button onClick={payHeldOrder} disabled={payHeldLoading}
+                className="w-full py-3.5 rounded-xl text-sm font-bold text-white transition disabled:opacity-60"
+                style={{ background: isUrgent ? 'linear-gradient(135deg, #DC2626, #B91C1C)' : 'linear-gradient(135deg, #D97706, #B45309)' }}>
+                {payHeldLoading ? 'Processing…' : `Pay ${fmtPrice(booking.total_amount, booking.currency)} → Confirm seat`}
+              </button>
+            </Section>
+          );
+        })()}
         {payHeldDone && (
           <Section title="Complete Your Booking">
             <div className="flex items-center gap-3">

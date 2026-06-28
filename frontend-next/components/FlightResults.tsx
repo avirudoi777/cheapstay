@@ -506,7 +506,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [cardErrors, setCardErrors] = useState<Partial<CardForm>>({});
   const [booking, setBooking] = useState(false);
   const [bookingError, setBookingError] = useState('');
-  const [confirmation, setConfirmation] = useState<{ reference: string; amount: number; currency: string; held?: boolean } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ reference: string; amount: number; currency: string; held?: boolean; paymentRequiredBy?: string } | null>(null);
   const [savePassenger, setSavePassenger] = useState(false);
   const [holdMode, setHoldMode] = useState(false);
   // Live countdown for offer expiry
@@ -835,7 +835,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         throw new Error(detail);
       }
 
-      setConfirmation({ reference: order.bookingReference, amount: grossAmount, currency: offer.totalCurrency, held: order.status === 'held' });
+      setConfirmation({
+        reference: order.bookingReference,
+        amount: grossAmount,
+        currency: offer.totalCurrency,
+        held: order.status === 'held',
+        paymentRequiredBy: order.paymentRequirements?.requires_payment_by ?? order.paymentRequirements?.payment_required_by,
+      });
       setBookStep('confirmed');
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -2244,19 +2250,50 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   if (bookStep === 'confirmed' && confirmation && selectedOffer) {
     const firstSeg = selectedOffer.segments[0];
     const lastSeg  = selectedOffer.segments[selectedOffer.segments.length - 1];
+    const isHeld   = !!confirmation.held;
+
+    // Format hold expiry into human-readable string + urgency flag
+    let holdExpiryLabel = '';
+    let holdExpiryUrgent = false;
+    if (isHeld && confirmation.paymentRequiredBy) {
+      const exp = new Date(confirmation.paymentRequiredBy);
+      const diffMs = exp.getTime() - Date.now();
+      const diffH = diffMs / 3600000;
+      holdExpiryUrgent = diffH < 4;
+      if (diffH < 1) {
+        holdExpiryLabel = `${Math.max(1, Math.round(diffMs / 60000))} minutes`;
+      } else if (diffH < 24) {
+        const h = Math.floor(diffH);
+        const m = Math.round((diffH - h) * 60);
+        holdExpiryLabel = `${h}h${m > 0 ? ` ${m}m` : ''}`;
+      } else {
+        holdExpiryLabel = exp.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) +
+          ' at ' + exp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      }
+    }
+
+    // Theme: amber for held, green for confirmed
+    const accentRgb    = isHeld ? '217,119,6'   : '29,158,117';
+    const accentHex    = isHeld ? '#D97706'       : '#1D9E75';
+    const bgGradient   = isHeld
+      ? 'linear-gradient(160deg, #1a1200 0%, #2d1f00 60%, #1a1200 100%)'
+      : 'linear-gradient(160deg, #0a1628 0%, #0f2e4a 60%, #0d3d2e 100%)';
+
     return (
       <div className="max-w-lg mx-auto px-4 sm:px-6 mt-8 mb-16">
 
         {/* Boarding-pass card */}
-        <div className="rounded-3xl overflow-hidden shadow-2xl" style={{ background: 'linear-gradient(160deg, #0a1628 0%, #0f2e4a 60%, #0d3d2e 100%)' }}>
+        <div className="rounded-3xl overflow-hidden shadow-2xl" style={{ background: bgGradient }}>
 
-          {/* Top section — route + check */}
+          {/* Top section — route + status icon */}
           <div className="px-8 pt-8 pb-6 text-center">
             <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl mx-auto mb-5"
-              style={{ background: 'rgba(29,158,117,0.18)', border: '1.5px solid rgba(29,158,117,0.4)' }}>
-              ✓
+              style={{ background: `rgba(${accentRgb},0.18)`, border: `1.5px solid rgba(${accentRgb},0.4)` }}>
+              {isHeld ? '⏳' : '✓'}
             </div>
-            <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: 'rgba(29,158,117,0.9)' }}>Booking confirmed</p>
+            <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: `rgba(${accentRgb},0.9)` }}>
+              {isHeld ? 'Seat held — payment pending' : 'Booking confirmed'}
+            </p>
             <h2 className="text-2xl font-extrabold text-white mb-1">{fromName} → {toName}</h2>
             <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
               {firstSeg.airline} · {fmtDate(depart + 'T12:00')}
@@ -2275,7 +2312,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             <p className="text-[10px] font-bold tracking-widest uppercase mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Booking reference</p>
             <p className="text-5xl font-extrabold tracking-widest mb-5" style={{
               color: 'white',
-              textShadow: '0 0 30px rgba(29,158,117,0.5)',
+              textShadow: `0 0 30px rgba(${accentRgb},0.5)`,
               letterSpacing: '0.15em',
             }}>
               {confirmation.reference}
@@ -2309,13 +2346,38 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 <p className="text-sm font-semibold text-white">{cap(forms[0]?.givenName)} {cap(forms[0]?.familyName)}{forms.length > 1 ? ` +${forms.length - 1}` : ''}</p>
               </div>
               <div className="text-right">
-                <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Total paid</p>
-                <p className="text-lg font-extrabold" style={{ color: '#1D9E75' }}>{fmtPrice(confirmation.amount, confirmation.currency)}</p>
+                <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  {isHeld ? 'Amount due' : 'Total paid'}
+                </p>
+                <p className="text-lg font-extrabold" style={{ color: accentHex }}>{fmtPrice(confirmation.amount, confirmation.currency)}</p>
               </div>
             </div>
 
+            {/* Hold expiry banner */}
+            {isHeld && (
+              <div className="mt-4 rounded-xl px-4 py-3" style={{
+                background: holdExpiryUrgent ? 'rgba(220,38,38,0.15)' : 'rgba(217,119,6,0.15)',
+                border: `1px solid ${holdExpiryUrgent ? 'rgba(220,38,38,0.3)' : 'rgba(217,119,6,0.3)'}`,
+              }}>
+                {holdExpiryLabel ? (
+                  <>
+                    <p className="text-xs font-bold text-center" style={{ color: holdExpiryUrgent ? '#FCA5A5' : '#FCD34D' }}>
+                      ⚠️ Hold expires in {holdExpiryLabel}
+                    </p>
+                    <p className="text-[10px] text-center mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      Your seat is not confirmed until payment is complete
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xs font-bold text-center" style={{ color: '#FCD34D' }}>
+                    ⚠️ Seat held — pay before the deadline to confirm
+                  </p>
+                )}
+              </div>
+            )}
+
             <p className="text-[10px] text-center mt-4" style={{ color: 'rgba(255,255,255,0.25)' }}>
-              Confirmation sent to {forms[0]?.email}
+              {isHeld ? `Reference: ${confirmation.reference}` : `Confirmation sent to ${forms[0]?.email}`}
             </p>
           </div>
         </div>
@@ -2324,8 +2386,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         <div className="mt-4 space-y-2.5">
           <button onClick={() => window.location.href = '/bookings'}
             className="w-full py-3.5 rounded-2xl text-sm font-bold text-white transition-opacity hover:opacity-90"
-            style={{ background: '#1D9E75' }}>
-            View my bookings →
+            style={{ background: isHeld ? 'linear-gradient(135deg, #D97706, #B45309)' : accentHex }}>
+            {isHeld ? 'Pay now to confirm seat →' : 'View my bookings →'}
           </button>
           <button onClick={onClear}
             className="w-full py-3 rounded-2xl text-sm font-semibold transition-colors"
