@@ -513,7 +513,7 @@ if (runUnit) {
     assert('amount passed as offer.totalAmount.toFixed(2)', src.includes('offer.totalAmount.toFixed(2)'));
     assert('currency taken from offer', src.includes('offer.totalCurrency'));
     assert('passengers mapped with offer.passengerIds', src.includes('offer.passengerIds[i]'));
-    assert('services filtered to available only', src.includes('offer.availableServices.some'));
+    assert('all selectedServices sent (seat map IDs are valid Duffel IDs from /air/seat_maps)', src.includes('services: selectedServices,'));
   });
 
   await section('Checkout — test mode skips card validation and payment intent', async () => {
@@ -1416,6 +1416,13 @@ if (runUnit) {
   await section('Booking detail — FlightBooking interface includes cabin_class', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
     assert('cabin_class field in FlightBooking interface', src.includes('cabin_class: string | null'));
+  });
+
+  await section('Seat selection — seat map service IDs sent to Duffel (not filtered out)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // seat map services come from /air/seat_maps, NOT from offer.availableServices
+    // The old filter `selectedServices.filter(s => offer.availableServices.some(...))` stripped them out
+    assert('all selectedServices sent without filtering by availableServices', src.includes('services: selectedServices,') && !src.includes('selectedServices.filter(s => offer.availableServices'));
   });
 
   await section('Booking detail — seat badge only shown when seat is actually assigned', async () => {
