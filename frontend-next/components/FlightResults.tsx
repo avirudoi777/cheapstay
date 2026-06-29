@@ -879,6 +879,39 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       const extrasTotal = selectedServices.reduce((sum, ss) => {
         return sum + getSvcPrice(ss.serviceId) * ss.quantity;
       }, 0);
+
+      // Build per-seat details for accurate per-seat pricing on booking detail page.
+      // Scan seatMaps to get designator + route for each selected service ID.
+      type SeatSelEntry = { serviceId: string; designator: string; depCode: string; arrCode: string; price: number };
+      const seatSelDetails: SeatSelEntry[] = [];
+      if (seatMaps) {
+        const allSegs = offer.allSegments ?? offer.segments;
+        const pendingSvcIds = new Set(Object.values(seatSelections).filter(Boolean));
+        for (const sm of seatMaps) {
+          if (!pendingSvcIds.size) break;
+          const seg = allSegs.find(s => s.segmentId === sm.segmentId);
+          for (const cabin of sm.cabins) {
+            for (const row of cabin.rows) {
+              for (const sec of row.sections) {
+                for (const el of sec.elements) {
+                  for (const paxSvc of (el.available_services ?? [])) {
+                    if (pendingSvcIds.has(paxSvc.id)) {
+                      seatSelDetails.push({
+                        serviceId: paxSvc.id,
+                        designator: el.designator ?? '',
+                        depCode: seg?.depCode ?? '',
+                        arrCode: seg?.arrCode ?? '',
+                        price: getSvcPrice(paxSvc.id),
+                      });
+                      pendingSvcIds.delete(paxSvc.id);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
       let paymentIntentId = '';
       let grossAmount = calcGross(offer.totalAmount, extrasTotal);
 
@@ -956,7 +989,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         if (!user) throw new Error('no user session — skipping client-side save');
         const fs = offer.segments[0];
         const ls = offer.segments[offer.segments.length - 1];
-        await supabase.from('flight_bookings').insert({
+        await supabase.from('flight_bookings').upsert({
           user_id: user.id,
           passenger_email: forms[0]?.email ?? null,
           duffel_order_id: order.orderId,
@@ -974,7 +1007,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           currency: offer.totalCurrency,
           passengers_count: forms.length,
           passenger_names: forms.map(f => `${f.givenName} ${f.familyName}`),
-        });
+          extras_amount: extrasTotal,
+          seat_selections: seatSelDetails,
+        }, { onConflict: 'duffel_order_id', ignoreDuplicates: false });
         // Get the Supabase row UUID — server-side save runs first so it should exist by now
         const { data: savedRow } = await supabase
           .from('flight_bookings')

@@ -1694,6 +1694,34 @@ if (runUnit) {
     assert('per-seat lines with route label after order loads', src.includes('seg.origin.iata_code') && src.includes('seg.destination.iata_code'));
   });
 
+  // ── Client-side save — UPSERT with extras_amount + seat_selections ───────────
+  await section('Client-side belt-and-suspenders save — UPSERT with extras_amount + seat_selections', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Must be upsert not insert — insert fails silently on duplicate duffel_order_id
+    assert('client uses upsert not insert for flight_bookings save', src.includes("from('flight_bookings').upsert(") && !src.includes("from('flight_bookings').insert("));
+    const upsertIdx = src.indexOf("from('flight_bookings').upsert(");
+    const snippet = src.slice(upsertIdx, upsertIdx + 900);
+    assert('client upsert payload includes extras_amount', snippet.includes('extras_amount'));
+    assert('client upsert payload includes seat_selections', snippet.includes('seat_selections'));
+    assert('client upsert uses onConflict: duffel_order_id', src.includes("onConflict: 'duffel_order_id'"));
+    // seatSelDetails must be built by scanning seatMaps for selected service IDs
+    assert('seatSelDetails built from seatMaps', src.includes('seatSelDetails') && src.includes('pendingSvcIds'));
+    assert('seatSelDetails includes designator', src.includes('el.designator'));
+    assert('seatSelDetails includes depCode/arrCode from segment', src.includes('seg?.depCode') && src.includes('seg?.arrCode'));
+    assert('seatSelDetails price from getSvcPrice', src.includes('getSvcPrice(paxSvc.id)'));
+  });
+
+  // ── Booking detail — per-seat prices from seat_selections ─────────────────────
+  await section('Booking detail — seat_selections used for per-seat prices (not even split)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    assert('FlightBooking has seat_selections field', src.includes('seat_selections?:'));
+    assert('hasSeatSels derived from seat_selections', src.includes('hasSeatSels'));
+    assert('extrasTotal sums seat_selections prices when available', src.includes('seatSels.reduce((sum, ss) => sum + ss.price, 0)'));
+    assert('seat lines use per-seat data when hasSeatSels', src.includes('hasSeatSels') && src.includes('ss.designator'));
+    assert('falls back to even split for old bookings', src.includes('pricePerSeat'));
+    assert('seat line label uses depCode/arrCode from seat_selections', src.includes('ss.depCode') && src.includes('ss.arrCode'));
+  });
+
   await section('Booking detail — round-trip renders outbound/return headers per slice', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
     // Must iterate order.slices not allSegs

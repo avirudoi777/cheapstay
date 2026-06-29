@@ -24,6 +24,7 @@ interface FlightBooking {
   total_amount: number;
   currency: string;
   extras_amount?: number;
+  seat_selections?: Array<{ serviceId: string; designator: string; depCode: string; arrCode: string; price: number }>;
   passengers_count: number;
   passenger_names: string[];
   cancellation_policy: { allowed: boolean; penalty_amount: number | null; penalty_currency: string | null } | null;
@@ -771,24 +772,35 @@ export default function ManageBookingPage() {
         <Section title="Payment">
           <div className="space-y-2">
             {(() => {
-              // extras_amount is saved to Supabase at booking time — Duffel GET order
-              // does NOT return pricing on services, so we never read svc.total_amount here.
-              const extrasTotal = booking.extras_amount ?? 0;
+              // seat_selections: per-seat [{serviceId, designator, depCode, arrCode, price}] saved at booking time
+              // extras_amount: legacy total (kept for old bookings without seat_selections)
+              // Duffel GET order does NOT return pricing on services — never read svc.total_amount here.
+              const seatSels = booking.seat_selections ?? [];
+              const hasSeatSels = seatSels.length > 0;
+              const extrasTotal = hasSeatSels
+                ? seatSels.reduce((sum, ss) => sum + ss.price, 0)
+                : booking.extras_amount ?? 0;
               const flightFare = Math.max(0, booking.total_amount - 10 - extrasTotal);
               const svcs = order?.services ?? [];
               const seatSvcs = svcs.filter(s => s.type === 'seat');
               const pricePerSeat = seatSvcs.length > 0 ? extrasTotal / seatSvcs.length : 0;
 
-              // Build seat lines: show immediately if extras > 0, enhance with per-seat
-              // labels once the Duffel order finishes loading.
               type SeatLine = { key: string; label: string; price: number };
-              const seatLines: SeatLine[] = orderLoading
-                ? (extrasTotal > 0 ? [{ key: 'loading', label: '💺 Seat selection', price: extrasTotal }] : [])
-                : seatSvcs.map((svc, i) => {
-                    const seg = allSegs.find(s => svc.segment_ids?.includes(s.id));
-                    const label = `💺 Seat ${svc.metadata?.designator ?? ''}${seg ? ` · ${seg.origin.iata_code}→${seg.destination.iata_code}` : ''}`.trim();
-                    return { key: svc.id ?? String(i), label, price: pricePerSeat };
-                  });
+              // New bookings: use seat_selections for exact per-seat prices, available immediately.
+              // Old bookings (no seat_selections): fall back to even split once order loads.
+              const seatLines: SeatLine[] = hasSeatSels
+                ? seatSels.map((ss, i) => ({
+                    key: ss.serviceId ?? String(i),
+                    label: `💺 Seat ${ss.designator}${ss.depCode && ss.arrCode ? ` · ${ss.depCode}→${ss.arrCode}` : ''}`.trim(),
+                    price: ss.price,
+                  }))
+                : orderLoading
+                  ? (extrasTotal > 0 ? [{ key: 'loading', label: '💺 Seat selection', price: extrasTotal }] : [])
+                  : seatSvcs.map((svc, i) => {
+                      const seg = allSegs.find(s => svc.segment_ids?.includes(s.id));
+                      const label = `💺 Seat ${svc.metadata?.designator ?? ''}${seg ? ` · ${seg.origin.iata_code}→${seg.destination.iata_code}` : ''}`.trim();
+                      return { key: svc.id ?? String(i), label, price: pricePerSeat };
+                    });
 
               return (
                 <>
