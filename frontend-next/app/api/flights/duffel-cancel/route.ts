@@ -142,7 +142,30 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('Duffel cancel error:', JSON.stringify(err));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const detail = (err as any)?.errors?.[0]?.message || 'Cancellation failed';
-    return NextResponse.json({ error: 'cancel_failed', detail }, { status: 502 });
+    const e = err as any;
+    const detail: string = e?.errors?.[0]?.message || e?.message || 'Cancellation failed';
+    const code: string = e?.errors?.[0]?.code ?? '';
+    const dl = detail.toLowerCase();
+
+    // User-facing errors — return 422 so the browser console doesn't show 502
+    // and the frontend can display the actual reason clearly
+    const isUserError =
+      dl.includes('cannot be cancelled') ||
+      dl.includes('cannot be changed') ||
+      dl.includes('not cancellable') ||
+      dl.includes('not refundable') ||
+      dl.includes('non-refundable') ||
+      dl.includes('already been cancelled') ||
+      dl.includes('already cancelled') ||
+      dl.includes('after departure') ||
+      dl.includes('window has passed') ||
+      dl.includes('no longer available') ||
+      code === 'not_supported' ||
+      code === 'already_cancelled';
+
+    return NextResponse.json(
+      { error: 'cancel_failed', detail },
+      { status: isUserError ? 422 : 502 },
+    );
   }
 }
