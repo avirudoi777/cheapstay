@@ -166,6 +166,7 @@ export async function POST(req: NextRequest) {
         cabin_class: firstSeg?.cabin_class ?? null,
         total_amount: parseFloat(order.total_amount),
         currency: order.total_currency,
+        extras_amount: parseFloat(extrasAmount) || 0,
         passengers_count: order.passengers?.length ?? 1,
         passenger_names: order.passengers?.map((p: { given_name: string; family_name: string }) =>
           `${p.given_name} ${p.family_name}`

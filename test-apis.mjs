@@ -1624,6 +1624,21 @@ if (runUnit) {
   });
 
   // ── Booking detail — outbound/return separation ────────────────────────────
+  // ── Payment breakdown — uses booking.extras_amount not order service total_amount ──
+  await section('Payment breakdown — extras_amount from Supabase, not Duffel order services', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    // Must use booking.extras_amount (Supabase column) — Duffel GET order doesn't return total_amount on services
+    assert('uses booking.extras_amount for extrasTotal', src.includes('booking.extras_amount'));
+    assert('does NOT use svc.total_amount for extrasTotal calculation', !src.includes('s.total_amount ? parseFloat(s.total_amount) : 0'));
+    // duffel-order route must save extras_amount to Supabase
+    const routeSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');
+    assert('duffel-order saves extras_amount to Supabase', routeSrc.includes('extras_amount'));
+    // FlightBooking interface must include extras_amount
+    assert('FlightBooking interface has extras_amount field', src.includes('extras_amount?:'));
+    // Price per seat is split evenly across seat services
+    assert('pricePerSeat = extrasTotal / seatSvcs.length', src.includes('extrasTotal / seatSvcs.length'));
+  });
+
   await section('Booking detail — round-trip renders outbound/return headers per slice', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
     // Must iterate order.slices not allSegs
@@ -1644,6 +1659,80 @@ if (runUnit) {
     assert('TLV has language tip', src.includes('Hebrew') || src.includes('Shalom'));
     assert('TLV has lounges info', src.includes('Ben Gurion'));
     assert('FCO has lounges info', src.includes('Fiumicino'));
+  });
+
+  // ── Layover guides — major hubs expansion (83 airports) ───────────────────
+  await section('Layover guides — 80+ airports covering all major regions', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/lib/layover-guides.ts'), 'utf8');
+    // Europe additions
+    assert('BCN (Barcelona) defined', src.includes('BCN:') && src.includes('Barcelona'));
+    assert('MUC (Munich) defined', src.includes('MUC:') && src.includes('Munich'));
+    assert('ZRH (Zurich) defined', src.includes('ZRH:') && src.includes('Zurich'));
+    assert('VIE (Vienna) defined', src.includes('VIE:') && src.includes('Vienna'));
+    assert('BRU (Brussels) defined', src.includes('BRU:') && src.includes('Brussels'));
+    assert('CPH (Copenhagen) defined', src.includes('CPH:') && src.includes('Copenhagen'));
+    assert('ARN (Stockholm) defined', src.includes('ARN:') && src.includes('Stockholm'));
+    assert('HEL (Helsinki) defined', src.includes('HEL:') && src.includes('Helsinki'));
+    assert('OSL (Oslo) defined', src.includes('OSL:') && src.includes('Oslo'));
+    assert('MAN (Manchester) defined', src.includes('MAN:') && src.includes('Manchester'));
+    assert('LGW (Gatwick) defined', src.includes('LGW:') && src.includes('Gatwick'));
+    assert('MXP (Milan) defined', src.includes('MXP:') && src.includes('Milan'));
+    assert('ATH (Athens) defined', src.includes('ATH:') && src.includes('Athens'));
+    assert('PRG (Prague) defined', src.includes('PRG:') && src.includes('Prague'));
+    assert('BUD (Budapest) defined', src.includes('BUD:') && src.includes('Budapest'));
+    assert('WAW (Warsaw) defined', src.includes('WAW:') && src.includes('Warsaw'));
+    // Asia additions
+    assert('ICN (Seoul) defined', src.includes('ICN:') && src.includes('Seoul'));
+    assert('KUL (Kuala Lumpur) defined', src.includes('KUL:') && src.includes('Kuala Lumpur'));
+    assert('DEL (Delhi) defined', src.includes('DEL:') && src.includes('Delhi'));
+    assert('BOM (Mumbai) defined', src.includes('BOM:') && src.includes('Mumbai'));
+    assert('CGK (Jakarta) defined', src.includes('CGK:') && src.includes('Jakarta'));
+    assert('MNL (Manila) defined', src.includes('MNL:') && src.includes('Manila'));
+    assert('KIX (Osaka) defined', src.includes('KIX:') && src.includes('Osaka'));
+    assert('TPE (Taipei) defined', src.includes('TPE:') && src.includes('Taipei'));
+    // Middle East & Africa
+    assert('CAI (Cairo) defined', src.includes('CAI:') && src.includes('Cairo'));
+    assert('AMM (Amman) defined', src.includes('AMM:') && src.includes('Amman'));
+    assert('AUH (Abu Dhabi) defined', src.includes('AUH:') && src.includes('Abu Dhabi'));
+    assert('RUH (Riyadh) defined', src.includes('RUH:') && src.includes('Riyadh'));
+    assert('KWI (Kuwait City) defined', src.includes('KWI:') && src.includes('Kuwait'));
+    assert('JNB (Johannesburg) defined', src.includes('JNB:') && src.includes('Johannesburg'));
+    assert('NBO (Nairobi) defined', src.includes('NBO:') && src.includes('Nairobi'));
+    assert('ADD (Addis Ababa) defined', src.includes('ADD:') && src.includes('Addis Ababa'));
+    assert('CMN (Casablanca) defined', src.includes('CMN:') && src.includes('Casablanca'));
+    assert('CPT (Cape Town) defined', src.includes('CPT:') && src.includes('Cape Town'));
+    assert('LOS (Lagos) defined', src.includes('LOS:') && src.includes('Lagos'));
+    // Oceania
+    assert('SYD (Sydney) defined', src.includes('SYD:') && src.includes('Sydney'));
+    assert('MEL (Melbourne) defined', src.includes('MEL:') && src.includes('Melbourne'));
+    assert('AKL (Auckland) defined', src.includes('AKL:') && src.includes('Auckland'));
+    // North America additions
+    assert('YYZ (Toronto) defined', src.includes('YYZ:') && src.includes('Toronto'));
+    assert('YVR (Vancouver) defined', src.includes('YVR:') && src.includes('Vancouver'));
+    assert('SFO (San Francisco) defined', src.includes('SFO:') && src.includes('San Francisco'));
+    assert('SEA (Seattle) defined', src.includes('SEA:') && src.includes('Seattle'));
+    assert('BOS (Boston) defined', src.includes('BOS:') && src.includes('Boston'));
+    assert('EWR (Newark/NYC) defined', src.includes('EWR:') && src.includes('Newark'));
+    assert('IAH (Houston) defined', src.includes('IAH:') && src.includes('Houston'));
+    assert('IAD (Washington DC) defined', src.includes('IAD:') && src.includes('Washington'));
+    // Latin America additions
+    assert('CUN (Cancun) defined', src.includes('CUN:') && src.includes('Cancún'));
+    // Africa additional
+    assert('ACC (Accra) defined', src.includes('ACC:') && src.includes('Accra'));
+    assert('DSS (Dakar) defined', src.includes('DSS:') && src.includes('Dakar'));
+    assert('ABJ (Abidjan) defined', src.includes('ABJ:') && src.includes('Abidjan'));
+    assert('TUN (Tunis) defined', src.includes('TUN:') && src.includes('Tunis'));
+    assert('ALG (Algiers) defined', src.includes('ALG:') && src.includes('Algiers'));
+    assert('EBB (Kampala) defined', src.includes('EBB:') && src.includes('Kampala'));
+    assert('DAR (Dar es Salaam) defined', src.includes('DAR:') && src.includes('Dar es Salaam'));
+    assert('KGL (Kigali) defined', src.includes('KGL:') && src.includes('Kigali'));
+    assert('LAD (Luanda) defined', src.includes('LAD:') && src.includes('Luanda'));
+    assert('MRU (Mauritius) defined', src.includes('MRU:') && src.includes('Mauritius'));
+    assert('MPM (Maputo) defined', src.includes('MPM:') && src.includes('Maputo'));
+    assert('LUN (Lusaka) defined', src.includes('LUN:') && src.includes('Lusaka'));
+    // Verify total airport count is substantial
+    const count = (src.match(/^  [A-Z]{2,4}: \{/gm) || []).length;
+    assert('At least 90 airports in guides', count >= 90);
   });
 
 }
