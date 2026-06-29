@@ -75,6 +75,20 @@ interface SeatElement {
 interface SeatRow { sections: { elements: SeatElement[] }[] }
 interface SeatCabin { cabinClass: string; cabinClassName?: string; rows: SeatRow[]; wings?: { first_row_index: number; last_row_index: number } }
 interface SeatMap { segmentId: string; cabins: SeatCabin[] }
+
+const SEAT_COLORS = {
+  free:     { bg: '#E6F7F1', text: '#1D9E75', border: '#A7F3D0' },
+  paid:     { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' },
+  selFree:  { bg: '#1D9E75', border: '#1D9E75' },
+  selPaid:  { bg: '#D97706', border: '#D97706' },
+  taken:    { bg: '#F3F4F6', text: '#D1D5DB', border: '#E5E7EB' },
+  legend: {
+    free:     { bg: '#6EE7B7', border: '#34D399' },
+    paid:     { bg: '#FDE68A', border: '#D97706' },
+    selected: { bg: '#1D9E75' },
+    taken:    { bg: '#D1D5DB', border: '#9CA3AF' },
+  },
+} as const;
 interface PassengerForm {
   title: string; givenName: string; familyName: string;
   gender: string; bornOn: string; email: string; phoneNumber: string;
@@ -561,10 +575,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     if (!offers.length || !depart) return;
     const base = new Date(depart + 'T12:00:00Z');
     if (isNaN(base.getTime())) return;
+    const todayISO = new Date().toISOString().slice(0, 10);
     [-2, -1, 1, 2].forEach(offset => {
       const d = new Date(base);
       d.setUTCDate(d.getUTCDate() + offset);
       const iso = d.toISOString().slice(0, 10);
+      if (iso < todayISO) return; // skip past dates — Duffel rejects them
       // Keep trip duration the same for round-trip searches
       let prefetchRet: string | undefined;
       if (ret) {
@@ -1665,9 +1681,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                                   title={`${el.designator ?? ''}${paxSvc ? ` · ${isSeatPaid ? '+' + fmtPrice(seatPrice, paxSvc.total_currency) : 'Free'}` : ''}`}
                                                   className="w-8 h-8 rounded flex flex-col items-center justify-center transition-colors gap-0"
                                                   style={{
-                                                    background: selected ? (isSeatPaid ? '#D97706' : '#1D9E75') : available ? (isSeatPaid ? '#FFFBEB' : '#E6F7F1') : '#F3F4F6',
-                                                    color: selected ? 'white' : available ? (isSeatPaid ? '#B45309' : '#1D9E75') : '#D1D5DB',
-                                                    border: selected ? `1.5px solid ${isSeatPaid ? '#D97706' : '#1D9E75'}` : available ? `1px solid ${isSeatPaid ? '#FDE68A' : '#A7F3D0'}` : '1px solid #E5E7EB',
+                                                    background: selected ? (isSeatPaid ? SEAT_COLORS.selPaid.bg : SEAT_COLORS.selFree.bg) : available ? (isSeatPaid ? SEAT_COLORS.paid.bg : SEAT_COLORS.free.bg) : SEAT_COLORS.taken.bg,
+                                                    color: selected ? 'white' : available ? (isSeatPaid ? SEAT_COLORS.paid.text : SEAT_COLORS.free.text) : SEAT_COLORS.taken.text,
+                                                    border: selected ? `1.5px solid ${isSeatPaid ? SEAT_COLORS.selPaid.border : SEAT_COLORS.selFree.border}` : available ? `1px solid ${isSeatPaid ? SEAT_COLORS.paid.border : SEAT_COLORS.free.border}` : `1px solid ${SEAT_COLORS.taken.border}`,
                                                     cursor: available ? 'pointer' : 'not-allowed',
                                                   }}>
                                                   <span className="text-[10px] font-bold leading-none">{el.designator?.replace(/\d+/, '') ?? ''}</span>
@@ -1687,10 +1703,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         );
                       })}
                       <div className="flex gap-3 text-xs text-gray-400 flex-wrap">
-                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#E6F7F1', border: '1px solid #A7F3D0' }} /> Free</span>
-                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }} /> Paid</span>
-                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#1D9E75' }} /> Selected</span>
-                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#F3F4F6', border: '1px solid #E5E7EB' }} /> Taken</span>
+                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.free.bg, border: `1px solid ${SEAT_COLORS.legend.free.border}` }} /> Free</span>
+                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.paid.bg, border: `1px solid ${SEAT_COLORS.legend.paid.border}` }} /> Paid</span>
+                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.selected.bg }} /> Selected</span>
+                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.taken.bg, border: `1px solid ${SEAT_COLORS.legend.taken.border}` }} /> Taken</span>
                       </div>
                     </div>
                   )}
@@ -2005,9 +2021,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                                       title={el.designator + (el.disclosures?.length ? ` · ${el.disclosures[0]}` : '') + (price ? ` · +${fmtPrice(price, paxSvc?.total_currency ?? offer.totalCurrency)}` : ' · Free')}
                                                       className="w-8 h-8 rounded flex flex-col items-center justify-center transition-colors gap-0"
                                                       style={{
-                                                        background: selected ? (isPaid ? '#D97706' : '#1D9E75') : available ? (isPaid ? '#FFFBEB' : '#E6F7F1') : '#F3F4F6',
-                                                        color: selected ? 'white' : available ? (isPaid ? '#B45309' : '#1D9E75') : '#D1D5DB',
-                                                        border: selected ? `1.5px solid ${isPaid ? '#D97706' : '#1D9E75'}` : available ? `1px solid ${isPaid ? '#FDE68A' : '#A7F3D0'}` : '1px solid #E5E7EB',
+                                                        background: selected ? (isPaid ? SEAT_COLORS.selPaid.bg : SEAT_COLORS.selFree.bg) : available ? (isPaid ? SEAT_COLORS.paid.bg : SEAT_COLORS.free.bg) : SEAT_COLORS.taken.bg,
+                                                        color: selected ? 'white' : available ? (isPaid ? SEAT_COLORS.paid.text : SEAT_COLORS.free.text) : SEAT_COLORS.taken.text,
+                                                        border: selected ? `1.5px solid ${isPaid ? SEAT_COLORS.selPaid.border : SEAT_COLORS.selFree.border}` : available ? `1px solid ${isPaid ? SEAT_COLORS.paid.border : SEAT_COLORS.free.border}` : `1px solid ${SEAT_COLORS.taken.border}`,
                                                         cursor: available ? 'pointer' : 'not-allowed',
                                                       }}>
                                                       <span className="text-[10px] font-bold leading-none">{el.designator?.replace(/\d+/, '') ?? ''}</span>
@@ -2038,10 +2054,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             );
                           })}
                           <div className="flex gap-3 text-xs text-gray-400 flex-wrap">
-                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#E6F7F1', border: '1px solid #A7F3D0' }} /> Free</span>
-                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }} /> Paid</span>
-                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#1D9E75' }} /> Selected</span>
-                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#F3F4F6', border: '1px solid #E5E7EB' }} /> Taken</span>
+                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.free.bg, border: `1px solid ${SEAT_COLORS.legend.free.border}` }} /> Free</span>
+                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.paid.bg, border: `1px solid ${SEAT_COLORS.legend.paid.border}` }} /> Paid</span>
+                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.selected.bg }} /> Selected</span>
+                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.taken.bg, border: `1px solid ${SEAT_COLORS.legend.taken.border}` }} /> Taken</span>
                           </div>
                         </div>
                       )}

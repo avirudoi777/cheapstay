@@ -281,8 +281,11 @@ if (runUnit) {
   await section('Credit card offer mapping', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
 
-    // CARD_DB keys
-    const cardKeys = [...src.matchAll(/^  ([a-z_]+): \{$/gm)].map(m => m[1]);
+    // CARD_DB keys — extract only keys inside CARD_DB block (not SEAT_COLORS or other consts)
+    const cardDbStart = src.indexOf('const CARD_DB');
+    const cardDbEnd = src.indexOf('\n};\n', cardDbStart) + 4;
+    const cardDbSrc = src.slice(cardDbStart, cardDbEnd);
+    const cardKeys = [...cardDbSrc.matchAll(/^  ([a-z_]+): \{$/gm)].map(m => m[1]);
     assert('at least 10 cards defined', cardKeys.length >= 10, `${cardKeys.length} cards`);
 
     // Each card must have url, headline, bonus
@@ -1553,6 +1556,32 @@ if (runUnit) {
       assert(`${r}: DUFFEL_LIVE_API_KEY uses || fallback (not ??)`,
         src.includes('DUFFEL_LIVE_API_KEY ||') && !src.includes('DUFFEL_LIVE_API_KEY\n    ??') && !src.includes('DUFFEL_LIVE_API_KEY ?? '));
     }
+  });
+
+  // ── Seat map legend — swatches match actual seat colors ───────────────────
+  await section('Seat map legend — swatch colors match actual paid/free seat appearance', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Colors are now centralised in SEAT_COLORS constant — verify the constant has the right values
+    assert('SEAT_COLORS.legend.paid uses amber fill FDE68A', src.includes("paid:") && src.includes("'#FDE68A'") && src.includes("'#D97706'"));
+    assert('SEAT_COLORS.legend.free uses saturated green 6EE7B7', src.includes("free:") && src.includes("'#6EE7B7'"));
+    // Old washed-out paid swatch must be gone from the legend render (now uses SEAT_COLORS)
+    assert('Old cream FFFBEB swatch removed from legend render', !src.includes("background: '#FFFBEB', border: '1px solid #FDE68A'"));
+  });
+
+  // ── Duffel search — no-results returns 200 not 502 ───────────────────────
+  await section('Duffel search — no-results Duffel error returns 200 empty offers (not 502)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-search/route.ts'), 'utf8');
+    // no_results and invalid_state must be handled as empty results
+    assert('no_results/invalid_state returns 200 empty offers', src.includes("code === 'no_results'") && src.includes("code === 'invalid_state'"));
+    assert('no-results path returns empty offers array', src.includes("return NextResponse.json({ offers: [] })"));
+    // 502 must still fire for real server errors (not no-results)
+    assert('502 still returned for real server errors', src.includes('status: 502'));
+  });
+
+  // ── Prefetch — skips past dates ───────────────────────────────────────────
+  await section('Date chip prefetch — skips dates in the past to avoid Duffel 502s', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert('prefetch guards against past dates', src.includes('iso < todayISO') && src.includes('skip past dates'));
   });
 
 }

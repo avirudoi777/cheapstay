@@ -174,9 +174,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ offers });
   } catch (err) {
-    console.error('Duffel search error:', JSON.stringify(err));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const detail = (err as any)?.errors?.[0]?.message || 'Search failed';
+    const duffelErr = (err as any)?.errors?.[0];
+    const code: string = duffelErr?.code ?? '';
+    // "No flights" is a normal outcome — return empty offers (200) not a 502
+    const noResults = code === 'no_results' || code === 'invalid_state' || code === 'invalid_request_error';
+    if (noResults) return NextResponse.json({ offers: [] });
+    console.error('Duffel search error:', JSON.stringify(err));
+    const detail = duffelErr?.message || 'Search failed';
     return NextResponse.json({ error: 'search_failed', detail }, { status: 502 });
   }
 }
