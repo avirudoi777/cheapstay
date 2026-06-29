@@ -799,8 +799,8 @@ export default function ManageBookingPage() {
                   {seatLines.map(({ key, label, price }) => (
                     <div key={key} className="flex justify-between items-center">
                       <span className="text-sm text-gray-500">{label}</span>
-                      <span className="text-sm font-semibold" style={{ color: price > 0 ? '#1D9E75' : '#9CA3AF' }}>
-                        {price > 0 ? `+${fmtPrice(price, booking.currency)}` : 'included'}
+                      <span className="text-sm font-semibold" style={{ color: price > 0 ? '#1D9E75' : '#64748B' }}>
+                        {price > 0 ? `+${fmtPrice(price, booking.currency)}` : 'Free'}
                       </span>
                     </div>
                   ))}

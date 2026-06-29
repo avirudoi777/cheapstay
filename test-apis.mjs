@@ -1444,9 +1444,9 @@ if (runUnit) {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
     // Must have a clearly labeled "Cabin class" row in the lower details section of the boarding pass
     assert('Cabin class label present in confirmation card', src.includes('Cabin class') || src.includes('cabin class'));
-    // cabinLabel must be displayed in the details section (after the 3-col grid)
-    const detailIdx = src.indexOf('3-col detail row');
-    assert('cabinLabel rendered after the 3-col grid', detailIdx !== -1 && src.indexOf('cabinLabel', detailIdx) > detailIdx);
+    // cabinLabel must be displayed in the details section (after the flight detail rows)
+    const detailIdx = src.indexOf('Flight detail rows') !== -1 ? src.indexOf('Flight detail rows') : src.indexOf('3-col detail row');
+    assert('cabinLabel rendered after the flight detail rows', detailIdx !== -1 && src.indexOf('cabinLabel', detailIdx) > detailIdx);
     // The row must use the accentHex color so it matches the booking theme
     assert('cabin class row uses accentHex color', src.includes('accentHex') && src.indexOf('Cabin class') !== -1);
   });
@@ -1771,6 +1771,51 @@ if (runUnit) {
     // Verify total airport count is substantial
     const count = (src.match(/^  [A-Z]{2,4}: \{/gm) || []).length;
     assert('At least 90 airports in guides', count >= 90);
+  });
+
+  // ── Round-trip segment ID fix — allSegments for seat map lookups ──────────
+  await section('Duffel search — allSegments field includes all slices for seat map ID matching', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-search/route.ts'), 'utf8');
+    // allSegments must be built by looping over all slices (not just slice 0)
+    assert('allMappedSegments built in loop over allSlices', src.includes('allMappedSegments') && src.includes('allSlices.length'));
+    assert('allSegments field on return object', src.includes('allSegments: allMappedSegments'));
+    // slices metadata array for confirmation card
+    assert('slicesMeta built per-slice for confirmation card', src.includes('slicesMeta') && src.includes('origin: orig.iata_code') && src.includes('destination: dst.iata_code'));
+    assert('slices field on return object', src.includes('slices: slicesMeta'));
+    // segments field still uses outbound-only (backwards compat)
+    assert('segments field uses outbound-only mapped segments', src.includes('segments: outboundMapped'));
+  });
+
+  await section('FlightResults — seat map segment lookup uses allSegments (fixes return-leg labels)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Both seat map rendering blocks must fall back to allSegments
+    const allSegsLookupCount = (src.match(/\(offer\.allSegments \?\? offer\.segments\)\.find/g) ?? []).length;
+    assert('both seat map lookups use allSegments ?? segments fallback', allSegsLookupCount >= 2);
+    // allSegments field on DuffelOffer interface
+    assert('allSegments optional field on DuffelOffer interface', src.includes('allSegments?: Segment[]'));
+    // slices optional field on DuffelOffer interface
+    assert('slices optional field on DuffelOffer interface', src.includes('slices?: OfferSlice[]'));
+    // OfferSlice interface defined with required fields
+    assert('OfferSlice interface has origin and destination', src.includes('interface OfferSlice') && src.includes('origin: string') && src.includes('destination: string'));
+  });
+
+  await section('FlightResults — confirmation card shows both legs for round trips', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // ↔ symbol used when ret is set (round trip indicator in title)
+    assert('round trip uses ↔ in title', src.includes("ret ? '↔' : '→'"));
+    // Outbound/Return labels shown in details section for round trips
+    assert('↗ Outbound label shown for first slice', src.includes("'↗ Outbound'"));
+    assert('↙ Return label shown for return slice', src.includes("'↙ Return'"));
+    // Confirmation card uses selectedOffer.slices for multi-leg display
+    assert('confirmation card branches on slices.length > 1', src.includes('selectedOffer.slices && selectedOffer.slices.length > 1'));
+  });
+
+  await section('Booking detail — seat price shows Free instead of included for $0 explicit seats', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    // Must show Free (not included) when price is 0 and seat is explicitly in the order
+    assert('shows Free for $0 seat (not included)', src.includes("'Free'") || src.includes('"Free"'));
+    // No longer uses the word "included" for seat prices
+    assert('included removed from seat price rendering (seats show Free)', !src.includes("price > 0 ? `+${fmtPrice(price, booking.currency)}` : 'included'"));
   });
 
 }

@@ -49,9 +49,95 @@ function layoverMin(arrAt: string, depAt: string): string {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapSegment(seg: Record<string, unknown>, nextSegInSlice: Record<string, unknown> | null, sliceIndex: number) {
+  const origin = seg.origin as Record<string, string>;
+  const dest = seg.destination as Record<string, string>;
+  const carrier = seg.marketing_carrier as Record<string, string>;
+  const aircraft = seg.aircraft as Record<string, string> | null;
+  const layover = nextSegInSlice
+    ? layoverMin(seg.arriving_at as string, (nextSegInSlice as Record<string, string>).departing_at)
+    : '';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const paxBaggages = ((seg.passengers as any[])?.[0]?.baggages ?? []) as { type: string; quantity: number }[];
+  const checkedBags = paxBaggages.filter(b => b.type === 'checked').reduce((s, b) => s + b.quantity, 0);
+  const carryOn = paxBaggages.filter(b => b.type === 'carry_on').reduce((s, b) => s + b.quantity, 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ca = ((seg.passengers as any[])?.[0]?.cabin_amenities) ?? null;
+  const amenities = ca ? {
+    food: ca.food?.cost !== 'not_provided' ? { desc: ca.food?.description || 'Meal', cost: ca.food?.cost as string } : null,
+    drink: ca.drink?.cost !== 'not_provided' ? { desc: ca.drink?.description || 'Drinks', cost: ca.drink?.cost as string } : null,
+    entertainment: ca.entertainment?.cost !== 'not_provided' ? { desc: ca.entertainment?.description || 'Entertainment', cost: ca.entertainment?.cost as string } : null,
+    wifi: ca.wifi?.cost !== 'not_provided' ? { desc: ca.wifi?.description || 'WiFi', cost: ca.wifi?.cost as string } : null,
+    power: ca.power?.cost !== 'not_provided' ? { desc: ca.power?.description || 'Power outlet', cost: ca.power?.cost as string } : null,
+    seat: ca.seat ? { type: ca.seat.type as string, pitch: ca.seat.pitch as string | null } : null,
+  } : null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const segCabinClass: string = ((seg.passengers as any[])?.[0]?.cabin_class) ?? 'economy';
+  return {
+    segmentId: seg.id as string,
+    sliceIndex,
+    depCode: origin.iata_code,
+    depCity: origin.city_name || origin.name,
+    depAt: seg.departing_at,
+    arrCode: dest.iata_code,
+    arrCity: dest.city_name || dest.name,
+    arrAt: seg.arriving_at,
+    airline: carrier.name,
+    airlineCode: carrier.iata_code,
+    flightNumber: `${carrier.iata_code}${seg.marketing_carrier_flight_number}`,
+    duration: parseISODur(seg.duration as string),
+    aircraft: aircraft?.name || '',
+    cabinClass: segCabinClass,
+    layoverAfter: layover,
+    baggage: { checkedBags, carryOn },
+    amenities,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function formatOffer(offer: any) {
-  const slice = offer.slices[0];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allSlices = offer.slices as any[];
+  const slice = allSlices[0];
   const segs = slice.segments;
+
+  // Build per-slice metadata for the confirmation card (origin, destination, dates)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const slicesMeta = allSlices.map((sl: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ss = sl.segments as any[];
+    const first = ss[0];
+    const last = ss[ss.length - 1];
+    const orig = first.origin as Record<string, string>;
+    const dst = last.destination as Record<string, string>;
+    return {
+      origin: orig.iata_code,
+      originCity: orig.city_name || orig.name,
+      destination: dst.iata_code,
+      destinationCity: dst.city_name || dst.name,
+      departureAt: first.departing_at as string,
+      stops: ss.length - 1,
+      duration: totalDur(ss),
+    };
+  });
+
+  // Map outbound (slice 0) segments for backwards-compatible `segments` field
+  const outboundMapped: ReturnType<typeof mapSegment>[] = segs.map(
+    (seg: Record<string, unknown>, si: number) => mapSegment(seg, si < segs.length - 1 ? segs[si + 1] : null, 0)
+  );
+
+  // Also include ALL slices' segments so seat map segment IDs can be matched regardless
+  // of which slice (outbound vs return) the seat map belongs to.
+  const allMappedSegments: ReturnType<typeof mapSegment>[] = [];
+  for (let sliceIdx = 0; sliceIdx < allSlices.length; sliceIdx++) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sliceSegs = allSlices[sliceIdx].segments as any[];
+    sliceSegs.forEach((seg: Record<string, unknown>, si: number) => {
+      const nextInSlice = si < sliceSegs.length - 1 ? sliceSegs[si + 1] : null;
+      allMappedSegments.push(mapSegment(seg, nextInSlice, sliceIdx));
+    });
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const availableServices = (offer.available_services ?? []).map((svc: any) => ({
     id: svc.id,
@@ -77,6 +163,8 @@ function formatOffer(offer: any) {
     passengerIds: offerPassengers.map(p => p.id),
     passengers: offerPassengers.map(p => ({ id: p.id, type: p.type as 'adult' | 'child' | 'infant_without_seat' })),
     availableServices,
+    slices: slicesMeta,
+    allSegments: allMappedSegments,
     conditions: refund != null ? {
       refundBeforeDeparture: {
         allowed: refund.allowed ?? false,
@@ -89,50 +177,7 @@ function formatOffer(offer: any) {
       priceGuaranteeExpiresAt: pr.price_guarantee_expires_at ?? null,
       paymentRequiredBy: pr.payment_required_by ?? null,
     } : null,
-    segments: segs.map((seg: Record<string, unknown>, si: number) => {
-      const origin = seg.origin as Record<string, string>;
-      const dest = seg.destination as Record<string, string>;
-      const carrier = seg.marketing_carrier as Record<string, string>;
-      const aircraft = seg.aircraft as Record<string, string> | null;
-      const nextSeg = segs[si + 1] as Record<string, unknown> | undefined;
-      const layover = nextSeg
-        ? layoverMin(seg.arriving_at as string, (nextSeg as Record<string, string>).departing_at)
-        : '';
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const paxBaggages = ((seg.passengers as any[])?.[0]?.baggages ?? []) as { type: string; quantity: number }[];
-      const checkedBags = paxBaggages.filter(b => b.type === 'checked').reduce((s, b) => s + b.quantity, 0);
-      const carryOn = paxBaggages.filter(b => b.type === 'carry_on').reduce((s, b) => s + b.quantity, 0);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ca = ((seg.passengers as any[])?.[0]?.cabin_amenities) ?? null;
-      const amenities = ca ? {
-        food: ca.food?.cost !== 'not_provided' ? { desc: ca.food?.description || 'Meal', cost: ca.food?.cost as string } : null,
-        drink: ca.drink?.cost !== 'not_provided' ? { desc: ca.drink?.description || 'Drinks', cost: ca.drink?.cost as string } : null,
-        entertainment: ca.entertainment?.cost !== 'not_provided' ? { desc: ca.entertainment?.description || 'Entertainment', cost: ca.entertainment?.cost as string } : null,
-        wifi: ca.wifi?.cost !== 'not_provided' ? { desc: ca.wifi?.description || 'WiFi', cost: ca.wifi?.cost as string } : null,
-        power: ca.power?.cost !== 'not_provided' ? { desc: ca.power?.description || 'Power outlet', cost: ca.power?.cost as string } : null,
-        seat: ca.seat ? { type: ca.seat.type as string, pitch: ca.seat.pitch as string | null } : null,
-      } : null;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const segCabinClass: string = ((seg.passengers as any[])?.[0]?.cabin_class) ?? 'economy';
-      return {
-        segmentId: seg.id as string,
-        depCode: origin.iata_code,
-        depCity: origin.city_name || origin.name,
-        depAt: seg.departing_at,
-        arrCode: dest.iata_code,
-        arrCity: dest.city_name || dest.name,
-        arrAt: seg.arriving_at,
-        airline: carrier.name,
-        airlineCode: carrier.iata_code,
-        flightNumber: `${carrier.iata_code}${seg.marketing_carrier_flight_number}`,
-        duration: parseISODur(seg.duration as string),
-        aircraft: aircraft?.name || '',
-        cabinClass: segCabinClass,
-        layoverAfter: layover,
-        baggage: { checkedBags, carryOn },
-        amenities,
-      };
-    }),
+    segments: outboundMapped,
   };
 }
 

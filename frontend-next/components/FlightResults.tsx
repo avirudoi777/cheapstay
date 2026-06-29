@@ -23,6 +23,7 @@ interface Segment {
   cabinClass?: string;
   baggage?: { checkedBags: number; carryOn: number };
   segmentId?: string;
+  sliceIndex?: number;
   amenities?: {
     food?: SegmentAmenity | null;
     drink?: SegmentAmenity | null;
@@ -46,13 +47,20 @@ export interface DuffelPassenger {
   id: string;
   type: 'adult' | 'child' | 'infant_without_seat';
 }
+interface OfferSlice {
+  origin: string; originCity: string;
+  destination: string; destinationCity: string;
+  departureAt: string; stops: number; duration: string;
+}
 export interface DuffelOffer {
   id: string; expiresAt: string;
   totalAmount: number; totalCurrency: string; totalDuration: string;
   passengerIds: string[];
   passengers: DuffelPassenger[];
   segments: Segment[];
+  allSegments?: Segment[];
   availableServices: DuffelService[];
+  slices?: OfferSlice[];
   conditions?: {
     refundBeforeDeparture?: {
       allowed: boolean;
@@ -1632,7 +1640,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   {!seatMapsLoading && seatMaps && seatMaps.length > 0 && (
                     <div className="mt-4 space-y-5">
                       {seatMaps.map(sm => {
-                        const seg = offer.segments.find(s => s.segmentId === sm.segmentId);
+                        const seg = (offer.allSegments ?? offer.segments).find(s => s.segmentId === sm.segmentId);
                         const cabin = sm.cabins[0];
                         if (!cabin) return null;
                         const cabinLabel = fmtCabin(seg?.cabinClass ?? cabin.cabinClass);
@@ -1936,9 +1944,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             : meta.bag_type === 'carry_on'
                             ? `Carry-on${meta.maximum_weight_kg ? ` (${meta.maximum_weight_kg}kg)` : ''}`
                             : 'Extra bag';
-                          const segLabel = svc.segmentIds.length === offer.segments.length
+                          const allSegsForLabel = offer.allSegments ?? offer.segments;
+                          const segLabel = svc.segmentIds.length === allSegsForLabel.length
                             ? 'All segments'
-                            : svc.segmentIds.map(id => offer.segments.find(s => s.segmentId === id)?.depCode ?? id).join(' → ');
+                            : svc.segmentIds.map(id => allSegsForLabel.find(s => s.segmentId === id)?.depCode ?? id).join(' → ');
                           const qty = getQty(svc.id);
                           return (
                             <div key={svc.id} className="flex items-center justify-between p-4 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
@@ -1986,7 +1995,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       {!seatMapsLoading && seatMaps && seatMaps.length > 0 && (
                         <div className="mt-4 space-y-5">
                           {seatMaps.map(sm => {
-                            const seg = offer.segments.find(s => s.segmentId === sm.segmentId);
+                            const seg = (offer.allSegments ?? offer.segments).find(s => s.segmentId === sm.segmentId);
                             const cabin = sm.cabins[0];
                             if (!cabin) return null;
                             const cabinLabel = fmtCabin(seg?.cabinClass ?? cabin.cabinClass);
@@ -2124,7 +2133,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   {offer.segments.map((seg, i) => (
                     <div key={i}>
                       <p className="text-[10px] font-semibold text-gray-400 mb-1">
-                        {i === 0 ? `Depart · ${new Date(seg.depAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}` : `Connection`}
+                        {i === 0
+                          ? `Depart · ${new Date(seg.depAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}`
+                          : seg.sliceIndex !== undefined && seg.sliceIndex !== (offer.segments[i - 1]?.sliceIndex ?? 0)
+                          ? `↙ Return · ${new Date(seg.depAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}`
+                          : 'Connection'}
                       </p>
                       <div className="flex items-center gap-2">
                         <AirlineLogo code={seg.airlineCode} name={seg.airline} />
@@ -2415,10 +2428,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             </p>
             <h2 className="font-extrabold text-white mb-1"
               style={{ fontSize: isBusinessOrFirst ? 26 : 22 }}>
-              {fromName} → {toName}
+              {fromName} {ret ? '↔' : '→'} {toName}
             </h2>
             <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
-              {firstSeg.airline} · {fmtDate(depart + 'T12:00')}
+              {firstSeg.airline} · {fmtDate(depart + 'T12:00')}{ret ? ` — ${fmtDate(ret + 'T12:00')}` : ''}
             </p>
             {/* Cabin pill — more prominent for premium cabins */}
             <div className="mt-3 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full"
@@ -2450,26 +2463,57 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
               {confirmation.reference}
             </p>
 
-            {/* 3-col detail row */}
-            <div className="grid grid-cols-3 gap-4 mb-4">
-              <div>
-                <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>From</p>
-                <p className="text-sm font-bold text-white">{firstSeg.depCode}</p>
-                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{firstSeg.depCity}</p>
+            {/* Flight detail rows — one row per slice for round trips */}
+            {selectedOffer.slices && selectedOffer.slices.length > 1 ? (
+              <div className="space-y-3 mb-4">
+                {selectedOffer.slices.map((sl, si) => (
+                  <div key={si}>
+                    <p className="text-[9px] font-bold tracking-wider uppercase mb-1.5" style={{ color: `rgba(${accentRgb},0.75)` }}>
+                      {si === 0 ? '↗ Outbound' : '↙ Return'}
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>From</p>
+                        <p className="text-sm font-bold text-white">{sl.origin}</p>
+                        <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{sl.originCity}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Duration</p>
+                        <p className="text-sm font-bold text-white">{sl.duration}</p>
+                        <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                          {sl.stops === 0 ? 'Direct' : `${sl.stops} stop${sl.stops > 1 ? 's' : ''}`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>To</p>
+                        <p className="text-sm font-bold text-white">{sl.destination}</p>
+                        <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{sl.destinationCity}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="text-center">
-                <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Duration</p>
-                <p className="text-sm font-bold text-white">{selectedOffer.totalDuration}</p>
-                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                  {selectedOffer.segments.length > 1 ? `${selectedOffer.segments.length - 1} stop` : 'Direct'}
-                </p>
+            ) : (
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div>
+                  <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>From</p>
+                  <p className="text-sm font-bold text-white">{firstSeg.depCode}</p>
+                  <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{firstSeg.depCity}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Duration</p>
+                  <p className="text-sm font-bold text-white">{selectedOffer.totalDuration}</p>
+                  <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                    {selectedOffer.segments.length > 1 ? `${selectedOffer.segments.length - 1} stop` : 'Direct'}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>To</p>
+                  <p className="text-sm font-bold text-white">{lastSeg.arrCode}</p>
+                  <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{lastSeg.arrCity}</p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>To</p>
-                <p className="text-sm font-bold text-white">{lastSeg.arrCode}</p>
-                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{lastSeg.arrCity}</p>
-              </div>
-            </div>
+            )}
 
             {/* Cabin class row — clearly labeled */}
             <div className="flex items-center justify-between mb-5 py-2.5 px-3 rounded-xl"
