@@ -4,9 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 const DUFFEL = 'https://api.duffel.com';
 
 function getKey() {
-  return process.env.DUFFEL_LIVE_API_KEY
-    ?? process.env.DUFFEL_TEST_API_KEY
-    ?? process.env.DUFFEL_API_KEY;
+  return process.env.DUFFEL_LIVE_API_KEY || process.env.DUFFEL_TEST_API_KEY || process.env.DUFFEL_API_KEY;
 }
 
 // POST /api/flights/duffel-pay-held

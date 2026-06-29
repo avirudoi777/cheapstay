@@ -1539,6 +1539,22 @@ if (runUnit) {
     assert('old offer.availableServices price lookup removed from extrasTotal', !src.includes('offer.availableServices.find(s => s.id === ss.serviceId)'));
   });
 
+  // ── Duffel key fallback — empty string bug ────────────────────────────────
+  await section('Duffel API key — uses || not ?? so empty string falls through to test key', async () => {
+    const routes = [
+      'duffel-search', 'seat-map', 'duffel-order', 'duffel-cancel',
+      'duffel-pay-held', 'duffel-payment-intent', 'duffel-order-detail',
+      'duffel-mode', 'duffel-change-order', 'duffel-post-book-bags',
+    ];
+    for (const r of routes) {
+      const path = resolve(__dir, `frontend-next/app/api/flights/${r}/route.ts`);
+      let src; try { src = readFileSync(path, 'utf8'); } catch { continue; }
+      // Must use || not ?? so empty string DUFFEL_LIVE_API_KEY falls through
+      assert(`${r}: DUFFEL_LIVE_API_KEY uses || fallback (not ??)`,
+        src.includes('DUFFEL_LIVE_API_KEY ||') && !src.includes('DUFFEL_LIVE_API_KEY\n    ??') && !src.includes('DUFFEL_LIVE_API_KEY ?? '));
+    }
+  });
+
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
