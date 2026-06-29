@@ -1506,6 +1506,28 @@ if (runUnit) {
     assert('old i===0 fallback removed', !src.includes("i === 0 ? 'economy'"));
   });
 
+  // ── Seat price total — paid seats update extrasTotal ─────────────────────────
+  await section('Seat price — getSvcPrice helper searches seatMaps as fallback', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // getSvcPrice function must exist
+    assert('getSvcPrice function defined', src.includes('function getSvcPrice(serviceId: string): number'));
+    // Must check offer.availableServices first
+    assert('getSvcPrice checks offer.availableServices first', src.includes('selectedOffer?.availableServices.find(s => s.id === serviceId)'));
+    // Must fall back to seatMaps
+    assert('getSvcPrice falls back to seatMaps data', src.includes('if (seatMaps)') && src.includes('el.available_services?.find(a => a.id === serviceId)'));
+    // Must parse total_amount from seat map service (it is a string in Duffel API)
+    assert('getSvcPrice parses total_amount string to float', src.includes('parseFloat(svc.total_amount)'));
+  });
+
+  await section('Seat price — extrasTotal uses getSvcPrice (not direct availableServices lookup)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Both extrasTotal calculations must use getSvcPrice
+    const getSvcPriceCalls = (src.match(/getSvcPrice\(ss\.serviceId\)/g) ?? []).length;
+    assert('getSvcPrice called in extrasTotal (at least 2 times: render + confirmBooking)', getSvcPriceCalls >= 2);
+    // Old direct lookup pattern must be gone
+    assert('old offer.availableServices price lookup removed from extrasTotal', !src.includes('offer.availableServices.find(s => s.id === ss.serviceId)'));
+  });
+
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

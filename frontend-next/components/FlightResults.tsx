@@ -775,6 +775,26 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     return Object.keys(errs).length === 0;
   }
 
+  function getSvcPrice(serviceId: string): number {
+    const offerSvc = selectedOffer?.availableServices.find(s => s.id === serviceId);
+    if (offerSvc) return offerSvc.totalAmount;
+    if (seatMaps) {
+      for (const sm of seatMaps) {
+        for (const cabin of sm.cabins) {
+          for (const row of cabin.rows) {
+            for (const sec of row.sections) {
+              for (const el of sec.elements) {
+                const svc = el.available_services?.find(a => a.id === serviceId);
+                if (svc) return parseFloat(svc.total_amount);
+              }
+            }
+          }
+        }
+      }
+    }
+    return 0;
+  }
+
   async function confirmBooking() {
     if (!selectedOffer || (!duffelTestMode && !validateCard())) return;
     setBooking(true); setBookingError('');
@@ -782,8 +802,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     try {
       const offer = selectedOffer;
       const extrasTotal = selectedServices.reduce((sum, ss) => {
-        const svc = offer.availableServices.find(s => s.id === ss.serviceId);
-        return sum + (svc ? svc.totalAmount * ss.quantity : 0);
+        return sum + getSvcPrice(ss.serviceId) * ss.quantity;
       }, 0);
       let paymentIntentId = '';
       let grossAmount = calcGross(offer.totalAmount, extrasTotal);
@@ -962,8 +981,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   if (selectedOffer && bookStep !== 'confirmed') {
     const offer = selectedOffer;
     const extrasTotal = selectedServices.reduce((sum, ss) => {
-      const svc = offer.availableServices.find(s => s.id === ss.serviceId);
-      return sum + (svc ? svc.totalAmount * ss.quantity : 0);
+      return sum + getSvcPrice(ss.serviceId) * ss.quantity;
     }, 0);
     const gross = calcGross(offer.totalAmount, extrasTotal);
     const processingFee = parseFloat((gross - offer.totalAmount - extrasTotal - SERVICE_FEE).toFixed(2));
