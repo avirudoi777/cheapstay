@@ -534,6 +534,22 @@ if (runUnit) {
     assert('page scrolls to top after booking', src.includes("window.scrollTo"));
   });
 
+  await section('Booking confirmation — View booking details navigates to specific booking', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Button label changed from "View my bookings" to "View booking details"
+    assert('button label is View booking details', src.includes('View booking details →'));
+    assert('old View my bookings label removed', !src.includes('View my bookings →'));
+    // Navigates to /bookings/{orderId} not /bookings
+    assert('navigates to /bookings/{orderId}', src.includes('/bookings/${confirmation.orderId}'));
+    // Falls back to /bookings if no orderId
+    assert('falls back to /bookings if no orderId', src.includes("confirmation.orderId ? `/bookings/${confirmation.orderId}` : '/bookings'"));
+    // confirmation state has orderId field
+    assert('confirmation state type includes orderId', src.includes('orderId?: string'));
+    // orderId populated from Supabase row UUID lookup
+    assert('Supabase select by duffel_order_id after booking', src.includes('.eq(\'duffel_order_id\', order.orderId)'));
+    assert('supabaseBookingId used for confirmation.orderId', src.includes('supabaseBookingId'));
+  });
+
   await section('Checkout — duffel-order route refreshes price and uses it for payment', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');
     assert('GETs offer price before booking', src.includes('/air/offers/${offerId}'));
