@@ -1462,6 +1462,49 @@ if (runUnit) {
     assert('amber badge for Business/First on list card', src.includes("'business'" ) && src.includes("'first'") && src.includes('#B45309'));
   });
 
+  await section('Seat selection — selectSeat adds to selectedServices (not filtered by availableServices)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // selectSeat must update selectedServices by combining non-seat services + new seat selections
+    assert('selectSeat replaces old seat selections atomically', src.includes('allSeatServiceIds') && src.includes('seatSvcIds'));
+    // seat IDs from seat map go into selectedServices
+    assert('seat map IDs added to selectedServices', src.includes('seatSvcIds.map(id => ({ serviceId: id, quantity: 1 }))'));
+    // the toggle: selecting same seat again deselects it
+    assert('seat toggle: prev_svcId === svcId deselects', src.includes("prev_svcId === svcId ? '' : svcId"));
+  });
+
+  await section('Seat selection — seat services reach Duffel order API unfiltered', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Seat map IDs are NOT in offer.availableServices — they come from /air/seat_maps
+    // So we must NOT filter selectedServices before sending to the booking API
+    assert('selectedServices sent as-is (no availableServices filter)', src.includes('services: selectedServices,'));
+    assert('old filter removed (would strip seat map IDs)', !src.includes('selectedServices.filter(s => offer.availableServices'));
+  });
+
+  await section('Seat display — detail page matches seat by order segment ID', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    // Filter must match seat services to segments by the segment's Duffel ID (seg.id)
+    assert('seat filter uses seg.id not segmentId', src.includes('s.segment_ids?.includes(seg.id)'));
+    // DuffelOrder interface must have id on segments so the filter works
+    assert('DuffelOrder segment interface has id field', src.includes('id: string') && src.includes('segments:'));
+    // services[] typed on DuffelOrder
+    assert('services typed on DuffelOrder interface', src.includes("services?: {") && src.includes("segment_ids?:"));
+    // seat designator shown from metadata
+    assert('seat designator read from metadata.designator', src.includes("s.metadata?.designator ?? '—'"));
+  });
+
+  await section('Seat display — booking list fmtCabin defaults to Economy when null', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/page.tsx'), 'utf8');
+    assert('fmtCabin returns Economy when null (not empty string)', src.includes("if (!c) return 'Economy'"));
+  });
+
+  await section('Booking detail — cabin class defaults to economy on all segments (not just first)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    // Must apply economy default to ALL segments via the full fallback chain
+    assert('fallback chain applies to all segments (no i===0 gate)', src.includes("seg.cabin_class ?? booking.cabin_class ?? 'economy'"));
+    // Old i===0 limited fallback must be gone
+    assert('old i===0 fallback removed', !src.includes("i === 0 ? 'economy'"));
+  });
+
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
