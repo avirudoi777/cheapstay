@@ -548,7 +548,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [cardErrors, setCardErrors] = useState<Partial<CardForm>>({});
   const [booking, setBooking] = useState(false);
   const [bookingError, setBookingError] = useState('');
-  const [confirmation, setConfirmation] = useState<{ reference: string; amount: number; currency: string; held?: boolean; paymentRequiredBy?: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ reference: string; amount: number; currency: string; held?: boolean; paymentRequiredBy?: string; orderId?: string } | null>(null);
   const [savePassenger, setSavePassenger] = useState(false);
   const [holdMode, setHoldMode] = useState(false);
   // Live countdown for offer expiry
@@ -944,17 +944,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         throw new Error(detail);
       }
 
-      setConfirmation({
-        reference: order.bookingReference,
-        amount: grossAmount,
-        currency: offer.totalCurrency,
-        held: order.status === 'held',
-        paymentRequiredBy: order.paymentRequirements?.requires_payment_by ?? order.paymentRequirements?.payment_required_by,
-      });
       setBookStep('confirmed');
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       // Save booking client-side as belt-and-suspenders (server-side save may fail if cookie not forwarded)
+      // Also look up the Supabase row UUID for the "View booking" deep-link navigation.
+      let supabaseBookingId: string | undefined;
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
@@ -980,7 +975,23 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           passengers_count: forms.length,
           passenger_names: forms.map(f => `${f.givenName} ${f.familyName}`),
         });
+        // Get the Supabase row UUID — server-side save runs first so it should exist by now
+        const { data: savedRow } = await supabase
+          .from('flight_bookings')
+          .select('id')
+          .eq('duffel_order_id', order.orderId)
+          .single();
+        supabaseBookingId = savedRow?.id;
       } catch { /* best-effort */ }
+
+      setConfirmation({
+        reference: order.bookingReference,
+        amount: grossAmount,
+        currency: offer.totalCurrency,
+        held: order.status === 'held',
+        paymentRequiredBy: order.paymentRequirements?.requires_payment_by ?? order.paymentRequirements?.payment_required_by,
+        orderId: supabaseBookingId ?? order.orderId,
+      });
 
       // Save passenger profiles if checkbox was checked
       if (savePassenger) {
@@ -2681,10 +2692,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
         {/* CTA buttons */}
         <div className="mt-4 space-y-2.5">
-          <button onClick={() => window.location.href = '/bookings'}
+          <button onClick={() => window.location.href = confirmation.orderId ? `/bookings/${confirmation.orderId}` : '/bookings'}
             className="w-full py-3.5 rounded-2xl text-sm font-bold text-white transition-opacity hover:opacity-90"
             style={{ background: isHeld ? 'linear-gradient(135deg, #D97706, #B45309)' : accentHex }}>
-            {isHeld ? 'Pay now to confirm seat →' : 'View my bookings →'}
+            {isHeld ? 'Pay now to confirm seat →' : 'View booking details →'}
           </button>
           <button onClick={onClear}
             className="w-full py-3 rounded-2xl text-sm font-semibold transition-colors"
