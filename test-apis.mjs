@@ -618,6 +618,30 @@ if (runUnit) {
     assert('getAdminClient returns null when key missing', src.includes('if (!url || !key) return null'));
   });
 
+  // ── Cancel route — 422 not 502 for user-facing errors ─────────────────────
+  await section('Cancel — user-facing Duffel errors return 422 not 502', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
+    assert('non-refundable error matched', src.includes('non-refundable') || src.includes('not refundable'));
+    assert('already cancelled error matched', src.includes('already been cancelled') || src.includes('already cancelled'));
+    assert('airline responded error matched', src.includes('airline responded'));
+    assert('unexpected error matched', src.includes('unexpected error'));
+    assert('user errors return 422 not 502', src.includes('isUserError ? 422 : 502'));
+    assert('airline passthrough gets translated message', src.includes('fare may be non-refundable') || src.includes('non-refundable'));
+  });
+
+  // ── Cancel button — hidden when non-refundable; uses Duffel order conditions ──
+  await section('Cancel button — gated on order.conditions.refund_before_departure', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    // cp must prefer live order conditions over stored Supabase value
+    assert('cp derived from order.conditions.refund_before_departure', src.includes('order?.conditions?.refund_before_departure'));
+    assert('cp falls back to booking.cancellation_policy if order not loaded', src.includes('booking.cancellation_policy'));
+    // cp.allowed === false must hide the cancel button (not just show a label)
+    assert('cp.allowed === false shows non-refundable block instead of button', src.includes("cp?.allowed === false"));
+    // Cancel button is disabled while order is loading (don't know policy yet)
+    assert('cancel button disabled while orderLoading', src.includes('disabled={orderLoading}'));
+    assert('cancel button shows Loading while order loads', src.includes("orderLoading ? 'Loading…'"));
+  });
+
   // ── Companion isChild flag ───────────────────────────────────────────────
   await section('Companions — isChild flag', async () => {
     const accountSrc = readFileSync(resolve(__dir, 'frontend-next/app/account/page.tsx'), 'utf8');

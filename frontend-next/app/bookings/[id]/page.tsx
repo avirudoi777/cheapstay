@@ -414,8 +414,12 @@ export default function ManageBookingPage() {
   const isPast = new Date(booking.departure_at) < new Date();
   const canCancel = !isCancelled && !isHeld && !isPast;
 
-  // Derive cancellation policy display
-  const cp = booking.cancellation_policy;
+  // Derive cancellation policy — prefer live Duffel order conditions over stored Supabase value
+  // (Supabase value may be null for older bookings; order.conditions is always up-to-date)
+  const orderRefund = order?.conditions?.refund_before_departure;
+  const cp = orderRefund
+    ? { allowed: orderRefund.allowed, penalty_amount: orderRefund.penalty_amount ? parseFloat(orderRefund.penalty_amount) : null, penalty_currency: orderRefund.penalty_currency ?? null }
+    : booking.cancellation_policy;
   const cancelPolicyLabel = !cp ? null
     : !cp.allowed ? { text: 'Non-refundable', color: '#DC2626', bg: '#FEF2F2' }
     : cp.penalty_amount ? { text: `Cancel fee: ${fmtPrice(cp.penalty_amount, cp.penalty_currency ?? 'USD')}`, color: '#B45309', bg: '#FFFBEB' }
@@ -901,9 +905,10 @@ export default function ManageBookingPage() {
                 </div>
               )}
               <button onClick={() => { setCancelError(''); setShowCancelModal(true); }}
-                className="w-full py-3 rounded-xl text-sm font-bold transition"
+                disabled={orderLoading}
+                className="w-full py-3 rounded-xl text-sm font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FECACA' }}>
-                Cancel booking
+                {orderLoading ? 'Loading…' : 'Cancel booking'}
               </button>
             </div>
           )}
