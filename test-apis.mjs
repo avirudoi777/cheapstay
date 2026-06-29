@@ -1607,6 +1607,16 @@ if (runUnit) {
     assert('no extrasTotal delta in button label', !src.includes('Continue with +'));
   });
 
+  // ── Price breakdown — Add-ons label replaced with descriptive seat/bag label ──
+  await section('Price breakdown — extras label is descriptive (Seat selection / Baggage / Seat & baggage)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert('no generic Add-ons label in price breakdown', !src.includes('>Add-ons<'));
+    assert('Seat selection label shown when seats selected', src.includes("'Seat selection'") || src.includes('"Seat selection"'));
+    assert('Baggage label shown when bags selected', src.includes("'Baggage'") || src.includes('"Baggage"'));
+    assert('Seat & baggage label for mixed', src.includes("'Seat & baggage'") || src.includes('"Seat & baggage"'));
+    assert('seat emoji shown in extras label', src.includes("'💺 {extrasLabel}'") || src.includes('💺 {extrasLabel}'));
+  });
+
   // ── Duffel order — payment amount includes extras (seat/bag price) ────────
   await section('Duffel order — payment amount = refreshed offer base + extrasAmount', async () => {
     const routeSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');

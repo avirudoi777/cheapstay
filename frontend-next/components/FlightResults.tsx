@@ -2215,12 +2215,19 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     <span>Taxes and fees</span>
                     <span>{fmtPrice(offer.totalAmount * 0.2, offer.totalCurrency)}</span>
                   </div>
-                  {extrasTotal > 0 && (
-                    <div className="flex justify-between text-xs font-semibold" style={{ color: '#1D9E75' }}>
-                      <span>Add-ons</span>
-                      <span>+{fmtPrice(extrasTotal, offer.totalCurrency)}</span>
-                    </div>
-                  )}
+                  {extrasTotal > 0 && (() => {
+                    const hasSeats = Object.values(seatSelections).some(Boolean);
+                    const hasBags = selectedServices.some(ss =>
+                      selectedOffer?.availableServices.some(a => a.id === ss.serviceId && a.type === 'baggage')
+                    );
+                    const extrasLabel = hasSeats && hasBags ? 'Seat & baggage' : hasSeats ? 'Seat selection' : 'Baggage';
+                    return (
+                      <div className="flex justify-between text-xs font-semibold" style={{ color: '#1D9E75' }}>
+                        <span>💺 {extrasLabel}</span>
+                        <span>+{fmtPrice(extrasTotal, offer.totalCurrency)}</span>
+                      </div>
+                    );
+                  })()}
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>Service fee</span>
                     <span>{fmtPrice(SERVICE_FEE, offer.totalCurrency)}</span>
