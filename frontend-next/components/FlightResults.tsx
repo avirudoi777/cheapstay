@@ -998,10 +998,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       setSeatSelections(prev => {
         const prev_svcId = prev[key];
         const newSel = { ...prev, [key]: prev_svcId === svcId ? '' : svcId };
-        const allSeatServiceIds = offer.availableServices.filter(s => s.type === 'seat').map(s => s.id);
+        // Use ALL previously selected seat IDs (from the seat map) as the set to clear —
+        // offer.availableServices does not contain seat map IDs, so using that would leave
+        // stale IDs in selectedServices and cause Duffel "duplicate services" errors.
+        const prevSeatServiceIds = Object.values(prev).filter(Boolean);
         const seatSvcIds = Object.values(newSel).filter(Boolean);
         setSelectedServices(prev2 => [
-          ...prev2.filter(s => !allSeatServiceIds.includes(s.serviceId)),
+          ...prev2.filter(s => !prevSeatServiceIds.includes(s.serviceId)),
           ...seatSvcIds.map(id => ({ serviceId: id, quantity: 1 })),
         ]);
         return newSel;

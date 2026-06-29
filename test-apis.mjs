@@ -1462,10 +1462,11 @@ if (runUnit) {
     assert('amber badge for Business/First on list card', src.includes("'business'" ) && src.includes("'first'") && src.includes('#B45309'));
   });
 
-  await section('Seat selection — selectSeat adds to selectedServices (not filtered by availableServices)', async () => {
+  await section('Seat selection — selectSeat clears previous seat map IDs to prevent Duffel duplicates', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
-    // selectSeat must update selectedServices by combining non-seat services + new seat selections
-    assert('selectSeat replaces old seat selections atomically', src.includes('allSeatServiceIds') && src.includes('seatSvcIds'));
+    // Must use previously-selected seat IDs (from seatSelections state) to clear stale entries —
+    // NOT offer.availableServices which doesn't include seat map IDs → would leave duplicates
+    assert('prevSeatServiceIds built from Object.values(prev) not offer.availableServices', src.includes('prevSeatServiceIds = Object.values(prev).filter(Boolean)') && !src.includes('allSeatServiceIds = offer.availableServices'));
     // seat IDs from seat map go into selectedServices
     assert('seat map IDs added to selectedServices', src.includes('seatSvcIds.map(id => ({ serviceId: id, quantity: 1 }))'));
     // the toggle: selecting same seat again deselects it
