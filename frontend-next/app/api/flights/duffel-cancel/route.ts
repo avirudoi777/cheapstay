@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 
+export const maxDuration = 60;
+
 // Admin client bypasses RLS — used only for status updates where user session
 // may not match row's user_id (e.g. test bookings with null user_id).
 function getAdminClient() {

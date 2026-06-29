@@ -1009,7 +1009,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           passenger_names: forms.map(f => `${f.givenName} ${f.familyName}`),
           extras_amount: extrasTotal,
           seat_selections: seatSelDetails,
-        }, { onConflict: 'duffel_order_id', ignoreDuplicates: false });
+        }, { onConflict: 'duffel_order_id', ignoreDuplicates: true });
         // Get the Supabase row UUID — server-side save runs first so it should exist by now
         const { data: savedRow } = await supabase
           .from('flight_bookings')

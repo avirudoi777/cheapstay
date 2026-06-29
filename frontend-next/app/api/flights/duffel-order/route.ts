@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
+
+export const maxDuration = 60; // Duffel order creation can take 15–30s for complex itineraries
+
+function getAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createAdminClient(url, key);
+}
 
 const DUFFEL = 'https://api.duffel.com';
 
@@ -132,8 +142,8 @@ export async function POST(req: NextRequest) {
 
     // Save booking to Supabase (best-effort — don't fail the booking if this errors)
     try {
-      // Reuse the auth client and user from the top-level check — avoids a second getUser() call
-      const supabase = supabaseAuth;
+      // Admin client bypasses RLS — user session may not forward correctly on Vercel
+      const supabase = getAdminClient() ?? supabaseAuth;
       // user is guaranteed non-null here (we returned 401 above if null)
       const slice = order.slices?.[0];
       const segs = slice?.segments ?? [];

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const maxDuration = 60;
+
 const DUFFEL = 'https://api.duffel.com';
 
 // Your service fee per booking (in the offer's currency)
