@@ -173,22 +173,37 @@ export async function POST(req: NextRequest) {
         ) ?? [],
       };
 
-      // Try full insert with cancellation_policy; fall back to base row if column missing
-      const { error: insertErr } = await supabase.from('flight_bookings').insert({
-        ...baseRow,
-        cancellation_policy: cancellationPolicy,
-      });
+      // Upsert on duffel_order_id so retries / double-clicks don't 409 — the booking
+      // is already saved on the first attempt; a second identical call just updates it.
+      // Fallback chain: full row → without cancellation_policy → bare baseRow (extras_amount may not exist yet)
+      const fullRow = { ...baseRow, cancellation_policy: cancellationPolicy };
+      const { error: upsertErr } = await supabase
+        .from('flight_bookings')
+        .upsert(fullRow, { onConflict: 'duffel_order_id', ignoreDuplicates: false });
 
-      if (insertErr) {
-        console.error('Full insert failed, retrying without cancellation_policy:', insertErr.message);
-        const { error: retryErr } = await supabase.from('flight_bookings').insert(baseRow);
-        if (retryErr) console.error('Retry insert also failed:', retryErr.message);
+      let finalErr = upsertErr;
+      if (upsertErr) {
+        console.error('Upsert failed, retrying without cancellation_policy:', upsertErr.message);
+        const { error: e2 } = await supabase
+          .from('flight_bookings')
+          .upsert(baseRow, { onConflict: 'duffel_order_id', ignoreDuplicates: false });
+        finalErr = e2;
+        if (e2) {
+          // Last resort: strip extras_amount in case column migration hasn't run yet
+          console.error('Retry failed, stripping extras_amount:', e2.message);
+          const { extras_amount: _x, ...bareRow } = baseRow;
+          const { error: e3 } = await supabase
+            .from('flight_bookings')
+            .upsert(bareRow, { onConflict: 'duffel_order_id', ignoreDuplicates: false });
+          finalErr = e3;
+          if (e3) console.error('All upsert attempts failed:', e3.message);
+        }
       }
 
       // Expose save debug so we can diagnose in the network tab
       (order as Record<string, unknown>)._saveDebug = {
         userId: user?.id ?? null,
-        insertError: insertErr?.message ?? null,
+        insertError: finalErr?.message ?? null,
       };
     } catch (saveErr) {
       console.error('Failed to save booking to Supabase:', saveErr);

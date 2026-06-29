@@ -554,7 +554,7 @@ if (runUnit) {
 
   await section('Checkout — duffel-order saves booking to Supabase', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');
-    assert('inserts into flight_bookings', src.includes("from('flight_bookings').insert"));
+    assert('inserts into flight_bookings', src.includes("from('flight_bookings')") && (src.includes('.insert(') || src.includes('.upsert(')));
     assert('saves duffel_order_id', src.includes('duffel_order_id'));
     assert('saves booking_reference', src.includes('booking_reference'));
     assert('saves passenger_names', src.includes('passenger_names'));
