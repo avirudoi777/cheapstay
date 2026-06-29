@@ -242,6 +242,32 @@ const GUIDES: Record<string, LayoverGuide> = {
       { icon: '🛍️', title: 'Passenger Terminal 1 mall', desc: 'Full shopping mall airside — clothes, books, electronics, pharmacies.' },
     ],
   },
+  FCO: {
+    airport: 'Rome Fiumicino (Leonardo da Vinci) Airport',
+    city: 'Rome',
+    flag: '🇮🇹',
+    cityImage: 'photo-1552832230-c0197dd311b5',
+    lounges: 'Sala Alata Lounge T3 (pay ~€35, includes food and drinks); Air France/KLM Lounge T3 (Sky Priority/Business)',
+    tips: [
+      { icon: '🍕', title: 'Real pizza in Rome (45 min)', desc: 'Leonardo Express train to Termini station is 32 min (€14). Campo de\' Fiori and Trastevere are 15 min walk — get a pizza al taglio from any bakery, not sit-down.' },
+      { icon: '🚆', title: 'Leonardo Express', desc: 'Non-stop train from FCO to Roma Termini every 15 min. Buy at the machine to avoid queues. Runs 06:23–23:23.' },
+      { icon: '🍝', title: 'Pasta vs tourist traps', desc: 'Avoid restaurants near Trevi Fountain and the Colosseum — they charge 3× the price. Walk 2 blocks in any direction for real local spots.' },
+      { icon: '🗣️', title: 'Language', desc: 'Italian. Ciao (hi/bye), Grazie (thanks), Per favore (please), Dov\'è il bagno? (Where\'s the toilet?). Most airport staff speak English.' },
+    ],
+  },
+  TLV: {
+    airport: 'Ben Gurion International Airport',
+    city: 'Tel Aviv',
+    flag: '🇮🇱',
+    cityImage: 'photo-1544967082-d9d25d867d66',
+    lounges: 'El Al King David Lounge T3 (El Al Business/Platinum); Fattal Priority Lounge T3 (pay ~$40, includes hot food); Plaza Premium Lounge T3 (pay ~$45)',
+    tips: [
+      { icon: '🏖️', title: 'Tel Aviv beach (25 min)', desc: 'Sherut (shared taxi) from the airport is ~₪30, runs at all hours. The promenade between Jaffa and Gordon Beach is iconic — perfect for a layover.' },
+      { icon: '🧆', title: 'Hummus for breakfast', desc: 'Abu Hassan in Jaffa or HaKosem in central Tel Aviv — Israelis eat hummus in the morning and it\'s a cultural experience. Open early.' },
+      { icon: '🔐', title: 'Security is thorough', desc: 'Ben Gurion has the world\'s most rigorous airport security. Allow 3h+ before your flight, especially non-Israeli passport holders. Questions are standard.' },
+      { icon: '🗣️', title: 'Language', desc: 'Hebrew and Arabic. Shalom (hello/goodbye/peace), Toda (thanks), Bevakasha (please/you\'re welcome). English is very widely spoken — you\'ll have no trouble.' },
+    ],
+  },
   CDG: {
     airport: 'Paris Charles de Gaulle',
     city: 'Paris',

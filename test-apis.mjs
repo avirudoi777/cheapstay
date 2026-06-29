@@ -1623,6 +1623,29 @@ if (runUnit) {
     assert('client sends extrasAmount to duffel-order', clientSrc.includes('extrasAmount: extrasTotal.toFixed(2)'));
   });
 
+  // ── Booking detail — outbound/return separation ────────────────────────────
+  await section('Booking detail — round-trip renders outbound/return headers per slice', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    // Must iterate order.slices not allSegs
+    assert('iterates order.slices not flat allSegs', src.includes('order?.slices') && src.includes('.map((slice, sliceIdx)'));
+    // Must show outbound/return header when slices.length > 1
+    assert('shows Outbound label for first slice', src.includes("'Outbound'") || src.includes('"Outbound"'));
+    assert('shows Return label for subsequent slices', src.includes("'Return'") || src.includes('"Return"'));
+    // Layover dividers still work within each slice
+    assert('layover dividers still use seg.origin.city_name', src.includes('Layover · {seg.origin.city_name'));
+  });
+
+  // ── Layover guides — FCO and TLV added ────────────────────────────────────
+  await section('Layover guides — FCO (Rome) and TLV (Tel Aviv) have guide data', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/lib/layover-guides.ts'), 'utf8');
+    assert('FCO guide defined', src.includes('FCO:') && src.includes('Rome'));
+    assert('FCO has language tip', src.includes('Italian') || src.includes('Grazie'));
+    assert('TLV guide defined', src.includes('TLV:') && src.includes('Tel Aviv'));
+    assert('TLV has language tip', src.includes('Hebrew') || src.includes('Shalom'));
+    assert('TLV has lounges info', src.includes('Ben Gurion'));
+    assert('FCO has lounges info', src.includes('Fiumicino'));
+  });
+
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

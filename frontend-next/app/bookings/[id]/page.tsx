@@ -613,8 +613,26 @@ export default function ManageBookingPage() {
           )}
           {allSegs.length > 0 ? (
             <div className="space-y-5">
-              {allSegs.map((seg, i) => (
-                <div key={i}>
+              {(order?.slices ?? [{ segments: allSegs }]).map((slice, sliceIdx) => (
+                <div key={sliceIdx}>
+                  {/* Outbound / Return header — only for multi-slice (round-trip) */}
+                  {(order?.slices?.length ?? 0) > 1 && (() => {
+                    const first = slice.segments[0];
+                    const last = slice.segments[slice.segments.length - 1];
+                    const isReturn = sliceIdx > 0;
+                    return (
+                      <div className={`flex items-center gap-2 ${sliceIdx > 0 ? 'mt-6' : ''} mb-4`}>
+                        <div className="flex-1 border-t-2" style={{ borderColor: isReturn ? '#E0E7FF' : '#D1FAE5' }} />
+                        <span className="text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5"
+                          style={{ background: isReturn ? '#EEF2FF' : '#ECFDF5', color: isReturn ? '#4338CA' : '#065F46' }}>
+                          {isReturn ? '↩' : '✈'} {isReturn ? 'Return' : 'Outbound'} · {first.origin.iata_code} → {last.destination.iata_code}
+                        </span>
+                        <div className="flex-1 border-t-2" style={{ borderColor: isReturn ? '#E0E7FF' : '#D1FAE5' }} />
+                      </div>
+                    );
+                  })()}
+                  {slice.segments.map((seg, i) => (
+                  <div key={i}>
                   {i > 0 && (
                     <div className="flex items-center gap-2 my-4">
                       <div className="flex-1 border-t border-dashed border-amber-200" />
@@ -698,6 +716,8 @@ export default function ManageBookingPage() {
                       </span>
                     )}
                   </div>
+                </div>
+              ))}
                 </div>
               ))}
             </div>
