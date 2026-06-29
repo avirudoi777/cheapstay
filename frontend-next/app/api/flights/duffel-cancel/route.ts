@@ -160,11 +160,18 @@ export async function POST(req: NextRequest) {
       dl.includes('after departure') ||
       dl.includes('window has passed') ||
       dl.includes('no longer available') ||
+      dl.includes('airline responded') ||
+      dl.includes('unexpected error') ||
       code === 'not_supported' ||
       code === 'already_cancelled';
 
+    // Translate airline passthrough errors into something actionable for the user
+    const userDetail = (dl.includes('airline responded') || dl.includes('unexpected error'))
+      ? 'The airline couldn\'t process this cancellation — this fare may be non-refundable. If you need to cancel, please contact your airline directly using the booking reference.'
+      : detail;
+
     return NextResponse.json(
-      { error: 'cancel_failed', detail },
+      { error: 'cancel_failed', detail: userDetail },
       { status: isUserError ? 422 : 502 },
     );
   }
