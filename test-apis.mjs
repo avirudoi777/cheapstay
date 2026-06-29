@@ -1584,6 +1584,29 @@ if (runUnit) {
     assert('prefetch guards against past dates', src.includes('iso < todayISO') && src.includes('skip past dates'));
   });
 
+  // ── Seat colors — single blue for selected, no selFree/selPaid split ─────
+  await section('Seat map — selected seat always uses single blue color (not amber/green split)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Single sel color in SEAT_COLORS constant
+    assert('SEAT_COLORS.sel defined with blue', src.includes("sel:") && src.includes("'#2563EB'"));
+    // selFree and selPaid must be gone
+    assert('selFree removed from SEAT_COLORS', !src.includes('selFree:'));
+    assert('selPaid removed from SEAT_COLORS', !src.includes('selPaid:'));
+    // Both seat button blocks use SEAT_COLORS.sel.bg
+    const selBgCount = (src.match(/SEAT_COLORS\.sel\.bg/g) ?? []).length;
+    assert('SEAT_COLORS.sel.bg used in both seat button blocks', selBgCount >= 2);
+    // Legend selected swatch matches the blue
+    assert('legend selected swatch uses blue 2563EB', src.includes("selected: { bg: '#2563EB'"));
+  });
+
+  // ── Continue button — no extras delta in label ────────────────────────────
+  await section('Continue button — no extras price shown in label', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Button must just say "Continue to payment" — no +$XX delta
+    assert('button label is plain Continue to payment', src.includes('Continue to payment →'));
+    assert('no extrasTotal delta in button label', !src.includes('Continue with +'));
+  });
+
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
