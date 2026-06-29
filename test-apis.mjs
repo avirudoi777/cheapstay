@@ -1647,6 +1647,10 @@ if (runUnit) {
     assert('FlightBooking interface has extras_amount field', src.includes('extras_amount?:'));
     // Price per seat is split evenly across seat services
     assert('pricePerSeat = extrasTotal / seatSvcs.length', src.includes('extrasTotal / seatSvcs.length'));
+    // Seat lines show immediately (before Duffel order loads) if extras > 0
+    assert('seat lines shown immediately when orderLoading and extras > 0', src.includes('orderLoading') && src.includes('Seat selection'));
+    // After order loads: individual seat lines with route labels
+    assert('per-seat lines with route label after order loads', src.includes('seg.origin.iata_code') && src.includes('seg.destination.iata_code'));
   });
 
   await section('Booking detail — round-trip renders outbound/return headers per slice', async () => {

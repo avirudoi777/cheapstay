@@ -767,36 +767,48 @@ export default function ManageBookingPage() {
         <Section title="Payment">
           <div className="space-y-2">
             {(() => {
-              // Duffel's GET /air/orders/{id} does NOT return total_amount on services.
-              // We save extras_amount to Supabase at booking time and use it here.
+              // extras_amount is saved to Supabase at booking time — Duffel GET order
+              // does NOT return pricing on services, so we never read svc.total_amount here.
               const extrasTotal = booking.extras_amount ?? 0;
               const flightFare = Math.max(0, booking.total_amount - 10 - extrasTotal);
               const svcs = order?.services ?? [];
               const seatSvcs = svcs.filter(s => s.type === 'seat');
               const pricePerSeat = seatSvcs.length > 0 ? extrasTotal / seatSvcs.length : 0;
+
+              // Build seat lines: show immediately if extras > 0, enhance with per-seat
+              // labels once the Duffel order finishes loading.
+              type SeatLine = { key: string; label: string; price: number };
+              const seatLines: SeatLine[] = orderLoading
+                ? (extrasTotal > 0 ? [{ key: 'loading', label: '💺 Seat selection', price: extrasTotal }] : [])
+                : seatSvcs.map((svc, i) => {
+                    const seg = allSegs.find(s => svc.segment_ids?.includes(s.id));
+                    const label = `💺 Seat ${svc.metadata?.designator ?? ''}${seg ? ` · ${seg.origin.iata_code}→${seg.destination.iata_code}` : ''}`.trim();
+                    return { key: svc.id ?? String(i), label, price: pricePerSeat };
+                  });
+
               return (
                 <>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-500">Flight fare</span>
                     <span className="text-sm text-gray-900 font-semibold">{fmtPrice(flightFare, booking.currency)}</span>
                   </div>
-                  {svcs.map((svc, i) => {
-                    const seg = allSegs.find(s => svc.segment_ids?.includes(s.id));
-                    const label = svc.type === 'seat'
-                      ? `Seat ${svc.metadata?.designator ?? ''}${seg ? ` · ${seg.origin.iata_code}→${seg.destination.iata_code}` : ''}`.trim()
-                      : svc.type === 'baggage'
-                      ? `Extra bag ×${svc.quantity}`
-                      : svc.type;
-                    const price = svc.type === 'seat' ? pricePerSeat : 0;
-                    return (
-                      <div key={i} className="flex justify-between items-center">
-                        <span className="text-sm text-gray-500 capitalize">{label}</span>
-                        <span className="text-sm font-semibold" style={{ color: price > 0 ? '#1D9E75' : '#9CA3AF' }}>
-                          {price > 0 ? `+${fmtPrice(price, booking.currency)}` : 'included'}
-                        </span>
-                      </div>
-                    );
-                  })}
+                  {seatLines.map(({ key, label, price }) => (
+                    <div key={key} className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">{label}</span>
+                      <span className="text-sm font-semibold" style={{ color: price > 0 ? '#1D9E75' : '#9CA3AF' }}>
+                        {price > 0 ? `+${fmtPrice(price, booking.currency)}` : 'included'}
+                      </span>
+                    </div>
+                  ))}
+                  {/* Non-seat services (bags etc.) — always wait for order */}
+                  {svcs.filter(s => s.type !== 'seat').map((svc, i) => (
+                    <div key={i} className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500 capitalize">
+                        {svc.type === 'baggage' ? `Extra bag ×${svc.quantity}` : svc.type}
+                      </span>
+                      <span className="text-sm text-gray-400">included</span>
+                    </div>
+                  ))}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-500">Service fee</span>
                     <span className="text-sm text-gray-900 font-semibold">{fmtPrice(10, booking.currency)}</span>
