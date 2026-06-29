@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 interface SegmentAmenity { desc: string; cost: string }
-function fmtCabin(c: string) {
+function fmtCabin(c: string | undefined) {
   return c === 'premium_economy' ? 'Premium Economy'
     : c === 'business' ? 'Business'
     : c === 'first' ? 'First Class'
@@ -1686,105 +1686,108 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       Checking seat availability…
                     </div>
                   )}
-                  {!seatMapsLoading && seatMaps && seatMaps.length === 0 && (
-                    <p className="text-sm text-gray-500">Seat selection isn&apos;t available for this flight. You can choose your seat during online check-in.</p>
-                  )}
-                  {!seatMapsLoading && seatMaps && seatMaps.length > 0 && (
+                  {!seatMapsLoading && seatMaps && (
                     <div className="mt-4 space-y-5">
-                      {seatMaps.map(sm => {
-                        const seg = (offer.allSegments ?? offer.segments).find(s => s.segmentId === sm.segmentId);
-                        const cabin = sm.cabins[0];
-                        if (!cabin) return null;
-                        const cabinLabel = fmtCabin(seg?.cabinClass ?? cabin.cabinClass);
-                        const smIdx = seatMaps!.indexOf(sm);
-                        return (
-                          <div key={sm.segmentId}>
-                            {seatMaps!.length > 1 && (
-                              <div className="flex items-center gap-2 mb-3">
-                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: '#0F172A', color: 'white' }}>
-                                  LEG {smIdx + 1}
-                                </span>
-                                <p className="text-sm font-bold text-gray-800">
-                                  {seg ? `${seg.depCode} → ${seg.arrCode}` : `Segment ${smIdx + 1}`}
-                                </p>
-                                <span className="text-xs text-gray-400">{cabinLabel}</span>
+                      {(() => {
+                        const allSegsDisplay = offer.allSegments ?? offer.segments;
+                        const smBySegId = new Map(seatMaps!.map(sm => [sm.segmentId, sm]));
+                        const showNums = allSegsDisplay.length > 1;
+                        return allSegsDisplay.map((seg, segIdx) => {
+                          const sm = smBySegId.get(seg.segmentId ?? '');
+                          const flightHeader = showNums ? (
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: '#0F172A', color: 'white' }}>Flight {segIdx + 1}</span>
+                              <p className="text-sm font-bold text-gray-800">{seg.depCode} → {seg.arrCode}</p>
+                              <span className="text-xs text-gray-400">{fmtCabin(seg.cabinClass)}</span>
+                            </div>
+                          ) : (
+                            <p className="text-xs font-bold text-gray-500 mb-3">{seg.depCode} → {seg.arrCode} · {fmtCabin(seg.cabinClass)}</p>
+                          );
+                          if (!sm) {
+                            return (
+                              <div key={seg.segmentId ?? segIdx} className="rounded-2xl border border-dashed border-gray-200 p-5" style={{ background: '#F8FAFC' }}>
+                                {flightHeader}
+                                <p className="text-xs text-gray-400">Seat selection not available — choose your seat during online check-in.</p>
                               </div>
-                            )}
-                            {seatMaps!.length === 1 && (
-                              <p className="text-xs font-bold text-gray-500 mb-3">
-                                {seg ? `${seg.depCode} → ${seg.arrCode} · ${cabinLabel}` : `Segment 1 · ${cabinLabel}`}
-                              </p>
-                            )}
-                            {offer.passengerIds.map((paxId, pi) => (
-                              <div key={paxId} className="mb-4">
-                                {offer.passengerIds.length > 1 && (
-                                  <p className="text-xs font-semibold text-gray-400 mb-2">Passenger {pi + 1}</p>
-                                )}
-                                <div className="overflow-x-auto">
-                                  <div className="inline-block">
-                                    {cabin.rows.map((row, ri) => (
-                                      <div key={ri} className="flex gap-1 mb-1">
-                                        {row.sections.map((sec, si) => (
-                                          <div key={si} className="flex gap-1">
-                                            {si > 0 && <div className="w-5" />}
-                                            {sec.elements.map((el, ei) => {
-                              if (el.type === 'lavatory') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-sm" style={{ background: '#E0F2FE', border: '1px solid #BAE6FD' }} title="Restroom">🚽</div>;
-                              if (el.type === 'galley') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-sm" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }} title="Galley">☕</div>;
-                              if (el.type === 'stairs') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-xs text-gray-400" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }} title="Stairs">↕</div>;
-                              if (el.type !== 'seat') return <div key={ei} className="w-8 h-8" />;
-                                                              const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
-                                              const available = !!paxSvc;
-                                              const mapKey = `${sm.segmentId}_${paxId}`;
-                                              const selected = !!paxSvc?.id && seatSelections[mapKey] === paxSvc.id;
-                                              const seatPrice = paxSvc ? parseFloat(paxSvc.total_amount) : 0;
-                                              const isSeatPaid = seatPrice > 0;
-                                              return (
-                                                <button key={ei} disabled={!available}
-                                                  onClick={() => paxSvc && selectSeat(sm.segmentId, paxId, paxSvc.id)}
-                                                  title={`${el.designator ?? ''}${paxSvc ? ` · ${isSeatPaid ? '+' + fmtPrice(seatPrice, paxSvc.total_currency) : 'Free'}` : ''}`}
-                                                  className="w-8 h-8 rounded flex flex-col items-center justify-center transition-colors gap-0"
-                                                  style={{
-                                                    background: selected ? SEAT_COLORS.sel.bg : available ? (isSeatPaid ? SEAT_COLORS.paid.bg : SEAT_COLORS.free.bg) : SEAT_COLORS.taken.bg,
-                                                    color: selected ? 'white' : available ? (isSeatPaid ? SEAT_COLORS.paid.text : SEAT_COLORS.free.text) : SEAT_COLORS.taken.text,
-                                                    border: selected ? `1.5px solid ${SEAT_COLORS.sel.border}` : available ? `1px solid ${isSeatPaid ? SEAT_COLORS.paid.border : SEAT_COLORS.free.border}` : `1px solid ${SEAT_COLORS.taken.border}`,
-                                                    cursor: available ? 'pointer' : 'not-allowed',
-                                                  }}>
-                                                  <span className="text-[10px] font-bold leading-none">{el.designator?.replace(/\d+/, '') ?? ''}</span>
-                                                  {available && seatPrice > 0 && <span className="text-[7px] leading-none opacity-80">+${Math.round(seatPrice)}</span>}
-                                                </button>
-                                              );
-                                            })}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ))}
+                            );
+                          }
+                          const cabin = sm.cabins[0];
+                          if (!cabin) return null;
+                          const cabinLabel = fmtCabin(seg.cabinClass ?? cabin.cabinClass);
+                          return (
+                            <div key={sm.segmentId}>
+                              {showNums ? (
+                                <div className="flex items-center gap-2 mb-3">
+                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: '#0F172A', color: 'white' }}>Flight {segIdx + 1}</span>
+                                  <p className="text-sm font-bold text-gray-800">{seg.depCode} → {seg.arrCode}</p>
+                                  <span className="text-xs text-gray-400">{cabinLabel}</span>
+                                </div>
+                              ) : (
+                                <p className="text-xs font-bold text-gray-500 mb-3">{seg.depCode} → {seg.arrCode} · {cabinLabel}</p>
+                              )}
+                              {offer.passengerIds.map((paxId, pi) => (
+                                <div key={paxId} className="mb-4">
+                                  {offer.passengerIds.length > 1 && (
+                                    <p className="text-xs font-semibold text-gray-400 mb-2">Passenger {pi + 1}</p>
+                                  )}
+                                  <div className="overflow-x-auto">
+                                    <div className="inline-block">
+                                      {cabin.rows.map((row, ri) => (
+                                        <div key={ri} className="flex gap-1 mb-1">
+                                          {row.sections.map((sec, si) => (
+                                            <div key={si} className="flex gap-1">
+                                              {si > 0 && <div className="w-5" />}
+                                              {sec.elements.map((el, ei) => {
+                                                if (el.type === 'lavatory') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-sm" style={{ background: '#E0F2FE', border: '1px solid #BAE6FD' }} title="Restroom">🚽</div>;
+                                                if (el.type === 'galley') return <div key={ei} className="w-8 h-8 rounded flex flex-col items-center justify-center" style={{ background: '#F1F5F9', border: '1px solid #E2E8F0' }} title="Crew area"><span className="text-[7px] font-bold text-gray-400 uppercase leading-none">CREW</span></div>;
+                                                if (el.type === 'stairs') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-xs text-gray-400" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }} title="Stairs">↕</div>;
+                                                if (el.type !== 'seat') return <div key={ei} className="w-8 h-8" />;
+                                                const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
+                                                const available = !!paxSvc;
+                                                const mapKey = `${sm.segmentId}_${paxId}`;
+                                                const selected = !!paxSvc?.id && seatSelections[mapKey] === paxSvc.id;
+                                                // Use offer's service price (what Duffel actually charges), fall back to seat map price
+                                                const seatPrice = paxSvc
+                                                  ? (offer.availableServices.find(s => s.id === paxSvc.id)?.totalAmount ?? parseFloat(paxSvc.total_amount))
+                                                  : 0;
+                                                const isSeatPaid = seatPrice > 0;
+                                                return (
+                                                  <button key={ei} disabled={!available}
+                                                    onClick={() => paxSvc && selectSeat(sm.segmentId, paxId, paxSvc.id)}
+                                                    title={`${el.designator ?? ''}${paxSvc ? ` · ${isSeatPaid ? '+' + fmtPrice(seatPrice, offer.totalCurrency) : 'Free'}` : ''}`}
+                                                    className="w-8 h-8 rounded flex flex-col items-center justify-center transition-colors gap-0"
+                                                    style={{
+                                                      background: selected ? SEAT_COLORS.sel.bg : available ? (isSeatPaid ? SEAT_COLORS.paid.bg : SEAT_COLORS.free.bg) : SEAT_COLORS.taken.bg,
+                                                      color: selected ? 'white' : available ? (isSeatPaid ? SEAT_COLORS.paid.text : SEAT_COLORS.free.text) : SEAT_COLORS.taken.text,
+                                                      border: selected ? `1.5px solid ${SEAT_COLORS.sel.border}` : available ? `1px solid ${isSeatPaid ? SEAT_COLORS.paid.border : SEAT_COLORS.free.border}` : `1px solid ${SEAT_COLORS.taken.border}`,
+                                                      cursor: available ? 'pointer' : 'not-allowed',
+                                                    }}>
+                                                    <span className="text-[10px] font-bold leading-none">{el.designator?.replace(/\d+/, '') ?? ''}</span>
+                                                    {available && seatPrice > 0 && <span className="text-[7px] leading-none opacity-80">+${Math.round(seatPrice)}</span>}
+                                                  </button>
+                                                );
+                                              })}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ))}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })}
-                      <div className="flex gap-3 text-xs text-gray-400 flex-wrap">
-                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.free.bg, border: `1px solid ${SEAT_COLORS.legend.free.border}` }} /> Free</span>
-                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.paid.bg, border: `1px solid ${SEAT_COLORS.legend.paid.border}` }} /> Paid</span>
-                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.selected.bg, border: `1px solid ${SEAT_COLORS.legend.selected.border}` }} /> Selected</span>
-                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.taken.bg, border: `1px solid ${SEAT_COLORS.legend.taken.border}` }} /> Taken</span>
-                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block flex items-center justify-center text-[9px]" style={{ background: '#E0F2FE', border: '1px solid #BAE6FD' }}>🚽</span> Restroom</span>
-                      </div>
-                      {/* Note about segments without seat maps */}
-                      {(() => {
-                        const allSegsAll = offer.allSegments ?? offer.segments;
-                        const coveredIds = new Set(seatMaps!.map(sm => sm.segmentId));
-                        const missing = allSegsAll.filter(s => s.segmentId && !coveredIds.has(s.segmentId));
-                        if (!missing.length) return null;
-                        return (
-                          <p className="text-xs text-gray-400 mt-2 flex items-start gap-1.5">
-                            <span className="flex-shrink-0">ℹ️</span>
-                            <span>Seat selection not available for {missing.map(s => `${s.depCode}→${s.arrCode}`).join(', ')} — choose your seat during online check-in for those flights.</span>
-                          </p>
-                        );
+                              ))}
+                            </div>
+                          );
+                        });
                       })()}
+                      {seatMaps!.length > 0 && (
+                        <div className="flex gap-3 text-xs text-gray-400 flex-wrap">
+                          <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.free.bg, border: `1px solid ${SEAT_COLORS.legend.free.border}` }} /> Free</span>
+                          <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.paid.bg, border: `1px solid ${SEAT_COLORS.legend.paid.border}` }} /> Paid</span>
+                          <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.selected.bg, border: `1px solid ${SEAT_COLORS.legend.selected.border}` }} /> Selected</span>
+                          <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.taken.bg, border: `1px solid ${SEAT_COLORS.legend.taken.border}` }} /> Taken</span>
+                          <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block flex items-center justify-center text-[9px]" style={{ background: '#E0F2FE', border: '1px solid #BAE6FD' }}>🚽</span> Restroom</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2058,88 +2061,122 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           Checking seat availability…
                         </div>
                       )}
-                      {!seatMapsLoading && seatMaps && seatMaps.length === 0 && (
-                        <p className="text-sm text-gray-500">Seat selection isn&apos;t available for this flight. You can choose your seat during online check-in.</p>
-                      )}
-                      {!seatMapsLoading && seatMaps && seatMaps.length > 0 && (
+                      {!seatMapsLoading && seatMaps && (
                         <div className="mt-4 space-y-5">
-                          {seatMaps.map(sm => {
-                            const seg = (offer.allSegments ?? offer.segments).find(s => s.segmentId === sm.segmentId);
-                            const cabin = sm.cabins[0];
-                            if (!cabin) return null;
-                            const cabinLabel = fmtCabin(seg?.cabinClass ?? cabin.cabinClass);
-                            return (
-                              <div key={sm.segmentId}>
-                                <p className="text-xs font-bold text-gray-500 mb-3">
-                                  {seg ? `${seg.depCode} → ${seg.arrCode} · ${cabinLabel}` : `Segment ${seatMaps!.indexOf(sm) + 1} · ${cabinLabel}`}
-                                </p>
-                                {offer.passengerIds.map((paxId, pi) => (
-                                  <div key={paxId} className="mb-4">
-                                    {offer.passengerIds.length > 1 && (
-                                      <p className="text-xs font-semibold text-gray-400 mb-2">Passenger {pi + 1}</p>
-                                    )}
-                                    <div className="overflow-x-auto">
-                                      <div className="inline-block min-w-full">
-                                        {cabin.rows.map((row, ri) => (
-                                          <div key={ri} className="flex gap-1 mb-1">
-                                            {row.sections.map((sec, si) => (
-                                              <div key={si} className="flex gap-1">
-                                                {si > 0 && <div className="w-5" />}
-                                                {sec.elements.map((el, ei) => {
-                                                  if (el.type === 'lavatory') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-sm" style={{ background: '#E0F2FE', border: '1px solid #BAE6FD' }} title="Restroom">🚽</div>;
-                                                  if (el.type === 'galley') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-sm" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }} title="Galley">☕</div>;
-                                                  if (el.type === 'stairs') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-xs text-gray-400" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }} title="Stairs">↕</div>;
-                                                  if (el.type !== 'seat') return <div key={ei} className="w-8 h-8" />;
-                                                  const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
-                                                  const available = !!paxSvc;
-                                                  const key = `${sm.segmentId}_${paxId}`;
-                                                  const selected = !!paxSvc?.id && seatSelections[key] === paxSvc.id;
-                                                  const price = paxSvc ? parseFloat(paxSvc.total_amount) : 0;
-                                                  const isPaid = price > 0;
-                                                  return (
-                                                    <button key={ei} disabled={!available}
-                                                      onClick={() => paxSvc && selectSeat(sm.segmentId, paxId, paxSvc.id)}
-                                                      title={el.designator + (el.disclosures?.length ? ` · ${el.disclosures[0]}` : '') + (price ? ` · +${fmtPrice(price, paxSvc?.total_currency ?? offer.totalCurrency)}` : ' · Free')}
-                                                      className="w-8 h-8 rounded flex flex-col items-center justify-center transition-colors gap-0"
-                                                      style={{
-                                                        background: selected ? SEAT_COLORS.sel.bg : available ? (isPaid ? SEAT_COLORS.paid.bg : SEAT_COLORS.free.bg) : SEAT_COLORS.taken.bg,
-                                                        color: selected ? 'white' : available ? (isPaid ? SEAT_COLORS.paid.text : SEAT_COLORS.free.text) : SEAT_COLORS.taken.text,
-                                                        border: selected ? `1.5px solid ${SEAT_COLORS.sel.border}` : available ? `1px solid ${isPaid ? SEAT_COLORS.paid.border : SEAT_COLORS.free.border}` : `1px solid ${SEAT_COLORS.taken.border}`,
-                                                        cursor: available ? 'pointer' : 'not-allowed',
-                                                      }}>
-                                                      <span className="text-[10px] font-bold leading-none">{el.designator?.replace(/\d+/, '') ?? ''}</span>
-                                                      {available && price > 0 && <span className="text-[7px] leading-none opacity-80">+${Math.round(price)}</span>}
-                                                    </button>
-                                                  );
-                                                })}
-                                              </div>
-                                            ))}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                    {(() => {
-                                      const key = `${sm.segmentId}_${paxId}`;
-                                      const selSvcId = seatSelections[key];
-                                      if (!selSvcId) return null;
-                                      let designator = '', price = 0, currency = offer.totalCurrency;
-                                      for (const row of cabin.rows) for (const sec of row.sections) for (const el of sec.elements) {
-                                        const svc = el.available_services?.find(a => a.id === selSvcId);
-                                        if (svc) { designator = el.designator ?? ''; price = parseFloat(svc.total_amount); currency = svc.total_currency; }
-                                      }
-                                      return <p className="text-xs font-semibold mt-1" style={{ color: '#1D9E75' }}>✓ Seat {designator} · +{fmtPrice(price, currency)}</p>;
-                                    })()}
+                          {(() => {
+                            const allSegsDisplay = offer.allSegments ?? offer.segments;
+                            const smBySegId = new Map(seatMaps!.map(sm => [sm.segmentId, sm]));
+                            const showNums = allSegsDisplay.length > 1;
+                            return allSegsDisplay.map((seg, segIdx) => {
+                              const sm = smBySegId.get(seg.segmentId ?? '');
+                              const flightHeader = showNums ? (
+                                <div className="flex items-center gap-2 mb-3">
+                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: '#0F172A', color: 'white' }}>Flight {segIdx + 1}</span>
+                                  <p className="text-sm font-bold text-gray-800">{seg.depCode} → {seg.arrCode}</p>
+                                  <span className="text-xs text-gray-400">{fmtCabin(seg.cabinClass)}</span>
+                                </div>
+                              ) : (
+                                <p className="text-xs font-bold text-gray-500 mb-3">{seg.depCode} → {seg.arrCode} · {fmtCabin(seg.cabinClass)}</p>
+                              );
+                              if (!sm) {
+                                return (
+                                  <div key={seg.segmentId ?? segIdx} className="rounded-2xl border border-dashed border-gray-200 p-5" style={{ background: '#F8FAFC' }}>
+                                    {flightHeader}
+                                    <p className="text-xs text-gray-400">Seat selection not available — choose your seat during online check-in.</p>
                                   </div>
-                                ))}
-                              </div>
-                            );
-                          })}
-                          <div className="flex gap-3 text-xs text-gray-400 flex-wrap">
-                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.free.bg, border: `1px solid ${SEAT_COLORS.legend.free.border}` }} /> Free</span>
-                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.paid.bg, border: `1px solid ${SEAT_COLORS.legend.paid.border}` }} /> Paid</span>
-                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.selected.bg, border: `1px solid ${SEAT_COLORS.legend.selected.border}` }} /> Selected</span>
-                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.taken.bg, border: `1px solid ${SEAT_COLORS.legend.taken.border}` }} /> Taken</span>
-                          </div>
+                                );
+                              }
+                              const cabin = sm.cabins[0];
+                              if (!cabin) return null;
+                              const cabinLabel = fmtCabin(seg.cabinClass ?? cabin.cabinClass);
+                              return (
+                                <div key={sm.segmentId}>
+                                  {showNums ? (
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: '#0F172A', color: 'white' }}>Flight {segIdx + 1}</span>
+                                      <p className="text-sm font-bold text-gray-800">{seg.depCode} → {seg.arrCode}</p>
+                                      <span className="text-xs text-gray-400">{cabinLabel}</span>
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs font-bold text-gray-500 mb-3">{seg.depCode} → {seg.arrCode} · {cabinLabel}</p>
+                                  )}
+                                  {offer.passengerIds.map((paxId, pi) => (
+                                    <div key={paxId} className="mb-4">
+                                      {offer.passengerIds.length > 1 && (
+                                        <p className="text-xs font-semibold text-gray-400 mb-2">Passenger {pi + 1}</p>
+                                      )}
+                                      <div className="overflow-x-auto">
+                                        <div className="inline-block min-w-full">
+                                          {cabin.rows.map((row, ri) => (
+                                            <div key={ri} className="flex gap-1 mb-1">
+                                              {row.sections.map((sec, si) => (
+                                                <div key={si} className="flex gap-1">
+                                                  {si > 0 && <div className="w-5" />}
+                                                  {sec.elements.map((el, ei) => {
+                                                    if (el.type === 'lavatory') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-sm" style={{ background: '#E0F2FE', border: '1px solid #BAE6FD' }} title="Restroom">🚽</div>;
+                                                    if (el.type === 'galley') return <div key={ei} className="w-8 h-8 rounded flex flex-col items-center justify-center" style={{ background: '#F1F5F9', border: '1px solid #E2E8F0' }} title="Crew area"><span className="text-[7px] font-bold text-gray-400 uppercase leading-none">CREW</span></div>;
+                                                    if (el.type === 'stairs') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-xs text-gray-400" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }} title="Stairs">↕</div>;
+                                                    if (el.type !== 'seat') return <div key={ei} className="w-8 h-8" />;
+                                                    const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
+                                                    const available = !!paxSvc;
+                                                    const key = `${sm.segmentId}_${paxId}`;
+                                                    const selected = !!paxSvc?.id && seatSelections[key] === paxSvc.id;
+                                                    // Use offer's service price (what Duffel actually charges), fall back to seat map price
+                                                    const price = paxSvc
+                                                      ? (offer.availableServices.find(s => s.id === paxSvc.id)?.totalAmount ?? parseFloat(paxSvc.total_amount))
+                                                      : 0;
+                                                    const isPaid = price > 0;
+                                                    return (
+                                                      <button key={ei} disabled={!available}
+                                                        onClick={() => paxSvc && selectSeat(sm.segmentId, paxId, paxSvc.id)}
+                                                        title={el.designator + (el.disclosures?.length ? ` · ${el.disclosures[0]}` : '') + (price ? ` · +${fmtPrice(price, paxSvc?.total_currency ?? offer.totalCurrency)}` : ' · Free')}
+                                                        className="w-8 h-8 rounded flex flex-col items-center justify-center transition-colors gap-0"
+                                                        style={{
+                                                          background: selected ? SEAT_COLORS.sel.bg : available ? (isPaid ? SEAT_COLORS.paid.bg : SEAT_COLORS.free.bg) : SEAT_COLORS.taken.bg,
+                                                          color: selected ? 'white' : available ? (isPaid ? SEAT_COLORS.paid.text : SEAT_COLORS.free.text) : SEAT_COLORS.taken.text,
+                                                          border: selected ? `1.5px solid ${SEAT_COLORS.sel.border}` : available ? `1px solid ${isPaid ? SEAT_COLORS.paid.border : SEAT_COLORS.free.border}` : `1px solid ${SEAT_COLORS.taken.border}`,
+                                                          cursor: available ? 'pointer' : 'not-allowed',
+                                                        }}>
+                                                        <span className="text-[10px] font-bold leading-none">{el.designator?.replace(/\d+/, '') ?? ''}</span>
+                                                        {available && price > 0 && <span className="text-[7px] leading-none opacity-80">+${Math.round(price)}</span>}
+                                                      </button>
+                                                    );
+                                                  })}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      {(() => {
+                                        const key = `${sm.segmentId}_${paxId}`;
+                                        const selSvcId = seatSelections[key];
+                                        if (!selSvcId) return null;
+                                        let designator = '', price = 0;
+                                        for (const row of cabin.rows) for (const sec of row.sections) for (const el of sec.elements) {
+                                          const svc = el.available_services?.find(a => a.id === selSvcId);
+                                          if (svc) {
+                                            designator = el.designator ?? '';
+                                            // Use offer price (actual Duffel charge), fall back to seat map price
+                                            price = offer.availableServices.find(s => s.id === selSvcId)?.totalAmount ?? parseFloat(svc.total_amount);
+                                          }
+                                        }
+                                        return <p className="text-xs font-semibold mt-1" style={{ color: '#1D9E75' }}>✓ Seat {designator} · {price > 0 ? `+${fmtPrice(price, offer.totalCurrency)}` : 'Free'}</p>;
+                                      })()}
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            });
+                          })()}
+                          {seatMaps!.length > 0 && (
+                            <div className="flex gap-3 text-xs text-gray-400 flex-wrap">
+                              <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.free.bg, border: `1px solid ${SEAT_COLORS.legend.free.border}` }} /> Free</span>
+                              <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.paid.bg, border: `1px solid ${SEAT_COLORS.legend.paid.border}` }} /> Paid</span>
+                              <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.selected.bg, border: `1px solid ${SEAT_COLORS.legend.selected.border}` }} /> Selected</span>
+                              <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.taken.bg, border: `1px solid ${SEAT_COLORS.legend.taken.border}` }} /> Taken</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

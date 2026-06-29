@@ -688,7 +688,8 @@ if (runUnit) {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
     // The old fallback was `sm.segmentId` — should now be human-readable
     assert('raw sm.segmentId not used as segment header fallback', !src.includes(': sm.segmentId}'));
-    assert('human-readable fallback used instead (Segment N · class)', src.includes('`Segment ${seatMaps!.indexOf(sm) + 1}'));
+    // New architecture iterates allSegsDisplay — segment always available, no "Segment N" fallback needed
+    assert('iterates allSegsDisplay so segment always known (no Segment N fallback)', src.includes('allSegsDisplay.map((seg, segIdx)'));
   });
 
   // ── Traveler profile GET — name fallback from display_name ─────────────────
@@ -839,7 +840,7 @@ if (runUnit) {
     assert('Seat selection card on passenger step', src.includes("bookStep === 'passenger'") && src.includes('Seat selection'));
     assert('Seat map auto-loads via useEffect on selectedOffer change', src.includes("selectedOffer?.id") && src.includes('/api/flights/seat-map'));
     assert('Loading state has spinner SVG (animate-spin)', src.includes('animate-spin') && src.includes('Checking seat availability'));
-    assert('No button if unavailable — contact airline message', src.includes("Seat selection isn") && src.includes('online check-in'));
+    assert('No button if unavailable — contact airline message', src.includes("Seat selection not available") && src.includes('online check-in'));
     assert('seat count badge shown when seats selected', src.includes('seatSelections') && src.includes('selected'));
     assert('seatMapsOpen removed', !src.includes('seatMapsOpen'));
     assert('loadSeatMaps removed', !src.includes('loadSeatMaps'));
@@ -1393,17 +1394,17 @@ if (runUnit) {
   await section('Seat map — cabin label uses segment cabinClass (not seat map API cabin)', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
     // Duffel seat map API returns 'economy' cabin even for Business/First in test mode.
-    // We must use seg.cabinClass (from the offer search) which is correct.
-    assert('cabinLabel derived from seg.cabinClass (not cabin.cabinClass directly)', src.includes("fmtCabin(seg?.cabinClass ?? cabin.cabinClass)"));
+    // New architecture: seg is always available (we iterate allSegsDisplay), so no optional chaining needed.
+    // cabinLabel = fmtCabin(seg.cabinClass ?? cabin.cabinClass) — seg always present.
+    assert('cabinLabel derived from seg.cabinClass', src.includes('fmtCabin(seg.cabinClass ?? cabin.cabinClass)'));
     assert('cabinLabel used in seat map header (not raw cabin.cabinClass)', (() => {
-      // Count how many times raw cabin.cabinClass appears in seat map label context
       const matches = [...src.matchAll(/cabinClassName.*cabin\.cabinClass/g)];
-      return matches.length === 0; // both occurrences replaced
+      return matches.length === 0;
     })());
-    assert('fmtCabin applied to seat map label (First Class not "first")', src.includes('cabinLabel') && src.includes('fmtCabin(seg?.cabinClass'));
-    assert('fallback to cabin.cabinClass when seg not found', src.includes('seg?.cabinClass ?? cabin.cabinClass'));
+    assert('fmtCabin applied to seat map label (First Class not "first")', src.includes('cabinLabel') && src.includes('fmtCabin('));
+    assert('fallback to cabin.cabinClass when seg not found', src.includes('seg.cabinClass ?? cabin.cabinClass'));
     assert('both seat map sections updated (passenger step + review step)', (() => {
-      const count = (src.match(/fmtCabin\(seg\?\.cabinClass \?\? cabin\.cabinClass\)/g) ?? []).length;
+      const count = (src.match(/fmtCabin\(seg\.cabinClass \?\? cabin\.cabinClass\)/g) ?? []).length;
       return count >= 2;
     })());
   });
@@ -1788,9 +1789,9 @@ if (runUnit) {
 
   await section('FlightResults — seat map segment lookup uses allSegments (fixes return-leg labels)', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
-    // Both seat map rendering blocks must fall back to allSegments
-    const allSegsLookupCount = (src.match(/\(offer\.allSegments \?\? offer\.segments\)\.find/g) ?? []).length;
-    assert('both seat map lookups use allSegments ?? segments fallback', allSegsLookupCount >= 2);
+    // New architecture: instead of seatMaps.map + find, we iterate allSegsDisplay (allSegments ?? segments)
+    // and look up the seat map by segmentId — so allSegments is used as the outer loop
+    assert('allSegsDisplay uses allSegments ?? segments as outer loop', (src.match(/offer\.allSegments \?\? offer\.segments/g) ?? []).length >= 2);
     // allSegments field on DuffelOffer interface
     assert('allSegments optional field on DuffelOffer interface', src.includes('allSegments?: Segment[]'));
     // slices optional field on DuffelOffer interface
@@ -1886,6 +1887,41 @@ if (runUnit) {
     assert('step 2 filters return segments by sliceIndex > 0', src.includes('(s.sliceIndex ?? 0) > 0'));
     // retSlice uses slices?.[1] for duration/stops
     assert('step 2 uses slices[1] for return metadata', src.includes('slices?.[1]'));
+  });
+
+  await section('Seat map UI — LEG label replaced with Flight N', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // No more "LEG N" labels
+    assert('LEG label removed from seat map headers', !src.includes('LEG {smIdx + 1}') && !src.includes('LEG {'));
+    // Flight N used instead
+    assert('Flight N badge used in seat map headers', src.includes('Flight {segIdx + 1}'));
+  });
+
+  await section('Seat map UI — galley icon replaced with CREW label', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // No more coffee emoji for galley
+    assert('coffee emoji removed from galley', !src.includes(">☕<"));
+    // CREW label used instead
+    assert('CREW label used for galley', src.includes('CREW'));
+  });
+
+  await section('Seat map UI — missing segments shown inline (not just bottom note)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Iterates over all segments (not just seatMaps)
+    assert('iterates allSegsDisplay (not just seatMaps)', src.includes('allSegsDisplay.map((seg, segIdx)'));
+    // Placeholder card for missing segments
+    assert('placeholder card for missing seat maps', src.includes('Seat selection not available — choose your seat during online check-in'));
+    // Old bottom note removed
+    assert('old bottom ℹ️ note removed', !src.includes('Seat selection not available for {missing'));
+  });
+
+  await section('Seat map pricing — uses offer service price (not seat map element price)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Both seat map blocks look up price from offer.availableServices first
+    assert('block 1 uses offer.availableServices for seat price', src.includes('offer.availableServices.find(s => s.id === paxSvc.id)?.totalAmount ?? parseFloat(paxSvc.total_amount)'));
+    assert('block 2 uses offer.availableServices for seat price', (src.match(/offer\.availableServices\.find\(s => s\.id === paxSvc\.id\)/g) ?? []).length >= 2);
+    // Confirmation line also uses offer price
+    assert('selected seat confirmation uses offer price', src.includes('offer.availableServices.find(s => s.id === selSvcId)'));
   });
 
 }
