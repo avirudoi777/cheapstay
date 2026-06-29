@@ -1607,6 +1607,22 @@ if (runUnit) {
     assert('no extrasTotal delta in button label', !src.includes('Continue with +'));
   });
 
+  // ── Duffel order — payment amount includes extras (seat/bag price) ────────
+  await section('Duffel order — payment amount = refreshed offer base + extrasAmount', async () => {
+    const routeSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');
+    // Route must accept extrasAmount field
+    assert('route accepts extrasAmount param', routeSrc.includes("extrasAmount = '0'") || routeSrc.includes('extrasAmount?:'));
+    // Route must add extras to refreshed offer price
+    assert('route adds extras to fresh offer amount', routeSrc.includes('parseFloat(extrasAmount)') && routeSrc.includes('parseFloat(freshAmount)'));
+    assert('combined amount used for payment (toFixed)', routeSrc.includes('+ extras).toFixed(2)'));
+    // Old pattern of using freshAmount alone (without extras) must be gone
+    assert('no bare bookingAmount = freshAmount (would exclude extras)', !routeSrc.includes('bookingAmount = freshAmount;'));
+
+    const clientSrc = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Client must send extrasAmount separately so route can add it to fresh price
+    assert('client sends extrasAmount to duffel-order', clientSrc.includes('extrasAmount: extrasTotal.toFixed(2)'));
+  });
+
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

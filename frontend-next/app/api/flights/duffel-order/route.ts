@@ -18,10 +18,11 @@ interface PassengerInput {
 }
 
 export async function POST(req: NextRequest) {
-  const { offerId, paymentIntentId, amount, currency, passengers, services = [], hold = false } = await req.json() as {
+  const { offerId, paymentIntentId, amount, extrasAmount = '0', currency, passengers, services = [], hold = false } = await req.json() as {
     offerId: string;
     paymentIntentId: string;
     amount: string;
+    extrasAmount?: string;
     currency: string;
     passengers: PassengerInput[];
     services?: { serviceId: string; quantity: number }[];
@@ -61,7 +62,10 @@ export async function POST(req: NextRequest) {
       const freshAmount: string | undefined = offerData.data?.total_amount;
       const freshCurrency: string | undefined = offerData.data?.total_currency;
       if (freshAmount) {
-        bookingAmount = freshAmount;
+        // Add extras (seats/bags) to the refreshed base fare — Duffel requires
+        // payments[].amount to equal offer.total_amount + selected services total
+        const extras = parseFloat(extrasAmount) || 0;
+        bookingAmount = (parseFloat(freshAmount) + extras).toFixed(2);
         bookingCurrency = freshCurrency ?? currency;
         refreshedTotalAmount = parseFloat(freshAmount);
       }
