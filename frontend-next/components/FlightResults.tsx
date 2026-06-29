@@ -1629,22 +1629,25 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                             {si > 0 && <div className="w-5" />}
                                             {sec.elements.map((el, ei) => {
                                               if (el.type !== 'seat') return <div key={ei} className="w-8 h-8" />;
-                                              const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
+                                                              const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
                                               const available = !!paxSvc;
                                               const mapKey = `${sm.segmentId}_${paxId}`;
                                               const selected = !!paxSvc?.id && seatSelections[mapKey] === paxSvc.id;
+                                              const seatPrice = paxSvc ? parseFloat(paxSvc.total_amount) : 0;
+                                              const isSeatPaid = seatPrice > 0;
                                               return (
                                                 <button key={ei} disabled={!available}
                                                   onClick={() => paxSvc && selectSeat(sm.segmentId, paxId, paxSvc.id)}
-                                                  title={`${el.designator ?? ''}${paxSvc ? ` · +${fmtPrice(parseFloat(paxSvc.total_amount), paxSvc.total_currency)}` : ''}`}
-                                                  className="w-8 h-8 rounded text-[10px] font-bold flex items-center justify-center transition-colors"
+                                                  title={`${el.designator ?? ''}${paxSvc ? ` · ${isSeatPaid ? '+' + fmtPrice(seatPrice, paxSvc.total_currency) : 'Free'}` : ''}`}
+                                                  className="w-8 h-8 rounded flex flex-col items-center justify-center transition-colors gap-0"
                                                   style={{
-                                                    background: selected ? '#1D9E75' : available ? '#E6F7F1' : '#F3F4F6',
-                                                    color: selected ? 'white' : available ? '#1D9E75' : '#D1D5DB',
-                                                    border: selected ? '1.5px solid #1D9E75' : available ? '1px solid #A7F3D0' : '1px solid #E5E7EB',
+                                                    background: selected ? (isSeatPaid ? '#D97706' : '#1D9E75') : available ? (isSeatPaid ? '#FFFBEB' : '#E6F7F1') : '#F3F4F6',
+                                                    color: selected ? 'white' : available ? (isSeatPaid ? '#B45309' : '#1D9E75') : '#D1D5DB',
+                                                    border: selected ? `1.5px solid ${isSeatPaid ? '#D97706' : '#1D9E75'}` : available ? `1px solid ${isSeatPaid ? '#FDE68A' : '#A7F3D0'}` : '1px solid #E5E7EB',
                                                     cursor: available ? 'pointer' : 'not-allowed',
                                                   }}>
-                                                  {el.designator?.replace(/\d+/, '') ?? ''}
+                                                  <span className="text-[10px] font-bold leading-none">{el.designator?.replace(/\d+/, '') ?? ''}</span>
+                                                  {available && seatPrice > 0 && <span className="text-[7px] leading-none opacity-80">+${Math.round(seatPrice)}</span>}
                                                 </button>
                                               );
                                             })}
@@ -1964,18 +1967,20 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                                   const key = `${sm.segmentId}_${paxId}`;
                                                   const selected = !!paxSvc?.id && seatSelections[key] === paxSvc.id;
                                                   const price = paxSvc ? parseFloat(paxSvc.total_amount) : 0;
+                                                  const isPaid = price > 0;
                                                   return (
                                                     <button key={ei} disabled={!available}
                                                       onClick={() => paxSvc && selectSeat(sm.segmentId, paxId, paxSvc.id)}
-                                                      title={el.designator + (el.disclosures?.length ? ` · ${el.disclosures[0]}` : '') + (price ? ` · ${fmtPrice(price, offer.totalCurrency)}` : '')}
-                                                      className="w-8 h-8 rounded text-[10px] font-bold flex items-center justify-center transition-colors"
+                                                      title={el.designator + (el.disclosures?.length ? ` · ${el.disclosures[0]}` : '') + (price ? ` · +${fmtPrice(price, paxSvc?.total_currency ?? offer.totalCurrency)}` : ' · Free')}
+                                                      className="w-8 h-8 rounded flex flex-col items-center justify-center transition-colors gap-0"
                                                       style={{
-                                                        background: selected ? '#1D9E75' : available ? '#E6F7F1' : '#F3F4F6',
-                                                        color: selected ? 'white' : available ? '#1D9E75' : '#D1D5DB',
-                                                        border: selected ? '1.5px solid #1D9E75' : available ? '1px solid #A7F3D0' : '1px solid #E5E7EB',
+                                                        background: selected ? (isPaid ? '#D97706' : '#1D9E75') : available ? (isPaid ? '#FFFBEB' : '#E6F7F1') : '#F3F4F6',
+                                                        color: selected ? 'white' : available ? (isPaid ? '#B45309' : '#1D9E75') : '#D1D5DB',
+                                                        border: selected ? `1.5px solid ${isPaid ? '#D97706' : '#1D9E75'}` : available ? `1px solid ${isPaid ? '#FDE68A' : '#A7F3D0'}` : '1px solid #E5E7EB',
                                                         cursor: available ? 'pointer' : 'not-allowed',
                                                       }}>
-                                                      {el.designator?.replace(/\d+/, '') ?? ''}
+                                                      <span className="text-[10px] font-bold leading-none">{el.designator?.replace(/\d+/, '') ?? ''}</span>
+                                                      {available && price > 0 && <span className="text-[7px] leading-none opacity-80">+${Math.round(price)}</span>}
                                                     </button>
                                                   );
                                                 })}
@@ -2001,8 +2006,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                               </div>
                             );
                           })}
-                          <div className="flex gap-3 text-xs text-gray-400">
-                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#E6F7F1', border: '1px solid #A7F3D0' }} /> Available</span>
+                          <div className="flex gap-3 text-xs text-gray-400 flex-wrap">
+                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#E6F7F1', border: '1px solid #A7F3D0' }} /> Free</span>
+                            <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }} /> Paid</span>
                             <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#1D9E75' }} /> Selected</span>
                             <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#F3F4F6', border: '1px solid #E5E7EB' }} /> Taken</span>
                           </div>
