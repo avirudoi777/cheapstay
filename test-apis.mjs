@@ -811,11 +811,22 @@ if (runUnit) {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
     assert('Seat selection card on passenger step', src.includes("bookStep === 'passenger'") && src.includes('Seat selection'));
     assert('Seat map auto-loads via useEffect on selectedOffer change', src.includes("selectedOffer?.id") && src.includes('/api/flights/seat-map'));
-    assert('No toggle button — loading state shown as text', src.includes('Checking seat availability'));
+    assert('Loading state has spinner SVG (animate-spin)', src.includes('animate-spin') && src.includes('Checking seat availability'));
     assert('No button if unavailable — contact airline message', src.includes("Seat selection isn") && src.includes('online check-in'));
     assert('seat count badge shown when seats selected', src.includes('seatSelections') && src.includes('selected'));
     assert('seatMapsOpen removed', !src.includes('seatMapsOpen'));
     assert('loadSeatMaps removed', !src.includes('loadSeatMaps'));
+  });
+
+  await section('Seat map — legend shows Free / Paid / Selected / Taken (not Available)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Both seat map copies must use the 4-item legend
+    const freeLegendCount = (src.match(/\/>.*?Free<\/span>/g) ?? []).length;
+    const paidLegendCount = (src.match(/\/>.*?Paid<\/span>/g) ?? []).length;
+    assert('Free legend shown in both seat map copies', freeLegendCount >= 2);
+    assert('Paid legend shown in both seat map copies', paidLegendCount >= 2);
+    // Old "Available" label must be gone from both copies
+    assert('Available label removed from legend', !src.includes('} /> Available<'));
   });
 
   // ── Hold & Pay Later ─────────────────────────────────────────────────────

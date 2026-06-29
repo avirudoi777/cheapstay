@@ -1602,7 +1602,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     })()}
                   </div>
                   {seatMapsLoading && (
-                    <p className="text-xs text-gray-400">Checking seat availability…</p>
+                    <div className="flex items-center gap-3 py-6 text-gray-500 text-sm">
+                      <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Checking seat availability…
+                    </div>
                   )}
                   {!seatMapsLoading && seatMaps && seatMaps.length === 0 && (
                     <p className="text-sm text-gray-500">Seat selection isn&apos;t available for this flight. You can choose your seat during online check-in.</p>
@@ -1680,8 +1686,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           </div>
                         );
                       })}
-                      <div className="flex gap-3 text-xs text-gray-400">
-                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#E6F7F1', border: '1px solid #A7F3D0' }} /> Available</span>
+                      <div className="flex gap-3 text-xs text-gray-400 flex-wrap">
+                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#E6F7F1', border: '1px solid #A7F3D0' }} /> Free</span>
+                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }} /> Paid</span>
                         <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#1D9E75' }} /> Selected</span>
                         <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: '#F3F4F6', border: '1px solid #E5E7EB' }} /> Taken</span>
                       </div>
@@ -1949,7 +1956,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     <div className="mb-5">
                       <p className="text-sm font-bold text-gray-700 mb-3">💺 Seat selection</p>
                       {seatMapsLoading && (
-                        <p className="text-xs text-gray-400">Checking seat availability…</p>
+                        <div className="flex items-center gap-3 py-6 text-gray-500 text-sm">
+                          <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Checking seat availability…
+                        </div>
                       )}
                       {!seatMapsLoading && seatMaps && seatMaps.length === 0 && (
                         <p className="text-sm text-gray-500">Seat selection isn&apos;t available for this flight. You can choose your seat during online check-in.</p>
