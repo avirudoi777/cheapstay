@@ -118,6 +118,17 @@ interface TravelerProfile {
   companions?: CompanionProfile[];
 }
 
+// Build a unique key from an offer's outbound (slice 0) segments — stable across offer IDs
+function obKey(offer: DuffelOffer): string {
+  return offer.segments.map(s => `${s.flightNumber}:${s.depAt}`).join('|');
+}
+// Build a unique key from an offer's return (slice 1+) segments
+function retKeyFn(offer: DuffelOffer): string {
+  const retSegs = (offer.allSegments ?? []).filter(s => (s.sliceIndex ?? 0) > 0);
+  if (!retSegs.length) return offer.id;
+  return retSegs.map(s => `${s.flightNumber}:${s.depAt}`).join('|');
+}
+
 interface Props {
   fromCode: string; toCode: string;
   fromName: string; toName: string;
@@ -510,7 +521,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     setActiveDate(depart);
     setChipPrices({});
     prefetchingDates.current.clear();
-  }, [depart, fromCode, toCode]);
+    setRtStep('outbound');
+    setRtSelectedOutbound(null);
+  }, [depart, fromCode, toCode, ret]);
 
   // ── Filters
   const [filterStops, setFilterStops] = useState<Set<number>>(new Set());
@@ -546,6 +559,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [seatMapsLoading, setSeatMapsLoading] = useState(false);
   // Per-passenger seat selection: { [segmentId_passengerId]: serviceId }
   const [seatSelections, setSeatSelections] = useState<Record<string, string>>({});
+  // Round-trip two-step selection (outbound → return)
+  const [rtStep, setRtStep] = useState<'outbound' | 'return'>('outbound');
+  const [rtSelectedOutbound, setRtSelectedOutbound] = useState<DuffelOffer | null>(null);
 
   // Load saved traveler profile for form pre-fill
   useEffect(() => {
@@ -673,6 +689,36 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     });
   }, [offers, filterStops, filterAirlines, filterBaggage]);
 
+  // Round-trip step 1: one entry per unique outbound route (cheapest combo price per outbound)
+  const rtStep1Offers = useMemo(() => {
+    if (!ret) return filteredOffers;
+    const best = new Map<string, DuffelOffer>();
+    filteredOffers.forEach(o => {
+      const k = obKey(o);
+      const ex = best.get(k);
+      if (!ex || o.totalAmount < ex.totalAmount) best.set(k, o);
+    });
+    return Array.from(best.values());
+  }, [filteredOffers, ret]);
+
+  // Round-trip step 2: return options for the selected outbound (one per unique return route)
+  const rtStep2Data = useMemo(() => {
+    if (!ret || !rtSelectedOutbound) return { offers: [] as DuffelOffer[], basePrice: 0 };
+    const key = obKey(rtSelectedOutbound);
+    const matching = filteredOffers.filter(o => obKey(o) === key);
+    const basePrice = matching.reduce((min, o) => Math.min(min, o.totalAmount), Infinity);
+    const best = new Map<string, DuffelOffer>();
+    matching.forEach(o => {
+      const rk = retKeyFn(o);
+      const ex = best.get(rk);
+      if (!ex || o.totalAmount < ex.totalAmount) best.set(rk, o);
+    });
+    return {
+      offers: Array.from(best.values()).sort((a, b) => a.totalAmount - b.totalAmount),
+      basePrice: isFinite(basePrice) ? basePrice : 0,
+    };
+  }, [filteredOffers, ret, rtSelectedOutbound]);
+
   const hasActiveFilters = filterStops.size > 0 || filterAirlines.size > 0 || filterBaggage;
 
   const bestPriceDate = useMemo(() => {
@@ -719,6 +765,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       setSelectedPassportIds(Array(numPax).fill(''));
     }
     setFormErrors(Array.from({ length: numPax }, () => ({})));
+    containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function selectOutboundFlight(offer: DuffelOffer) {
+    setRtSelectedOutbound(offer);
+    setRtStep('return');
     containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -1676,7 +1728,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                           <div key={si} className="flex gap-1">
                                             {si > 0 && <div className="w-5" />}
                                             {sec.elements.map((el, ei) => {
-                                              if (el.type !== 'seat') return <div key={ei} className="w-8 h-8" />;
+                              if (el.type === 'lavatory') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-sm" style={{ background: '#E0F2FE', border: '1px solid #BAE6FD' }} title="Restroom">🚽</div>;
+                              if (el.type === 'galley') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-sm" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }} title="Galley">☕</div>;
+                              if (el.type === 'stairs') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-xs text-gray-400" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }} title="Stairs">↕</div>;
+                              if (el.type !== 'seat') return <div key={ei} className="w-8 h-8" />;
                                                               const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
                                               const available = !!paxSvc;
                                               const mapKey = `${sm.segmentId}_${paxId}`;
@@ -1715,7 +1770,21 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.paid.bg, border: `1px solid ${SEAT_COLORS.legend.paid.border}` }} /> Paid</span>
                         <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.selected.bg, border: `1px solid ${SEAT_COLORS.legend.selected.border}` }} /> Selected</span>
                         <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.taken.bg, border: `1px solid ${SEAT_COLORS.legend.taken.border}` }} /> Taken</span>
+                        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block flex items-center justify-center text-[9px]" style={{ background: '#E0F2FE', border: '1px solid #BAE6FD' }}>🚽</span> Restroom</span>
                       </div>
+                      {/* Note about segments without seat maps */}
+                      {(() => {
+                        const allSegsAll = offer.allSegments ?? offer.segments;
+                        const coveredIds = new Set(seatMaps!.map(sm => sm.segmentId));
+                        const missing = allSegsAll.filter(s => s.segmentId && !coveredIds.has(s.segmentId));
+                        if (!missing.length) return null;
+                        return (
+                          <p className="text-xs text-gray-400 mt-2 flex items-start gap-1.5">
+                            <span className="flex-shrink-0">ℹ️</span>
+                            <span>Seat selection not available for {missing.map(s => `${s.depCode}→${s.arrCode}`).join(', ')} — choose your seat during online check-in for those flights.</span>
+                          </p>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -2017,6 +2086,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                               <div key={si} className="flex gap-1">
                                                 {si > 0 && <div className="w-5" />}
                                                 {sec.elements.map((el, ei) => {
+                                                  if (el.type === 'lavatory') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-sm" style={{ background: '#E0F2FE', border: '1px solid #BAE6FD' }} title="Restroom">🚽</div>;
+                                                  if (el.type === 'galley') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-sm" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }} title="Galley">☕</div>;
+                                                  if (el.type === 'stairs') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-xs text-gray-400" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }} title="Stairs">↕</div>;
                                                   if (el.type !== 'seat') return <div key={ei} className="w-8 h-8" />;
                                                   const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
                                                   const available = !!paxSvc;
@@ -2130,12 +2202,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   offer.passengers.filter(p => p.type === 'infant_without_seat').length > 0 && `${offer.passengers.filter(p => p.type === 'infant_without_seat').length} infant${offer.passengers.filter(p => p.type === 'infant_without_seat').length > 1 ? 's' : ''}`,
                 ].filter(Boolean).join(' · ')}</p>
                 <div className="space-y-3 mb-3">
-                  {offer.segments.map((seg, i) => (
+                  {(offer.allSegments ?? offer.segments).map((seg, i) => {
+                    const allSegsDisplay = offer.allSegments ?? offer.segments;
+                    return (
                     <div key={i}>
                       <p className="text-[10px] font-semibold text-gray-400 mb-1">
                         {i === 0
                           ? `Depart · ${new Date(seg.depAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}`
-                          : seg.sliceIndex !== undefined && seg.sliceIndex !== (offer.segments[i - 1]?.sliceIndex ?? 0)
+                          : seg.sliceIndex !== undefined && seg.sliceIndex !== (allSegsDisplay[i - 1]?.sliceIndex ?? 0)
                           ? `↙ Return · ${new Date(seg.depAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}`
                           : 'Connection'}
                       </p>
@@ -2162,12 +2236,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       {seg.layoverAfter && (
                         <div className="mt-2 ml-10">
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md" style={{ background: '#FEF9C3', color: '#92400E' }}>
-                            Layover {offer.segments[i + 1]?.depCode} · {seg.layoverAfter}
+                            Layover {allSegsDisplay[i + 1]?.depCode} · {seg.layoverAfter}
                           </span>
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <button onClick={() => setSidebarDetailsOpen(o => !o)}
                   className="text-xs font-semibold flex items-center gap-1 cursor-pointer w-full py-2 px-3 rounded-xl border transition-colors"
@@ -2590,17 +2665,37 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
-            <span>{fromName}</span><span className="text-gray-300">→</span><span>{toName}</span>
-          </h2>
-          <p className="text-sm text-gray-400 mt-0.5">
-            {departLabel}{ret && ` · Return ${new Date(ret + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
-            {!ret && ' · One way'} · {[
-              adults > 0 && `${adults} adult${adults !== 1 ? 's' : ''}`,
-              children > 0 && `${children} child${children !== 1 ? 'ren' : ''}`,
-              infants > 0 && `${infants} infant${infants !== 1 ? 's' : ''}`,
-            ].filter(Boolean).join(' · ')}
-          </p>
+          {ret && rtStep === 'return' ? (
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <button onClick={() => { setRtStep('outbound'); setRtSelectedOutbound(null); }}
+                  className="text-xs font-bold px-2 py-1 rounded-lg transition-colors"
+                  style={{ color: '#1A73E8', background: '#EFF6FF' }}>
+                  ← Outbound
+                </button>
+                <span className="text-gray-300">›</span>
+                <span className="text-xs font-bold text-gray-800">Select return</span>
+              </div>
+              <h2 className="text-xl font-extrabold text-gray-900">
+                Select return to <span style={{ color: '#1D9E75' }}>{fromName}</span>
+              </h2>
+            </div>
+          ) : (
+            <div>
+              <h2 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+                <span>{fromName}</span><span className="text-gray-300">→</span><span>{toName}</span>
+                {ret && <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: '#E0F2FE', color: '#0369A1' }}>Round trip</span>}
+              </h2>
+              <p className="text-sm text-gray-400 mt-0.5">
+                {departLabel}{ret && ` · Return ${new Date(ret + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
+                {!ret && ' · One way'} · {[
+                  adults > 0 && `${adults} adult${adults !== 1 ? 's' : ''}`,
+                  children > 0 && `${children} child${children !== 1 ? 'ren' : ''}`,
+                  infants > 0 && `${infants} infant${infants !== 1 ? 's' : ''}`,
+                ].filter(Boolean).join(' · ')}
+              </p>
+            </div>
+          )}
         </div>
         <button onClick={onClear}
           className="text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 border border-gray-200">
@@ -2785,15 +2880,132 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         </div>
       )}
 
-      {/* Flight cards */}
-      {!loading && !searchError && (
+      {/* Step 2: Return flight selection */}
+      {!loading && !searchError && ret && rtStep === 'return' && rtSelectedOutbound && (
+        <div className="space-y-3">
+          {/* Pinned outbound summary */}
+          <div className="rounded-2xl px-4 py-3 flex items-center justify-between" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+            <div>
+              <p className="text-[10px] font-bold tracking-wider uppercase mb-0.5" style={{ color: '#3B82F6' }}>Outbound selected</p>
+              <p className="text-sm font-bold text-gray-800">
+                {rtSelectedOutbound.segments[0].depCode} → {rtSelectedOutbound.segments[rtSelectedOutbound.segments.length - 1].arrCode}
+                <span className="ml-2 font-normal text-gray-400 text-xs">
+                  {fmtTime(rtSelectedOutbound.segments[0].depAt)} · {rtSelectedOutbound.totalDuration} · {rtSelectedOutbound.segments.length > 1 ? `${rtSelectedOutbound.segments.length - 1} stop` : 'Direct'}
+                </span>
+              </p>
+              <p className="text-[10px] text-gray-400">{rtSelectedOutbound.segments[0].airline}</p>
+            </div>
+            <div className="text-right ml-3 flex-shrink-0">
+              <p className="text-sm font-extrabold text-gray-800">{fmtPrice(rtStep2Data.basePrice, rtSelectedOutbound.totalCurrency)}</p>
+              <button onClick={() => { setRtStep('outbound'); setRtSelectedOutbound(null); }}
+                className="text-xs font-bold mt-0.5" style={{ color: '#1A73E8' }}>Change</button>
+            </div>
+          </div>
+
+          <p className="text-xs font-semibold text-gray-400">
+            {rtStep2Data.offers.length} return option{rtStep2Data.offers.length !== 1 ? 's' : ''} · showing additional cost
+          </p>
+
+          {rtStep2Data.offers.map(retOffer => {
+            const retSegs = (retOffer.allSegments ?? []).filter(s => (s.sliceIndex ?? 0) > 0);
+            const retFirst = retSegs[0] ?? retOffer.segments[0];
+            const retLast = retSegs[retSegs.length - 1] ?? retOffer.segments[retOffer.segments.length - 1];
+            const retSlice = retOffer.slices?.[1];
+            const delta = retOffer.totalAmount - rtStep2Data.basePrice;
+            const depDate2 = new Date(retFirst.depAt);
+            const arrDate2 = new Date(retLast.arrAt);
+            const daysDiff2 = Math.floor((arrDate2.getTime() - depDate2.getTime()) / 86400000);
+            const uniqueAirlinesRet = [...new Map(retSegs.map(s => [s.airlineCode, s.airline])).entries()];
+
+            return (
+              <div key={retOffer.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between" style={{ borderBottom: '1px solid #F8FAFC' }}>
+                  <div className="flex items-center gap-2.5">
+                    <AirlineLogo code={retFirst.airlineCode} name={retFirst.airline} />
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">{retFirst.airline}</p>
+                      {uniqueAirlinesRet.length > 1 && (
+                        <p className="text-[11px] text-gray-400">
+                          + {uniqueAirlinesRet.filter(([code]) => code !== retFirst.airlineCode).map(([, name]) => name).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="px-5 py-3 flex items-center gap-4">
+                  <div className="flex-shrink-0">
+                    <p className="text-2xl font-extrabold text-gray-900 tabular-nums leading-tight">{fmtTime(retFirst.depAt)}</p>
+                    <p className="text-sm font-bold text-gray-600">{retFirst.depCode}</p>
+                    <p className="text-[11px] text-gray-400">{fmtDate(retFirst.depAt)}</p>
+                  </div>
+                  <div className="flex-1 text-center">
+                    <p className="text-[10px] font-semibold text-gray-400 mb-1">{retSlice?.duration ?? ''}</p>
+                    <div className="flex items-center gap-1">
+                      <div className="flex-1 h-px" style={{ background: '#CBD5E1' }} />
+                      {(retSlice?.stops ?? retSegs.length - 1) > 0 && (
+                        <>
+                          <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#94A3B8' }} />
+                          <div className="flex-1 h-px" style={{ background: '#CBD5E1' }} />
+                        </>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      {retSlice ? (retSlice.stops === 0 ? 'Direct' : `${retSlice.stops} stop${retSlice.stops > 1 ? 's' : ''}`) : (retSegs.length > 1 ? `${retSegs.length - 1} stop` : 'Direct')}
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <p className="text-2xl font-extrabold text-gray-900 tabular-nums leading-tight">
+                      {fmtTime(retLast.arrAt)}
+                      {daysDiff2 > 0 && <sup className="text-sm font-extrabold" style={{ color: '#EF4444', verticalAlign: 'super', fontSize: '0.55em' }}>+{daysDiff2}</sup>}
+                    </p>
+                    <p className="text-sm font-bold text-gray-600">{retLast.arrCode}</p>
+                    <p className="text-[11px] text-gray-400">{fmtDate(retLast.arrAt)}</p>
+                  </div>
+                  <div className="w-px h-14 flex-shrink-0 hidden sm:block" style={{ background: '#E2E8F0' }} />
+                  <div className="hidden sm:flex flex-col items-end flex-shrink-0">
+                    <p className="text-[10px] font-semibold uppercase text-gray-400 tracking-wide">{retOffer.totalCurrency}</p>
+                    <p className="text-2xl font-extrabold tabular-nums leading-tight" style={{ color: delta === 0 ? '#1D9E75' : '#1A73E8' }}>
+                      {delta === 0 ? '+$0' : `+${Math.round(delta).toLocaleString()}`}
+                    </p>
+                    <p className="text-[10px] text-gray-400 mb-2">extra</p>
+                    <button onClick={() => startBooking(retOffer)}
+                      className="px-5 py-2 rounded-xl text-sm font-bold text-white whitespace-nowrap hover:opacity-90 transition-opacity"
+                      style={{ background: '#1D9E75' }}>
+                      Select →
+                    </button>
+                  </div>
+                </div>
+                <div className="sm:hidden px-5 pb-3 flex items-center justify-between border-t border-gray-50 pt-3">
+                  <div>
+                    <p className="text-xl font-extrabold tabular-nums" style={{ color: delta === 0 ? '#1D9E75' : '#1A73E8' }}>
+                      {delta === 0 ? '+$0' : `+${fmtPrice(delta, retOffer.totalCurrency)}`}
+                    </p>
+                    <p className="text-[10px] text-gray-400">extra</p>
+                  </div>
+                  <button onClick={() => startBooking(retOffer)}
+                    className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
+                    style={{ background: '#1D9E75' }}>
+                    Select →
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Flight cards — step 1 (outbound) for round trips, or all flights for one-way */}
+      {!loading && !searchError && !(ret && rtStep === 'return') && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-gray-400">
-              {hasActiveFilters ? `${filteredOffers.length} of ${offers.length}` : offers.length} flight{offers.length !== 1 ? 's' : ''} · prices include all fees
+              {ret
+                ? `${rtStep1Offers.length} outbound option${rtStep1Offers.length !== 1 ? 's' : ''} · select to see return flights`
+                : `${hasActiveFilters ? `${filteredOffers.length} of ${offers.length}` : offers.length} flight${offers.length !== 1 ? 's' : ''} · prices include all fees`
+              }
             </p>
           </div>
-          {filteredOffers.length === 0 && (
+          {(ret ? rtStep1Offers : filteredOffers).length === 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center">
               <p className="text-sm font-bold text-gray-600">No flights match your filters</p>
               <button onClick={() => { setFilterStops(new Set()); setFilterAirlines(new Set()); setFilterBaggage(false); }}
@@ -2802,7 +3014,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
               </button>
             </div>
           )}
-          {filteredOffers.map(offer => {
+          {(ret ? rtStep1Offers : filteredOffers).map(offer => {
             const gross = calcGross(offer.totalAmount);
             const isExpanded = expanded === offer.id;
             const stops = offer.segments.length - 1;
@@ -2881,10 +3093,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       {Math.round(gross).toLocaleString()}
                     </p>
                     <p className="text-[10px] text-gray-400 mb-2.5">all fees included</p>
-                    <button onClick={() => startBooking(offer)}
+                    <button onClick={() => ret ? selectOutboundFlight(offer) : startBooking(offer)}
                       className="px-5 py-2 rounded-xl text-sm font-bold text-white whitespace-nowrap hover:opacity-90 transition-opacity"
                       style={{ background: '#1D9E75' }}>
-                      Book →
+                      {ret ? 'Select →' : 'Book →'}
                     </button>
                   </div>
                 </div>
@@ -2895,10 +3107,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     <p className="text-2xl font-extrabold tabular-nums" style={{ color: '#DC2626' }}>{fmtPrice(gross, offer.totalCurrency)}</p>
                     <p className="text-[10px] text-gray-400">all fees included</p>
                   </div>
-                  <button onClick={() => startBooking(offer)}
+                  <button onClick={() => ret ? selectOutboundFlight(offer) : startBooking(offer)}
                     className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
                     style={{ background: '#1D9E75' }}>
-                    Book →
+                    {ret ? 'Select →' : 'Book →'}
                   </button>
                 </div>
 

@@ -1818,6 +1818,76 @@ if (runUnit) {
     assert('included removed from seat price rendering (seats show Free)', !src.includes("price > 0 ? `+${fmtPrice(price, booking.currency)}` : 'included'"));
   });
 
+  await section('Two-step round-trip — state and helpers exist', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Step state
+    assert('rtStep state declared', src.includes("useState<'outbound' | 'return'>('outbound')"));
+    assert('rtSelectedOutbound state declared', src.includes('rtSelectedOutbound'));
+    // Helper functions
+    assert('obKey deduplicates outbound', src.includes('function obKey('));
+    assert('retKeyFn deduplicates return', src.includes('function retKeyFn('));
+    // Memos
+    assert('rtStep1Offers memo exists', src.includes('rtStep1Offers'));
+    assert('rtStep2Data memo exists', src.includes('rtStep2Data'));
+    // selectOutboundFlight
+    assert('selectOutboundFlight sets step to return', src.includes("setRtStep('return')"));
+  });
+
+  await section('Two-step round-trip — step 1 renders outbound-deduped offers', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Step 1 uses rtStep1Offers (not filteredOffers) for round trips
+    assert('step 1 uses rtStep1Offers for round trips', src.includes('ret ? rtStep1Offers : filteredOffers'));
+    // Button label changes to Select → for round trips in step 1
+    assert("step 1 button says Select → for round trips", src.includes("ret ? 'Select →' : 'Book →'"));
+    // Button calls selectOutboundFlight for round trips
+    assert('step 1 button calls selectOutboundFlight for round trips', src.includes('ret ? selectOutboundFlight(offer) : startBooking(offer)'));
+  });
+
+  await section('Two-step round-trip — step 2 shows return options with delta pricing', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Step 2 block gated on rtStep === 'return'
+    assert("step 2 block gated on rtStep === 'return'", src.includes("ret && rtStep === 'return' && rtSelectedOutbound"));
+    // Delta pricing: retOffer.totalAmount - rtStep2Data.basePrice
+    assert('delta pricing computed from rtStep2Data.basePrice', src.includes('rtOffer.totalAmount - rtStep2Data.basePrice') || src.includes('delta = retOffer.totalAmount - rtStep2Data.basePrice'));
+    // Pinned outbound summary with Change button
+    assert('pinned outbound summary has Change button', src.includes('Outbound selected') && src.includes('>Change<'));
+    // Step 2 Select button calls startBooking
+    assert('step 2 calls startBooking on Select', src.includes('startBooking(retOffer)'));
+    // Step 2 shows "+$0" for equal price option
+    assert('step 2 shows +$0 for zero delta', src.includes("'+$0'"));
+  });
+
+  await section('Two-step round-trip — header shows breadcrumb and back button', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Step 2 header shows "Select return to" destination
+    assert('step 2 header says Select return to', src.includes('Select return to'));
+    // Back button resets to outbound step
+    assert("back button resets rtStep to outbound", src.includes("setRtStep('outbound')") && src.includes('setRtSelectedOutbound(null)'));
+    // Step 1 header shows "Round trip" badge when ret is set
+    assert('step 1 header has Round trip badge', src.includes('>Round trip<'));
+  });
+
+  await section('Two-step round-trip — filter count uses rtStep1Offers in step 1', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Counter in step 1 explains it shows outbound options
+    assert('step 1 count label says outbound option', src.includes('outbound option'));
+    assert('step 1 count label prompts to select return flights', src.includes('select to see return flights'));
+  });
+
+  await section('Two-step round-trip — rtStep reset when search changes', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // useEffect that resets rtStep/rtSelectedOutbound when offers change
+    assert("rtStep reset in useEffect", src.includes("setRtStep('outbound')") && src.includes('setRtSelectedOutbound(null)'));
+  });
+
+  await section('Two-step round-trip — return legs use allSegments for display', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Step 2 return cards filter allSegments by sliceIndex > 0
+    assert('step 2 filters return segments by sliceIndex > 0', src.includes('(s.sliceIndex ?? 0) > 0'));
+    // retSlice uses slices?.[1] for duration/stops
+    assert('step 2 uses slices[1] for return metadata', src.includes('slices?.[1]'));
+  });
+
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
