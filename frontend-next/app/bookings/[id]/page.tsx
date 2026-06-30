@@ -298,7 +298,7 @@ export default function ManageBookingPage() {
       const confirmRes = await fetch('/api/flights/duffel-cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'confirm', cancellationId: quote.cancellationId, bookingId: booking.id, orderId: booking.duffel_order_id }),
+        body: JSON.stringify({ action: 'confirm', cancellationId: quote.cancellationId, bookingId: booking.id, orderId: booking.duffel_order_id, refundAmount: quote.refundAmount, refundCurrency: quote.refundCurrency }),
       });
       const confirmed = await confirmRes.json();
       if (confirmed.error) throw new Error(confirmed.detail || confirmed.error);

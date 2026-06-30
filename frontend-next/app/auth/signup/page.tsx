@@ -30,6 +30,11 @@ export default function SignupPage() {
     setLoading(false);
     if (error) { setError(error.message); return; }
     analytics.signUp('email');
+    fetch('/api/email/welcome', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name }),
+    }).catch(() => { /* best-effort */ });
     setDone(true);
   }
 

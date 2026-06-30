@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { sendEmail } from '@/lib/email';
+import { bookingConfirmationEmail } from '@/lib/email-templates';
 
 export const maxDuration = 60; // Duffel order creation can take 15–30s for complex itineraries
 
@@ -215,6 +217,36 @@ export async function POST(req: NextRequest) {
         userId: user?.id ?? null,
         insertError: finalErr?.message ?? null,
       };
+
+      // Send booking confirmation email (best-effort — never block the booking response)
+      try {
+        const { data: savedRow } = await supabase
+          .from('flight_bookings')
+          .select('id')
+          .eq('duffel_order_id', order.id)
+          .single();
+        const recipient = passengers[0]?.email;
+        if (recipient) {
+          await sendEmail({
+            to: recipient,
+            ...bookingConfirmationEmail({
+              bookingReference: order.booking_reference,
+              passengerNames: order.passengers?.map((p: { given_name: string; family_name: string }) => `${p.given_name} ${p.family_name}`) ?? [],
+              originCode: firstSeg?.origin?.iata_code ?? '',
+              originCity: firstSeg?.origin?.city_name ?? firstSeg?.origin?.name ?? '',
+              destinationCode: lastSeg?.destination?.iata_code ?? '',
+              destinationCity: lastSeg?.destination?.city_name ?? lastSeg?.destination?.name ?? '',
+              departureAt: firstSeg?.departing_at ?? '',
+              airline: firstSeg?.marketing_carrier?.name ?? '',
+              totalAmount: parseFloat(order.total_amount),
+              currency: order.total_currency,
+              bookingId: savedRow?.id,
+            }),
+          });
+        }
+      } catch (emailErr) {
+        console.error('Booking confirmation email failed:', emailErr);
+      }
     } catch (saveErr) {
       console.error('Failed to save booking to Supabase:', saveErr);
     }

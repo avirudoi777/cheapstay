@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { sendEmail } from '@/lib/email';
+import { cancellationEmail } from '@/lib/email-templates';
 
 export const maxDuration = 60;
 
@@ -114,6 +116,29 @@ export async function POST(req: NextRequest) {
           .eq('id', body.bookingId).select('id');
         if ((byId?.length ?? 0) > 0) rowsUpdated += byId!.length;
         if (e2 && !dbError) dbError = e2.message;
+      }
+
+      // Send cancellation email (best-effort — never block the response on this)
+      try {
+        const { data: row } = await db
+          .from('flight_bookings')
+          .select('booking_reference, origin_code, destination_code, passenger_email')
+          .eq(body.orderId ? 'duffel_order_id' : 'id', body.orderId ?? body.bookingId)
+          .single();
+        if (row?.passenger_email) {
+          await sendEmail({
+            to: row.passenger_email,
+            ...cancellationEmail({
+              bookingReference: row.booking_reference,
+              originCode: row.origin_code,
+              destinationCode: row.destination_code,
+              refundAmount: typeof body.refundAmount === 'number' ? body.refundAmount : undefined,
+              refundCurrency: body.refundCurrency,
+            }),
+          });
+        }
+      } catch (emailErr) {
+        console.error('Cancellation email failed:', emailErr);
       }
 
       if (dbError) {

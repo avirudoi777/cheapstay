@@ -1968,6 +1968,44 @@ if (runUnit) {
     assert('selected seat confirmation uses offer price', src.includes('offer.availableServices.find(s => s.id === selSvcId)'));
   });
 
+  // ── Transactional email integration ────────────────────────────────────────
+  await section('Email — Resend client, best-effort, never blocks the calling action', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/lib/email.ts'), 'utf8');
+    assert('uses Resend SDK', src.includes("from 'resend'"));
+    assert('reads RESEND_API_KEY from env', src.includes('RESEND_API_KEY'));
+    assert('sendEmail never throws — caught internally', src.includes('catch (err)') && src.includes('return { sent: false'));
+    assert('missing API key returns sent:false instead of throwing', src.includes("if (!resend)") && src.includes('sent: false'));
+  });
+
+  await section('Email templates — welcome, booking confirmation, cancellation', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/lib/email-templates.ts'), 'utf8');
+    assert('welcomeEmail exported', src.includes('export function welcomeEmail'));
+    assert('bookingConfirmationEmail exported', src.includes('export function bookingConfirmationEmail'));
+    assert('cancellationEmail exported', src.includes('export function cancellationEmail'));
+    assert('booking email links to specific booking when bookingId present', src.includes('${SITE_URL}/bookings/${d.bookingId}'));
+    assert('cancellation email shows refund only when refundAmount > 0', src.includes('hasRefund'));
+  });
+
+  await section('Email — wired into signup, booking confirmation, and cancellation flows', async () => {
+    const signupSrc = readFileSync(resolve(__dir, 'frontend-next/app/auth/signup/page.tsx'), 'utf8');
+    assert('signup calls /api/email/welcome after successful signUp', signupSrc.includes("fetch('/api/email/welcome'"));
+    assert('welcome email call is fire-and-forget (does not block setDone)', signupSrc.includes("}).catch(() => { /* best-effort */ });") );
+
+    const welcomeRouteSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/email/welcome/route.ts'), 'utf8');
+    assert('welcome route uses sendEmail + welcomeEmail template', welcomeRouteSrc.includes('sendEmail') && welcomeRouteSrc.includes('welcomeEmail'));
+
+    const orderSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-order/route.ts'), 'utf8');
+    assert('duffel-order sends booking confirmation email', orderSrc.includes('bookingConfirmationEmail'));
+    assert('booking email failure is caught separately and does not fail the booking', orderSrc.includes('Booking confirmation email failed'));
+
+    const cancelSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
+    assert('duffel-cancel sends cancellation email', cancelSrc.includes('cancellationEmail'));
+    assert('cancellation email failure is caught separately and does not fail the cancellation', cancelSrc.includes('Cancellation email failed'));
+
+    const bookingPageSrc = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    assert('frontend passes refundAmount/refundCurrency to confirm step for the email', bookingPageSrc.includes('refundAmount: quote.refundAmount, refundCurrency: quote.refundCurrency'));
+  });
+
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
