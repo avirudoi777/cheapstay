@@ -565,6 +565,42 @@ export default function AccountPage() {
                 <input type="date" value={companionForm.bornOn} onChange={e => setCompanionForm(f => f && ({ ...f, bornOn: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
               </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Passport (optional, but speeds up booking)</label>
+                <div className="grid grid-cols-[1fr_1.4fr_1.2fr] gap-2">
+                  <select
+                    value={companionForm.passports[0]?.country ?? ''}
+                    onChange={e => setCompanionForm(f => {
+                      if (!f) return f;
+                      const country = e.target.value;
+                      const existing = f.passports[0];
+                      const next = { id: existing?.id || 'p1', country, label: country, passportNumber: existing?.passportNumber ?? '', passportExpiry: existing?.passportExpiry ?? '' };
+                      return { ...f, passports: country ? [next] : [] };
+                    })}
+                    className="w-full border border-gray-200 rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 appearance-none">
+                    <option value="">Country</option>
+                    {COUNTRIES.map(c => <option key={c.code} value={c.code}>{flagEmoji(c.code)} {c.name}</option>)}
+                  </select>
+                  <input value={companionForm.passports[0]?.passportNumber ?? ''}
+                    onChange={e => setCompanionForm(f => {
+                      if (!f) return f;
+                      const existing = f.passports[0];
+                      const next = { id: existing?.id || 'p1', country: existing?.country ?? '', label: existing?.label ?? '', passportNumber: e.target.value.toUpperCase(), passportExpiry: existing?.passportExpiry ?? '' };
+                      return { ...f, passports: [next] };
+                    })}
+                    placeholder="Passport number"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 font-mono uppercase" />
+                  <input type="date" value={companionForm.passports[0]?.passportExpiry ?? ''}
+                    onChange={e => setCompanionForm(f => {
+                      if (!f) return f;
+                      const existing = f.passports[0];
+                      const next = { id: existing?.id || 'p1', country: existing?.country ?? '', label: existing?.label ?? '', passportNumber: existing?.passportNumber ?? '', passportExpiry: e.target.value };
+                      return { ...f, passports: [next] };
+                    })}
+                    className="w-full border border-gray-200 rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1">🔒 Stored encrypted · auto-fills this companion's passport during booking</p>
+              </div>
               <label className="flex items-center gap-3 cursor-pointer select-none">
                 <div className="relative">
                   <input type="checkbox" checked={!!companionForm.isChild}
