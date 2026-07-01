@@ -25,6 +25,7 @@ interface FlightBooking {
   currency: string;
   extras_amount?: number;
   seat_selections?: Array<{ serviceId: string; designator: string; depCode: string; arrCode: string; price: number }>;
+  passenger_email?: string | null;
   passengers_count: number;
   passenger_names: string[];
   cancellation_policy: { allowed: boolean; penalty_amount: number | null; penalty_currency: string | null } | null;
