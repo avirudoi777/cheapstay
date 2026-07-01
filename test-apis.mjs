@@ -1056,7 +1056,7 @@ if (runUnit) {
     assert('alreadyCancelled updates booking local state', src.includes('alreadyCancelled') && src.includes("status: 'cancelled'"));
     // After cancel confirm, re-fetch from Supabase to get ground truth
     // (without this, a failed DB update is invisible until the next page load)
-    assert('re-fetches booking status from Supabase after cancel confirm', src.includes("from('flight_bookings').select('status').eq('id', booking.id)"));
+    assert('always sets cancelled state after Duffel confirms — not overridden by stale Supabase re-fetch', src.includes("status: 'cancelled'") && !src.includes("refreshed?.status ?? 'cancelled'"));
   });
 
   // ── Cancel route — already-cancelled recovery ─────────────────────────────
