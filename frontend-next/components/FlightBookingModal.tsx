@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import DatePicker from '@/components/DatePicker';
 import type { DuffelOffer } from '@/components/FlightResults';
 
 /* ─── Markup / pricing ───────────────────────────────────────────────────── */
@@ -256,7 +257,8 @@ export default function FlightBookingModal({ isOpen, onClose, offer, fromName, t
               </div>
 
               <Field label="Date of birth">
-                <input type="date" value={form.bornOn} onChange={e => update('bornOn', e.target.value)} className={inputCls} />
+                <DatePicker value={form.bornOn} onChange={v => update('bornOn', v)}
+                  max={new Date().toISOString().slice(0,10)} placeholder="Date of birth" className={inputCls} />
                 {formErrors.bornOn && <p className="text-xs text-red-500 mt-0.5">{formErrors.bornOn}</p>}
               </Field>
 
@@ -286,7 +288,8 @@ export default function FlightBookingModal({ isOpen, onClose, offer, fromName, t
                     </Field>
                   </div>
                   <Field label="Passport expiry">
-                    <input type="date" value={form.passportExpiry} onChange={e => update('passportExpiry', e.target.value)} className={inputCls} />
+                    <DatePicker value={form.passportExpiry} onChange={v => update('passportExpiry', v)}
+                      min={new Date().toISOString().slice(0,10)} placeholder="Expiry date" className={inputCls} />
                     {formErrors.passportExpiry && <p className="text-xs text-red-500 mt-0.5">{formErrors.passportExpiry}</p>}
                   </Field>
                 </div>

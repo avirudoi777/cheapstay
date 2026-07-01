@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import DatePicker from '@/components/DatePicker';
 import VisaBanner from '@/components/VisaBanner';
 import { getLayoverGuide, parseLayoverMinutes, LAYOVER_GUIDE_THRESHOLD_MIN } from '@/lib/layover-guides';
 import { flagEmoji, COUNTRIES } from '@/lib/visa-data';
@@ -1336,7 +1337,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         </div>
                         <div className="col-span-3">
                           <Field label="Date of birth *">
-                            <input type="date" value={paxForm.bornOn} onChange={e => updatePassenger(idx, 'bornOn', e.target.value)}
+                            <DatePicker value={paxForm.bornOn} onChange={v => updatePassenger(idx, 'bornOn', v)}
+                              max={new Date().toISOString().slice(0,10)}
+                              placeholder="Date of birth"
                               className={inputCls + (paxErrors.bornOn ? ' border-red-400' : '')} />
                             {paxErrors.bornOn && <p className="text-xs text-red-500 mt-0.5">{paxErrors.bornOn}</p>}
                           </Field>
@@ -1369,7 +1372,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           {paxErrors.passportNumber && <p className="text-xs text-red-500 mt-0.5">{paxErrors.passportNumber}</p>}
                         </Field>
                         <Field label="Passport expiry *">
-                          <input type="date" value={paxForm.passportExpiry} onChange={e => updatePassenger(idx, 'passportExpiry', e.target.value)} className={inputCls} />
+                          <DatePicker value={paxForm.passportExpiry} onChange={v => updatePassenger(idx, 'passportExpiry', v)}
+                            min={new Date().toISOString().slice(0,10)}
+                            placeholder="Expiry date"
+                            className={inputCls + (paxErrors.passportExpiry ? ' border-red-400' : '')} />
                           {paxErrors.passportExpiry && <p className="text-xs text-red-500 mt-0.5">{paxErrors.passportExpiry}</p>}
                         </Field>
                       </div>

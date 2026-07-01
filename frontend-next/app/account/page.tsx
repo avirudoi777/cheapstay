@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import DatePicker from '@/components/DatePicker';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -391,8 +392,9 @@ export default function AccountPage() {
                         </div>
                         <div>
                           <label className="block text-[10px] font-semibold text-gray-500 mb-1">Expiry date</label>
-                          <input type="date" value={p.passportExpiry}
-                            onChange={e => setTravPassports(ps => ps.map(x => x.id === p.id ? { ...x, passportExpiry: e.target.value } : x))}
+                          <DatePicker value={p.passportExpiry}
+                            onChange={v => setTravPassports(ps => ps.map(x => x.id === p.id ? { ...x, passportExpiry: v } : x))}
+                            min={new Date().toISOString().slice(0,10)} placeholder="Expiry date"
                             className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
                         </div>
                       </div>
@@ -482,7 +484,8 @@ export default function AccountPage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">Date of birth</label>
-              <input type="date" value={bornOn} onChange={e => setBornOn(e.target.value)}
+              <DatePicker value={bornOn} onChange={setBornOn}
+                max={new Date().toISOString().slice(0,10)} placeholder="Date of birth"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
             </div>
             <div>
@@ -562,7 +565,8 @@ export default function AccountPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Date of birth</label>
-                <input type="date" value={companionForm.bornOn} onChange={e => setCompanionForm(f => f && ({ ...f, bornOn: e.target.value }))}
+                <DatePicker value={companionForm.bornOn} onChange={v => setCompanionForm(f => f && ({ ...f, bornOn: v }))}
+                  max={new Date().toISOString().slice(0,10)} placeholder="Date of birth"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
               </div>
               <div>
@@ -590,13 +594,14 @@ export default function AccountPage() {
                     })}
                     placeholder="Passport number"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 font-mono uppercase" />
-                  <input type="date" value={companionForm.passports[0]?.passportExpiry ?? ''}
-                    onChange={e => setCompanionForm(f => {
+                  <DatePicker value={companionForm.passports[0]?.passportExpiry ?? ''}
+                    onChange={v => setCompanionForm(f => {
                       if (!f) return f;
                       const existing = f.passports[0];
-                      const next = { id: existing?.id || 'p1', country: existing?.country ?? '', label: existing?.label ?? '', passportNumber: existing?.passportNumber ?? '', passportExpiry: e.target.value };
+                      const next = { id: existing?.id || 'p1', country: existing?.country ?? '', label: existing?.label ?? '', passportNumber: existing?.passportNumber ?? '', passportExpiry: v };
                       return { ...f, passports: [next] };
                     })}
+                    min={new Date().toISOString().slice(0,10)} placeholder="Expiry date"
                     className="w-full border border-gray-200 rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
                 </div>
                 <p className="text-[10px] text-gray-400 mt-1">🔒 Stored encrypted · auto-fills this companion's passport during booking</p>
