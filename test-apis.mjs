@@ -613,9 +613,9 @@ if (runUnit) {
     // rowsUpdated accumulates across both update attempts
     assert('rowsUpdated accumulates from both attempts', /rowsUpdated\s*\+=/.test(src) || src.includes('rowsUpdated += '));
 
-    // No silent failure — 0 rows always logged
-    assert('0 rows affected is logged as error', src.includes("'no_rows_updated'") || src.includes('"no_rows_updated"'));
-    assert('0 rows returns dbWarning not hard error (cancel succeeded in Duffel)', src.includes('dbWarning') && src.includes('success: true'));
+    // No silent failure — 0 rows across all fallbacks surfaces a real error so the user sees it
+    assert('0 rows affected is surfaced to client', src.includes('cancel_db_failed') || src.includes('no_rows_updated'));
+    assert('booking_reference used as third fallback when id and duffel_order_id both miss', src.includes('booking_reference') && src.includes('body.bookingReference'));
   });
 
   // ── Cancel booking — admin client availability ──────────────────────────────
@@ -1379,7 +1379,7 @@ if (runUnit) {
     const routeSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
     assert('confirm step updates by duffel_order_id (not just id) to catch all duplicate rows', routeSrc.includes("eq('duffel_order_id', body.orderId)"));
     assert('confirm step falls back to id-match if orderId missing', routeSrc.includes("eq('id', body.bookingId)"));
-    assert('confirm step detects 0 rows updated and returns dbWarning', routeSrc.includes('no_rows_updated'));
+    assert('confirm step detects 0 rows updated and surfaces error or dbWarning', routeSrc.includes('cancel_db_failed') || routeSrc.includes('no_rows_updated'));
     assert('orderId sent from detail page to cancel confirm', readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8').includes("orderId: booking.duffel_order_id") && readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8').includes("action: 'confirm'"));
     assert('bookings list refetches on window focus (catches nav-back stale state)', readFileSync(resolve(__dir, 'frontend-next/app/bookings/page.tsx'), 'utf8').includes("window.addEventListener('focus'") && readFileSync(resolve(__dir, 'frontend-next/app/bookings/page.tsx'), 'utf8').includes('fetchBookings'));
     assert('already-cancelled: Supabase update uses eq id not user_id', routeSrc.includes("eq('id', body.bookingId)") && !routeSrc.includes("eq('user_id'"));

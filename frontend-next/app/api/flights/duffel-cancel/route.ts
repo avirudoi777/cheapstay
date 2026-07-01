@@ -118,6 +118,15 @@ export async function POST(req: NextRequest) {
         if (e2 && !dbError) dbError = e2.message;
       }
 
+      // Third fallback: update by booking_reference if both above found 0 rows
+      if (rowsUpdated === 0 && body.bookingReference) {
+        const { data: byRef, error: e3 } = await db
+          .from('flight_bookings').update({ status: 'cancelled' })
+          .eq('booking_reference', body.bookingReference).select('id');
+        if ((byRef?.length ?? 0) > 0) rowsUpdated += byRef!.length;
+        if (e3 && !dbError) dbError = e3.message;
+      }
+
       // Send cancellation email (best-effort — never block the response on this)
       try {
         const { data: row } = await db
@@ -143,11 +152,11 @@ export async function POST(req: NextRequest) {
 
       if (dbError) {
         console.error('Supabase cancel update error:', dbError);
-        return NextResponse.json({ success: true, dbWarning: dbError, hasAdmin, rowsUpdated });
+        return NextResponse.json({ error: 'cancel_db_failed', detail: `DB error: ${dbError} (hasAdmin=${hasAdmin})` }, { status: 500 });
       }
       if (rowsUpdated === 0) {
-        console.error('Supabase cancel update: 0 rows affected', { orderId: body.orderId, bookingId: body.bookingId, hasAdmin });
-        return NextResponse.json({ success: true, dbWarning: 'no_rows_updated', hasAdmin, rowsUpdated });
+        console.error('Supabase cancel update: 0 rows', { orderId: body.orderId, bookingId: body.bookingId, hasAdmin });
+        return NextResponse.json({ error: 'cancel_db_failed', detail: `0 rows updated — hasAdmin=${hasAdmin}, orderId=${body.orderId}, bookingId=${body.bookingId}` }, { status: 500 });
       }
 
       return NextResponse.json({ success: true, hasAdmin, rowsUpdated });
