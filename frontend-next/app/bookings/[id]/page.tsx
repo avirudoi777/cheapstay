@@ -311,9 +311,6 @@ export default function ManageBookingPage() {
       const confirmed = await confirmRes.json();
       if (confirmed.error) throw new Error(confirmed.detail || confirmed.error);
 
-      // Belt-and-suspenders: update via browser client (needs UPDATE RLS policy)
-      await clientMarkCancelled(booking);
-
       // Re-fetch from Supabase to get ground truth — if server update worked,
       // this returns 'cancelled'; if not, we still show cancelled from state
       // but the next reload will show the issue (prompting the user to retry).
@@ -942,36 +939,59 @@ export default function ManageBookingPage() {
         {/* ── Cancel confirm modal ─────────────────────────────────────── */}
         {showCancelModal && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.45)' }}
-            onClick={e => { if (e.target === e.currentTarget) setShowCancelModal(false); }}>
-            <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden">
-              <div className="px-6 pt-6 pb-5">
-                <p className="text-base font-extrabold text-gray-900 mb-1">Cancel this booking?</p>
-                <p className="text-sm text-gray-500">
+            style={{ background: 'rgba(0,0,0,0.5)' }}
+            onClick={e => { if (e.target === e.currentTarget && !cancelLoading) setShowCancelModal(false); }}>
+            <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden">
+              {/* Header */}
+              <div className="px-6 pt-7 pb-2">
+                <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4" style={{ background: '#FEF2F2' }}>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="#DC2626" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <p className="text-lg font-extrabold text-gray-900 mb-1">Cancel this booking?</p>
+                <p className="text-sm text-gray-400 font-medium">
                   {booking!.origin_code} → {booking!.destination_code} · {fmtDate(booking!.departure_at)}
                 </p>
+              </div>
+
+              {/* Fee / policy info */}
+              <div className="px-6 py-4">
                 {cancelPolicyLabel && (
-                  <div className="mt-4 rounded-xl px-4 py-3" style={{ background: cancelPolicyLabel.bg }}>
+                  <div className="rounded-2xl px-4 py-3.5" style={{ background: cancelPolicyLabel.bg }}>
                     <p className="text-sm font-bold" style={{ color: cancelPolicyLabel.color }}>{cancelPolicyLabel.text}</p>
                     {cp?.penalty_amount && (
-                      <p className="text-xs text-gray-500 mt-0.5">This fee will be deducted from your refund.</p>
+                      <p className="text-xs text-gray-500 mt-1">This fee will be deducted from your refund.</p>
                     )}
                     {!cp?.penalty_amount && cp?.allowed && (
-                      <p className="text-xs text-gray-500 mt-0.5">You will receive a full refund within 5–10 business days.</p>
+                      <p className="text-xs text-gray-500 mt-1">You'll receive a full refund within 5–10 business days.</p>
                     )}
                   </div>
                 )}
-                {cancelError && <p className="text-sm text-red-600 mt-3 bg-red-50 rounded-xl px-3 py-2">⚠️ {cancelError}</p>}
+                {cancelError && (
+                  <div className="mt-3 rounded-2xl px-4 py-3 bg-red-50 flex items-start gap-2">
+                    <span className="text-red-500 mt-0.5 shrink-0">⚠️</span>
+                    <p className="text-sm text-red-600">{cancelError}</p>
+                  </div>
+                )}
               </div>
-              <div className="px-6 pb-6 flex gap-3">
+
+              {/* Buttons */}
+              <div className="px-6 pb-7 flex gap-3">
                 <button onClick={() => setShowCancelModal(false)} disabled={cancelLoading}
-                  className="flex-1 py-3 rounded-xl text-sm font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition">
+                  className="flex-1 py-3.5 rounded-2xl text-sm font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-40">
                   Never mind
                 </button>
                 <button onClick={cancelBooking} disabled={cancelLoading}
-                  className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition disabled:opacity-60"
-                  style={{ background: '#DC2626' }}>
-                  {cancelLoading ? 'Cancelling…' : 'Yes, cancel'}
+                  className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white transition flex items-center justify-center gap-2"
+                  style={{ background: cancelLoading ? '#EF9999' : '#DC2626' }}>
+                  {cancelLoading && (
+                    <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                  )}
+                  {cancelLoading ? 'Cancelling…' : 'Yes, cancel booking'}
                 </button>
               </div>
             </div>
