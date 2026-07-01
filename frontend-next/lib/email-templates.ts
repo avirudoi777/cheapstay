@@ -81,30 +81,45 @@ function fmtMoney(n: number, cur: string): string {
 export function bookingConfirmationEmail(d: BookingEmailData): { subject: string; html: string } {
   const subject = `Booking confirmed — ${d.originCode} → ${d.destinationCode} (${d.bookingReference})`;
   const link = d.bookingId ? `${SITE_URL}/bookings/${d.bookingId}` : `${SITE_URL}/bookings`;
+  const printLink = d.bookingId ? `${SITE_URL}/bookings/${d.bookingId}?print=1` : `${SITE_URL}/bookings`;
   const html = layout(
     `Your flight ${d.originCode} → ${d.destinationCode} is confirmed. Reference ${d.bookingReference}.`,
     `
-    <h1 style="margin:0 0 4px;font-size:22px;color:${NAVY};">Booking confirmed ✈️</h1>
-    <p style="margin:0 0 20px;font-size:14px;color:#94A3B8;">Reference <strong style="color:${NAVY};">${d.bookingReference}</strong></p>
+    <div style="display:inline-block;background:#E8F8F2;color:${TEAL};font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;margin-bottom:16px;letter-spacing:0.03em;">✓ CONFIRMED</div>
+    <h1 style="margin:0 0 4px;font-size:24px;font-weight:800;color:${NAVY};">Your booking is confirmed</h1>
+    <p style="margin:0 0 24px;font-size:14px;color:#94A3B8;">Booking reference: <strong style="color:${NAVY};letter-spacing:0.05em;">${d.bookingReference}</strong></p>
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border-radius:12px;margin-bottom:20px;">
-      <tr><td style="padding:18px 20px;">
-        <p style="margin:0 0 6px;font-size:16px;font-weight:800;color:${NAVY};">${d.originCode} → ${d.destinationCode}</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border-radius:14px;margin-bottom:20px;border:1px solid #EEF1F5;">
+      <tr><td style="padding:20px 22px;">
+        <p style="margin:0 0 8px;font-size:20px;font-weight:800;color:${NAVY};">${d.originCode} &nbsp;→&nbsp; ${d.destinationCode}</p>
         <p style="margin:0 0 2px;font-size:13px;color:#64748B;">${d.originCity} to ${d.destinationCity}</p>
         <p style="margin:0;font-size:13px;color:#64748B;">${fmtDate(d.departureAt)} · ${d.airline}</p>
       </td></tr>
     </table>
 
-    <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.04em;">Passengers</p>
-    <p style="margin:0 0 16px;font-size:14px;color:#475569;">${d.passengerNames.join(', ')}</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="width:50%;vertical-align:top;">
+          <p style="margin:0 0 3px;font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Passengers</p>
+          <p style="margin:0;font-size:14px;color:#1E293B;">${d.passengerNames.join(', ')}</p>
+        </td>
+        <td style="width:50%;vertical-align:top;text-align:right;">
+          <p style="margin:0 0 3px;font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Total paid</p>
+          <p style="margin:0;font-size:20px;font-weight:800;color:${NAVY};">${fmtMoney(d.totalAmount, d.currency)}</p>
+        </td>
+      </tr>
+    </table>
 
-    <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.04em;">Total paid</p>
-    <p style="margin:0 0 20px;font-size:18px;font-weight:800;color:${NAVY};">${fmtMoney(d.totalAmount, d.currency)}</p>
-
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;">
-      ${button('View booking details →', link)}
-      <a href="${link}?print=1" style="display:inline-block;background:#F1F5F9;color:${NAVY};font-weight:700;font-size:14px;text-decoration:none;padding:12px 24px;border-radius:10px;">🖨 Print</a>
-    </div>
+    <table role="presentation" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="padding-right:10px;">
+          <a href="${link}" style="display:inline-block;background:${TEAL};color:#ffffff;font-weight:700;font-size:14px;text-decoration:none;padding:13px 22px;border-radius:10px;">View booking details →</a>
+        </td>
+        <td>
+          <a href="${printLink}" style="display:inline-block;background:#F1F5F9;color:${NAVY};font-weight:700;font-size:14px;text-decoration:none;padding:13px 22px;border-radius:10px;">🖨 Print</a>
+        </td>
+      </tr>
+    </table>
     `
   );
   return { subject, html };

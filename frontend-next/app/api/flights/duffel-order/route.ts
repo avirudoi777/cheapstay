@@ -214,10 +214,20 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Always look up the saved row ID — upsertedRow may be null if attempt 1 failed
+      // (e.g. extras_amount column migration not yet run) but a later fallback succeeded.
+      let savedRowId: string | undefined = upsertedRow?.id;
+      if (!savedRowId) {
+        const { data: fallbackRow } = await supabase
+          .from('flight_bookings').select('id').eq('duffel_order_id', order.id).single();
+        savedRowId = fallbackRow?.id;
+      }
+
       // Expose save debug so we can diagnose in the network tab
       (order as Record<string, unknown>)._saveDebug = {
         userId: user?.id ?? null,
         insertError: finalErr?.message ?? null,
+        savedRowId: savedRowId ?? null,
       };
 
       // Send booking confirmation email (best-effort — never block the booking response)
@@ -237,7 +247,7 @@ export async function POST(req: NextRequest) {
               airline: firstSeg?.marketing_carrier?.name ?? '',
               totalAmount: parseFloat(order.total_amount),
               currency: order.total_currency,
-              bookingId: upsertedRow?.id,
+              bookingId: savedRowId,
             }),
           });
         }
