@@ -1054,6 +1054,9 @@ if (runUnit) {
     assert('bookingId sent with quote request (needed for stale-status fix)', src.includes('bookingId: booking.id') && src.includes("action: 'quote'"));
     assert('alreadyCancelled signal handled — shows cancelled state without error', src.includes('quote.alreadyCancelled'));
     assert('alreadyCancelled updates booking local state', src.includes('alreadyCancelled') && src.includes("status: 'cancelled'"));
+    // After cancel confirm, re-fetch from Supabase to get ground truth
+    // (without this, a failed DB update is invisible until the next page load)
+    assert('re-fetches booking status from Supabase after cancel confirm', src.includes("from('flight_bookings').select('status').eq('id', booking.id)"));
   });
 
   // ── Cancel route — already-cancelled recovery ─────────────────────────────
