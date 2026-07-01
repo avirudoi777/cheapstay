@@ -8,7 +8,7 @@ function getResend(): Resend | null {
   return resendClient;
 }
 
-const FROM = 'CheapStay <support@cheapstay.co>';
+const FROM = 'CheapStay <support@updates.cheapstay.co>';
 
 // Best-effort send — callers should never let an email failure block the
 // underlying action (signup, booking, cancellation all succeed regardless).
