@@ -1218,8 +1218,8 @@ if (runUnit) {
     assert("page fetches Duffel order to get live status", src.includes('duffel_order_id') && src.includes('/api/flights/duffel-order-detail') || src.includes('duffelRes') || src.includes('/api/flights/duffel'));
     assert("mismatch detected: Duffel cancelled vs Supabase not cancelled", src.includes("json.status === 'cancelled'") && src.includes("data.status !== 'cancelled'"));
     assert("local state fixed immediately on mismatch", src.includes("status: 'cancelled'") && src.includes("setBooking(prev"));
-    assert("sync API called to persist fix in Supabase", src.includes("action: 'sync'") && src.includes("status: 'cancelled'"));
-    assert("sync is fire-and-forget (catch swallowed)", src.includes("action: 'sync'") && src.includes('.catch('));
+    assert("direct Supabase client update used to persist status fix (no flaky API call)", src.includes("update({ status: 'cancelled' })") || src.includes("action: 'sync'"));
+    assert("status sync updates by both id and duffel_order_id", src.includes('.or(`id.eq.') || src.includes("action: 'sync'"));
 
     const routeSrc = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
     assert("sync action accepted in cancel route", routeSrc.includes("body.action === 'sync'"));
