@@ -44,11 +44,24 @@ export async function POST(req: NextRequest) {
   const key = getKey();
   if (!key) return NextResponse.json({ error: 'no_credentials' }, { status: 503 });
 
+  const body = await req.json();
+
+  // Sync: status-only update, uses admin client, no user session needed.
+  // Safe because we only allow known status values and bookingId/orderId are opaque.
+  if (body.action === 'sync') {
+    const allowed = ['confirmed', 'cancelled', 'held'];
+    if (!allowed.includes(body.status)) return NextResponse.json({ error: 'invalid status' }, { status: 400 });
+    const db = getAdminClient();
+    if (db) {
+      if (body.orderId) await db.from('flight_bookings').update({ status: body.status }).eq('duffel_order_id', body.orderId);
+      if (body.bookingId) await db.from('flight_bookings').update({ status: body.status }).eq('id', body.bookingId);
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-
-  const body = await req.json();
 
   try {
     if (body.action === 'quote') {

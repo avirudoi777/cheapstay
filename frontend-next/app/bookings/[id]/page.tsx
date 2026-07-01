@@ -199,17 +199,18 @@ export default function ManageBookingPage() {
           // but Supabase wasn't updated (e.g. due to the old router.refresh() race).
           if (json.status === 'cancelled' && data.status !== 'cancelled') {
             setBooking(prev => prev ? { ...prev, status: 'cancelled' } : prev);
-            // Update directly via browser client — avoids flaky server-side cookie auth
-            void createClient().from('flight_bookings')
-              .update({ status: 'cancelled' })
-              .or(`id.eq.${data.id},duffel_order_id.eq.${data.duffel_order_id}`)
-              .then(({ error }) => { if (error) console.error('status sync error:', error.message); });
+            // Admin client via API (no auth needed for sync action now)
+            fetch('/api/flights/duffel-cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'sync', bookingId: data.id, orderId: data.duffel_order_id, status: 'cancelled' }) }).catch(() => {});
+            // Browser client fallback (works when user_id is set)
+            void createClient().from('flight_bookings').update({ status: 'cancelled' }).eq('id', data.id)
+              .then(({ error }) => { if (error) console.error('sync error:', error.message); });
           } else if (json.status === 'held' && data.status !== 'held') {
             setBooking(prev => prev ? { ...prev, status: 'held' } : prev);
-            void createClient().from('flight_bookings')
-              .update({ status: 'held' })
-              .or(`id.eq.${data.id},duffel_order_id.eq.${data.duffel_order_id}`)
-              .then(({ error }) => { if (error) console.error('status sync error:', error.message); });
+            fetch('/api/flights/duffel-cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'sync', bookingId: data.id, orderId: data.duffel_order_id, status: 'held' }) }).catch(() => {});
+            void createClient().from('flight_bookings').update({ status: 'held' }).eq('id', data.id)
+              .then(({ error }) => { if (error) console.error('sync error:', error.message); });
           }
         } else {
           setOrderError(json.error ?? 'Could not load full order details');
