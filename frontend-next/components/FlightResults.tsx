@@ -3175,7 +3175,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     <p className="text-3xl font-extrabold tabular-nums leading-tight" style={{ color: '#DC2626' }}>
                       {Math.round(gross).toLocaleString()}
                     </p>
-                    <p className="text-[10px] text-gray-400 mb-2.5">all fees included</p>
+                    <p className="text-[10px] text-gray-400 mb-1.5">all fees included</p>
+                    {(() => {
+                      const r = offer.conditions?.refundBeforeDeparture;
+                      if (!r) return null;
+                      if (r.allowed && !r.penaltyAmount) return <p className="text-[10px] font-bold mb-2" style={{ color: '#1D9E75' }}>✓ Free cancellation</p>;
+                      if (r.allowed && r.penaltyAmount) return <p className="text-[10px] font-bold mb-2" style={{ color: '#B45309' }}>Cancel fee: {fmtPrice(parseFloat(r.penaltyAmount), r.penaltyCurrency ?? offer.totalCurrency)}</p>;
+                      return <p className="text-[10px] font-bold mb-2" style={{ color: '#94A3B8' }}>Non-refundable</p>;
+                    })()}
                     <button onClick={() => ret ? selectOutboundFlight(offer) : startBooking(offer)}
                       className="px-5 py-2 rounded-xl text-sm font-bold text-white whitespace-nowrap hover:opacity-90 transition-opacity"
                       style={{ background: '#1D9E75' }}>
@@ -3189,6 +3196,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   <div>
                     <p className="text-2xl font-extrabold tabular-nums" style={{ color: '#DC2626' }}>{fmtPrice(gross, offer.totalCurrency)}</p>
                     <p className="text-[10px] text-gray-400">all fees included</p>
+                    {(() => {
+                      const r = offer.conditions?.refundBeforeDeparture;
+                      if (!r) return null;
+                      if (r.allowed && !r.penaltyAmount) return <p className="text-[10px] font-bold mt-0.5" style={{ color: '#1D9E75' }}>✓ Free cancellation</p>;
+                      if (r.allowed && r.penaltyAmount) return <p className="text-[10px] font-bold mt-0.5" style={{ color: '#B45309' }}>Cancel fee: {fmtPrice(parseFloat(r.penaltyAmount), r.penaltyCurrency ?? offer.totalCurrency)}</p>;
+                      return <p className="text-[10px] font-bold mt-0.5" style={{ color: '#94A3B8' }}>Non-refundable</p>;
+                    })()}
                   </div>
                   <button onClick={() => ret ? selectOutboundFlight(offer) : startBooking(offer)}
                     className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"

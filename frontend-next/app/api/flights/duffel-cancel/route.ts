@@ -127,20 +127,17 @@ export async function POST(req: NextRequest) {
         if (e3 && !dbError) dbError = e3.message;
       }
 
-      // Send cancellation email (best-effort — never block the response on this)
+      // Send cancellation email — use fields from request body (no DB lookup needed,
+      // avoids the same row-not-found issue that affects the status update)
       try {
-        const { data: row } = await db
-          .from('flight_bookings')
-          .select('booking_reference, origin_code, destination_code, passenger_email')
-          .eq(body.orderId ? 'duffel_order_id' : 'id', body.orderId ?? body.bookingId)
-          .single();
-        if (row?.passenger_email) {
+        const recipient = body.passengerEmail ?? user.email;
+        if (recipient) {
           await sendEmail({
-            to: row.passenger_email,
+            to: recipient,
             ...cancellationEmail({
-              bookingReference: row.booking_reference,
-              originCode: row.origin_code,
-              destinationCode: row.destination_code,
+              bookingReference: body.bookingReference ?? '',
+              originCode: body.originCode ?? '',
+              destinationCode: body.destinationCode ?? '',
               refundAmount: typeof body.refundAmount === 'number' ? body.refundAmount : undefined,
               refundCurrency: body.refundCurrency,
             }),

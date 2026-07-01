@@ -63,7 +63,8 @@ export interface BookingEmailData {
   airline: string;
   totalAmount: number;
   currency: string;
-  bookingId?: string;
+  bookingId?: string;      // Supabase UUID — preferred
+  duffelOrderId?: string;  // Duffel order ID — fallback when UUID not available yet
 }
 
 function fmtDate(iso: string): string {
