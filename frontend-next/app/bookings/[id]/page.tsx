@@ -311,11 +311,16 @@ export default function ManageBookingPage() {
       const confirmed = await confirmRes.json();
       if (confirmed.error) throw new Error(confirmed.detail || confirmed.error);
 
-      // Also update directly from browser client — belt-and-suspenders in case
-      // server-side admin client update didn't persist (e.g. wrong service role key)
+      // Belt-and-suspenders: update via browser client (needs UPDATE RLS policy)
       await clientMarkCancelled(booking);
 
-      setBooking(prev => prev ? { ...prev, status: 'cancelled' } : prev);
+      // Re-fetch from Supabase to get ground truth — if server update worked,
+      // this returns 'cancelled'; if not, we still show cancelled from state
+      // but the next reload will show the issue (prompting the user to retry).
+      const supabaseClient = createClient();
+      const { data: refreshed } = await supabaseClient
+        .from('flight_bookings').select('status').eq('id', booking.id).single();
+      setBooking(prev => prev ? { ...prev, status: refreshed?.status ?? 'cancelled' } : prev);
       setCancelRefund({ amount: quote.refundAmount, currency: quote.refundCurrency });
       setCancelDone(true);
       setShowCancelModal(false);
