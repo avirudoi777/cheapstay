@@ -101,7 +101,10 @@ export function bookingConfirmationEmail(d: BookingEmailData): { subject: string
     <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.04em;">Total paid</p>
     <p style="margin:0 0 20px;font-size:18px;font-weight:800;color:${NAVY};">${fmtMoney(d.totalAmount, d.currency)}</p>
 
-    ${button('View booking details →', link)}
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;">
+      ${button('View booking details →', link)}
+      <a href="${link}?print=1" style="display:inline-block;background:#F1F5F9;color:${NAVY};font-weight:700;font-size:14px;text-decoration:none;padding:12px 24px;border-radius:10px;">🖨 Print</a>
+    </div>
     `
   );
   return { subject, html };

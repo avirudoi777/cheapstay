@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getLayoverGuide } from '@/lib/layover-guides';
 import { getArrivalTips } from '@/lib/arrival-tips';
@@ -121,6 +121,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function ManageBookingPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [booking, setBooking] = useState<FlightBooking | null>(null);
   const [order, setOrder] = useState<DuffelOrder | null>(null);
@@ -164,6 +165,13 @@ export default function ManageBookingPage() {
 
   // Share state
   const [shareCopied, setShareCopied] = useState(false);
+
+  // Auto-trigger print when coming from the email print button (?print=1)
+  useEffect(() => {
+    if (!loading && searchParams.get('print') === '1') {
+      setTimeout(() => window.print(), 500);
+    }
+  }, [loading, searchParams]);
 
   useEffect(() => {
     const supabase = createClient();

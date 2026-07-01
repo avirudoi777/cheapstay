@@ -189,9 +189,11 @@ export async function POST(req: NextRequest) {
       // is already saved on the first attempt; a second identical call just updates it.
       // Fallback chain: full row → without cancellation_policy → bare baseRow (extras_amount may not exist yet)
       const fullRow = { ...baseRow, cancellation_policy: cancellationPolicy };
-      const { error: upsertErr } = await supabase
+      const { data: upsertedRow, error: upsertErr } = await supabase
         .from('flight_bookings')
-        .upsert(fullRow, { onConflict: 'duffel_order_id', ignoreDuplicates: false });
+        .upsert(fullRow, { onConflict: 'duffel_order_id', ignoreDuplicates: false })
+        .select('id')
+        .single();
 
       let finalErr = upsertErr;
       if (upsertErr) {
@@ -220,11 +222,6 @@ export async function POST(req: NextRequest) {
 
       // Send booking confirmation email (best-effort — never block the booking response)
       try {
-        const { data: savedRow } = await supabase
-          .from('flight_bookings')
-          .select('id')
-          .eq('duffel_order_id', order.id)
-          .single();
         const recipient = passengers[0]?.email;
         if (recipient) {
           await sendEmail({
@@ -240,7 +237,7 @@ export async function POST(req: NextRequest) {
               airline: firstSeg?.marketing_carrier?.name ?? '',
               totalAmount: parseFloat(order.total_amount),
               currency: order.total_currency,
-              bookingId: savedRow?.id,
+              bookingId: upsertedRow?.id,
             }),
           });
         }
