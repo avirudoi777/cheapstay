@@ -291,9 +291,8 @@ export default function ManageBookingPage() {
       });
       const quote = await quoteRes.json();
 
-      // Duffel already cancelled this order (Supabase had a stale status) — treat as success
+      // Duffel already cancelled this order — server already fixed Supabase in the quote step
       if (quote.alreadyCancelled) {
-        await clientMarkCancelled(booking);
         setBooking(prev => prev ? { ...prev, status: 'cancelled' } : prev);
         setCancelDone(true);
         setShowCancelModal(false);
@@ -311,13 +310,9 @@ export default function ManageBookingPage() {
       const confirmed = await confirmRes.json();
       if (confirmed.error) throw new Error(confirmed.detail || confirmed.error);
 
-      // Re-fetch from Supabase to get ground truth — if server update worked,
-      // this returns 'cancelled'; if not, we still show cancelled from state
-      // but the next reload will show the issue (prompting the user to retry).
-      const supabaseClient = createClient();
-      const { data: refreshed } = await supabaseClient
-        .from('flight_bookings').select('status').eq('id', booking.id).single();
-      setBooking(prev => prev ? { ...prev, status: refreshed?.status ?? 'cancelled' } : prev);
+      // Duffel confirmed the cancellation — flight IS cancelled regardless of Supabase state.
+      // Always show cancelled in the UI; Supabase auto-fix will sync on next page load via Duffel.
+      setBooking(prev => prev ? { ...prev, status: 'cancelled' } : prev);
       setCancelRefund({ amount: quote.refundAmount, currency: quote.refundCurrency });
       setCancelDone(true);
       setShowCancelModal(false);
