@@ -132,32 +132,41 @@ export interface CancellationEmailData {
   destinationCode: string;
   refundAmount?: number;
   refundCurrency?: string;
+  bookingId?: string;
 }
 
 export function cancellationEmail(d: CancellationEmailData): { subject: string; html: string } {
-  const subject = `Booking cancelled — ${d.bookingReference}`;
+  const subject = `Booking cancelled — ${d.originCode} → ${d.destinationCode} (${d.bookingReference})`;
   const hasRefund = !!d.refundAmount && d.refundAmount > 0;
+  const link = d.bookingId ? `${SITE_URL}/bookings/${d.bookingId}` : `${SITE_URL}/bookings`;
   const html = layout(
-    `Your booking ${d.bookingReference} has been cancelled.`,
+    `Your ${d.originCode} → ${d.destinationCode} booking has been cancelled. Ref: ${d.bookingReference}.`,
     `
-    <h1 style="margin:0 0 4px;font-size:22px;color:${NAVY};">Booking cancelled</h1>
-    <p style="margin:0 0 20px;font-size:14px;color:#94A3B8;">Reference <strong style="color:${NAVY};">${d.bookingReference}</strong></p>
+    <div style="display:inline-block;background:#FEF2F2;color:#DC2626;font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;margin-bottom:16px;letter-spacing:0.03em;">✕ CANCELLED</div>
+    <h1 style="margin:0 0 4px;font-size:24px;font-weight:800;color:${NAVY};">Your booking has been cancelled</h1>
+    <p style="margin:0 0 24px;font-size:14px;color:#94A3B8;">Reference: <strong style="color:${NAVY};letter-spacing:0.05em;">${d.bookingReference}</strong></p>
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border-radius:12px;margin-bottom:20px;">
-      <tr><td style="padding:18px 20px;">
-        <p style="margin:0;font-size:16px;font-weight:800;color:${NAVY};">${d.originCode} → ${d.destinationCode}</p>
-        <p style="margin:8px 0 0;font-size:13px;color:#64748B;">This trip has been cancelled and is no longer active.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border-radius:14px;margin-bottom:20px;border:1px solid #EEF1F5;">
+      <tr><td style="padding:20px 22px;">
+        <p style="margin:0 0 4px;font-size:20px;font-weight:800;color:${NAVY};">${d.originCode} &nbsp;→&nbsp; ${d.destinationCode}</p>
+        <p style="margin:0;font-size:13px;color:#64748B;">This booking is no longer active.</p>
       </td></tr>
     </table>
 
     ${hasRefund
-      ? `<p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.04em;">Refund</p>
-         <p style="margin:0 0 20px;font-size:18px;font-weight:800;color:${TEAL};">${fmtMoney(d.refundAmount!, d.refundCurrency || 'USD')}</p>
-         <p style="margin:-12px 0 20px;font-size:13px;color:#64748B;">Refunds typically take 5–10 business days to appear on your statement.</p>`
-      : `<p style="margin:0 0 20px;font-size:13px;color:#64748B;">This fare was non-refundable, so no refund was issued.</p>`
+      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+           <tr>
+             <td style="vertical-align:top;">
+               <p style="margin:0 0 3px;font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Refund amount</p>
+               <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:${TEAL};">${fmtMoney(d.refundAmount!, d.refundCurrency || 'USD')}</p>
+               <p style="margin:0;font-size:12px;color:#94A3B8;">Typically 5–10 business days to appear on your statement.</p>
+             </td>
+           </tr>
+         </table>`
+      : `<p style="margin:0 0 20px;font-size:13px;color:#64748B;">This fare was non-refundable — no refund will be issued.</p>`
     }
 
-    ${button('View your bookings →', `${SITE_URL}/bookings`)}
+    ${button('View booking details →', link)}
     `
   );
   return { subject, html };

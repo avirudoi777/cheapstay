@@ -140,6 +140,7 @@ export async function POST(req: NextRequest) {
               destinationCode: body.destinationCode ?? '',
               refundAmount: typeof body.refundAmount === 'number' ? body.refundAmount : undefined,
               refundCurrency: body.refundCurrency,
+              bookingId: body.bookingId,
             }),
           });
         }
