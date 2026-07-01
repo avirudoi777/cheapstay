@@ -1228,6 +1228,44 @@ if (runUnit) {
     assert("sync errors logged but don't throw (resilient)", routeSrc.includes("action === 'sync'") && routeSrc.includes('console.error'));
   });
 
+  // ── Cancel route — sync before auth guard ────────────────────────────────
+  await section('Cancel route — sync action runs before auth guard (no session needed)', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
+    // sync must be handled BEFORE the !user auth check
+    const syncIdx = src.indexOf("body.action === 'sync'");
+    const authIdx = src.indexOf("if (!user)");
+    assert('sync action is checked before unauthorized guard', syncIdx < authIdx && syncIdx !== -1 && authIdx !== -1);
+    // Only allows known status values
+    assert('sync validates status against allowlist', src.includes("allowed.includes(body.status)") || src.includes("allowedStatuses.includes(body.status)"));
+    // Uses admin client (bypasses RLS for null user_id rows)
+    assert('sync uses admin client directly', (() => {
+      const syncSection = src.slice(syncIdx, syncIdx + 600);
+      return syncSection.includes('getAdminClient()');
+    })());
+  });
+
+  // ── Cancel email — uses request body not DB SELECT ────────────────────────
+  await section('Cancel email — sends from request body fields, not DB SELECT', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/app/api/flights/duffel-cancel/route.ts'), 'utf8');
+    assert('cancel email uses body.passengerEmail (no DB SELECT for email)', src.includes('body.passengerEmail') && !src.includes(".select('booking_reference, origin_code"));
+    assert('cancel email falls back to user.email', src.includes('body.passengerEmail ?? user.email'));
+    assert('cancel email uses body.originCode and body.destinationCode', src.includes('body.originCode') && src.includes('body.destinationCode'));
+    // Frontend must pass these fields
+    const pageSrc = readFileSync(resolve(__dir, 'frontend-next/app/bookings/[id]/page.tsx'), 'utf8');
+    assert('booking detail passes passengerEmail in confirm body', pageSrc.includes('passengerEmail: booking.passenger_email'));
+    assert('booking detail passes originCode in confirm body', pageSrc.includes('originCode: booking.origin_code'));
+  });
+
+  // ── Refundable badge on search results ────────────────────────────────────
+  await section('Flight search results — refundable/non-refundable badge on each card', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    assert('reads refundBeforeDeparture from offer conditions', src.includes('offer.conditions?.refundBeforeDeparture'));
+    assert('free cancellation shown in green', src.includes('Free cancellation'));
+    assert('cancel fee shown when penaltyAmount set', src.includes('Cancel fee'));
+    assert('non-refundable shown in gray', src.includes('Non-refundable'));
+    assert('badge shown on both desktop and mobile card layouts', (src.match(/refundBeforeDeparture/g) ?? []).length >= 2);
+  });
+
   // ══════════════════════════════════════════════════════════════════════════
   // DEEP LOGIC TESTS — run the actual algorithms inline
   // ══════════════════════════════════════════════════════════════════════════
