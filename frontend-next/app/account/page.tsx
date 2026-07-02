@@ -110,12 +110,22 @@ export default function AccountPage() {
 
   useEffect(() => {
     const supabase = createClient();
+
+    // getSession() reads from local storage/cookies — near-instant, no server round-trip.
+    // Use it to show avatar & name before getUser() (which verifies via server) completes.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.user) return;
+      const meta = session.user.user_metadata;
+      if (meta?.full_name || meta?.name) setName(meta.full_name || meta.name || '');
+      const metaAvatar = meta?.avatar_url || '';
+      if (metaAvatar) { setAvatarUrl(metaAvatar); localStorage.setItem('cs_avatar', metaAvatar); }
+    });
+
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { router.push('/auth/login'); return; }
       setUser(data.user);
       const meta = data.user.user_metadata;
       setName(meta?.full_name || meta?.name || '');
-      // Show avatar immediately from OAuth metadata — don't wait for profile fetch
       const metaAvatar = meta?.avatar_url || '';
       if (metaAvatar) { setAvatarUrl(metaAvatar); localStorage.setItem('cs_avatar', metaAvatar); }
 

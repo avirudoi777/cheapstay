@@ -531,7 +531,7 @@ if (runUnit) {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
     assert("bookStep set to 'confirmed' on success", src.includes("setBookStep('confirmed')"));
     assert('confirmation stores bookingReference', src.includes('order.bookingReference'));
-    assert('page scrolls to top after booking', src.includes("window.scrollTo"));
+    assert('page scrolls to confirmation card after booking (not window top)', src.includes('confirmationRef') && src.includes('scrollIntoView'));
   });
 
   await section('Round-trip flash fix — interstitial spinner while confirmation loads', async () => {

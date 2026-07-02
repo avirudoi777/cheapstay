@@ -501,6 +501,7 @@ const EMPTY_CARD: CardForm = { name: '', number: '', expiry: '', cvc: '' };
 
 export default function FlightResults({ fromCode, toCode, fromName, toName, depart, ret, adults = 1, children = 0, infants = 0, cabinClass = 'economy', onClear, passportCodes }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const confirmationRef = useRef<HTMLDivElement>(null);
 
   // Baked in at build time via next.config — no async fetch race
   const duffelTestMode = process.env.NEXT_PUBLIC_DUFFEL_TEST_MODE === 'true';
@@ -672,6 +673,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       .finally(() => { setSeatMapsLoading(false); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOffer?.id]);
+
+  // Scroll the ticket card into view when confirmation first appears
+  useEffect(() => {
+    if (!confirmation) return;
+    setTimeout(() => {
+      confirmationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }, [confirmation]);
 
   // Derived filter data
   const allAirlines = useMemo(() => {
@@ -979,7 +988,6 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       }
 
       setBookStep('confirmed');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
 
       // Save booking client-side as belt-and-suspenders (server-side save may fail if cookie not forwarded)
       // Also look up the Supabase row UUID for the "View booking" deep-link navigation.
@@ -2583,7 +2591,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       : 'linear-gradient(160deg, #0a1628 0%, #0f2e4a 60%, #0d3d2e 100%)';
 
     return (
-      <div className="max-w-lg mx-auto px-4 sm:px-6 mt-8 mb-16">
+      <div ref={confirmationRef} className="max-w-lg mx-auto px-4 sm:px-6 mt-8 mb-16">
 
         {/* Boarding-pass card */}
         <div className="rounded-3xl overflow-hidden shadow-2xl" style={{ background: bgGradient }}>
