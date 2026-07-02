@@ -75,7 +75,10 @@ export default function AccountPage() {
 
   const [user, setUser]           = useState<User | null>(null);
   const [displayName, setName]    = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
+  // Read cached avatar immediately so it shows before getUser() resolves
+  const [avatarUrl, setAvatarUrl] = useState(() =>
+    typeof window !== 'undefined' ? (localStorage.getItem('cs_avatar') || '') : ''
+  );
   const [styles, setStyles]       = useState<string[]>([]);
   const [regions, setRegions]     = useState<string[]>([]);
   const [budget, setBudget]       = useState('mid');
@@ -113,7 +116,8 @@ export default function AccountPage() {
       const meta = data.user.user_metadata;
       setName(meta?.full_name || meta?.name || '');
       // Show avatar immediately from OAuth metadata — don't wait for profile fetch
-      setAvatarUrl(meta?.avatar_url || '');
+      const metaAvatar = meta?.avatar_url || '';
+      if (metaAvatar) { setAvatarUrl(metaAvatar); localStorage.setItem('cs_avatar', metaAvatar); }
 
       // Fetch both in parallel — cuts load time roughly in half
       const [{ data: profile }, tpRes] = await Promise.all([
@@ -127,7 +131,7 @@ export default function AccountPage() {
         setBudget(profile.budget_range || 'mid');
         setTrips(profile.trips_per_year || 2);
         // Override with custom avatar from Supabase storage if set
-        if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
+        if (profile.avatar_url) { setAvatarUrl(profile.avatar_url); localStorage.setItem('cs_avatar', profile.avatar_url); }
       }
 
       // Build legacy passport list from existing nationality data
@@ -181,6 +185,7 @@ export default function AccountPage() {
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
       const urlWithBust = publicUrl + '?t=' + Date.now();
       setAvatarUrl(urlWithBust);
+      localStorage.setItem('cs_avatar', urlWithBust);
       const { error: dbError } = await supabase.from('user_profiles').upsert({ id: user.id, avatar_url: urlWithBust });
       if (dbError) setError('Save failed: ' + dbError.message);
     }
