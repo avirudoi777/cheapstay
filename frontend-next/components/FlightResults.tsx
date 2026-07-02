@@ -2526,6 +2526,21 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     );
   }
 
+  /* ── CONFIRMING INTERSTITIAL — bookStep=confirmed but setConfirmation not yet called ── */
+  if (bookStep === 'confirmed' && !confirmation) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <svg className="w-10 h-10 animate-spin mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="#1D9E75" strokeWidth="4"/>
+            <path className="opacity-75" fill="#1D9E75" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+          <p className="text-sm font-semibold text-gray-500">Confirming your booking…</p>
+        </div>
+      </div>
+    );
+  }
+
   /* ── CONFIRMATION VIEW ───────────────────────────────────────────────────── */
   if (bookStep === 'confirmed' && confirmation && selectedOffer) {
     const firstSeg = selectedOffer.segments[0];

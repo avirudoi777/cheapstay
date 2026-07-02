@@ -534,6 +534,24 @@ if (runUnit) {
     assert('page scrolls to top after booking', src.includes("window.scrollTo"));
   });
 
+  await section('Round-trip flash fix — interstitial spinner while confirmation loads', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // When bookStep=confirmed but setConfirmation hasn't fired yet (async gap),
+    // must show a spinner instead of falling through to the flight results list
+    // (which would flash the round-trip step-2 selection view)
+    assert('interstitial shown when bookStep confirmed but no confirmation yet', src.includes("bookStep === 'confirmed' && !confirmation"));
+    assert('interstitial shows spinner not results list', (() => {
+      const idx = src.indexOf("bookStep === 'confirmed' && !confirmation");
+      const snippet = src.slice(idx, idx + 400);
+      return snippet.includes('animate-spin');
+    })());
+    assert('interstitial renders before the full confirmation view', (() => {
+      const idx1 = src.indexOf("bookStep === 'confirmed' && !confirmation");
+      const idx2 = src.indexOf("bookStep === 'confirmed' && confirmation && selectedOffer");
+      return idx1 !== -1 && idx2 !== -1 && idx1 < idx2;
+    })());
+  });
+
   await section('Booking confirmation — View booking details navigates to specific booking', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
     // Button label changed from "View my bookings" to "View booking details"
