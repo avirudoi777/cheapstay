@@ -99,6 +99,7 @@ export default function AccountPage() {
   // Travel companions
   const [companions, setCompanions] = useState<CompanionData[]>([]);
   const [companionForm, setCompanionForm] = useState<CompanionData | null>(null); // null = closed, {} = add new
+  const [travLoading, setTravLoading] = useState(true);
   // Delete account
   const [deleteModal, setDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -111,6 +112,8 @@ export default function AccountPage() {
       setUser(data.user);
       const meta = data.user.user_metadata;
       setName(meta?.full_name || meta?.name || '');
+      // Show avatar immediately from OAuth metadata — don't wait for profile fetch
+      setAvatarUrl(meta?.avatar_url || '');
 
       // Fetch both in parallel — cuts load time roughly in half
       const [{ data: profile }, tpRes] = await Promise.all([
@@ -123,9 +126,8 @@ export default function AccountPage() {
         setRegions(profile.preferred_regions || []);
         setBudget(profile.budget_range || 'mid');
         setTrips(profile.trips_per_year || 2);
-        setAvatarUrl(profile.avatar_url || meta?.avatar_url || '');
-      } else {
-        setAvatarUrl(meta?.avatar_url || '');
+        // Override with custom avatar from Supabase storage if set
+        if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
       }
 
       // Build legacy passport list from existing nationality data
@@ -154,6 +156,7 @@ export default function AccountPage() {
       } catch {
         if (legacyPassports.length) setTravPassports(legacyPassports);
       }
+      setTravLoading(false);
     });
   }, [router]);
 
@@ -333,9 +336,18 @@ export default function AccountPage() {
           </h3>
           <p className="text-xs text-gray-400 mb-4">Click a passport to add your number — used for visa checks and auto-fills booking forms</p>
 
+          {/* Skeleton while loading */}
+          {travLoading && (
+            <div className="space-y-2 mb-3 animate-pulse">
+              {[1, 2].map(i => (
+                <div key={i} className="h-14 bg-gray-100 rounded-2xl" />
+              ))}
+            </div>
+          )}
+
           {/* Passport cards */}
           <div className="space-y-2 mb-3">
-            {travPassports.map(p => {
+            {!travLoading && travPassports.map(p => {
               const country = COUNTRIES.find(c => c.code === p.country);
               const isOpen = expandedPassportId === p.id;
               const expiryStatus = passportExpiryStatus(p.passportExpiry);
@@ -407,7 +419,7 @@ export default function AccountPage() {
           </div>
 
           {/* Add passport country search */}
-          {travPassports.length < 3 && (
+          {!travLoading && travPassports.length < 3 && (
             <div className="relative">
               <input type="text"
                 value={addPassportOpen ? addPassportQ : ''}
@@ -449,8 +461,23 @@ export default function AccountPage() {
           </h3>
           <p className="text-xs text-gray-400 mb-4">Fill once — auto-fills the booking form when you search for flights</p>
 
+          {travLoading ? (
+            <div className="space-y-3 animate-pulse">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="h-10 bg-gray-100 rounded-xl" />
+                <div className="h-10 bg-gray-100 rounded-xl" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="h-10 bg-gray-100 rounded-xl" />
+                <div className="h-10 bg-gray-100 rounded-xl" />
+              </div>
+              <div className="h-10 bg-gray-100 rounded-xl" />
+              <div className="h-10 bg-gray-100 rounded-xl" />
+            </div>
+          ) : null}
+
           {/* Personal info */}
-          <div className="space-y-3 mb-5">
+          <div className={`space-y-3 mb-5${travLoading ? ' hidden' : ''}`}>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Title</label>
