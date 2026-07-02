@@ -21,12 +21,13 @@ export async function GET(request: Request) {
           .single();
 
         // New OAuth user — created_at within 2 min means this is a fresh sign-up.
-        // More reliable than checking profile row (which may linger after account deletion).
+        // MUST await before redirecting — Vercel kills the function the moment the
+        // response is sent, so fire-and-forget never completes in serverless.
         const isNewUser = user.created_at
           && (Date.now() - new Date(user.created_at).getTime()) < 120_000;
         if (isNewUser && user.email) {
           const name = user.user_metadata?.full_name || user.user_metadata?.name || '';
-          sendEmail({ to: user.email, ...welcomeEmail({ name }) }).catch(() => {});
+          await sendEmail({ to: user.email, ...welcomeEmail({ name }) });
         }
 
         if (!profile?.onboarding_done) {
