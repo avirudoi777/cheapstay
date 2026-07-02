@@ -932,6 +932,18 @@ if (runUnit) {
     assert('chip shows ~ prefix for non-active dates', src.includes("!isActive && '~'"));
   });
 
+  // ── Chip price round-trip dedup ───────────────────────────────────────────
+  await section('Date chip price — round-trip uses deduplicated outbound minimum to match visible cards', async () => {
+    const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');
+    // Both the active-date main search AND adjacent-date prefetch must dedup by obKey
+    // so chip prices match the cheapest VISIBLE card (not a hidden combination)
+    assert('active date uses obKey dedup for round-trip chip price', src.includes('bestPerOb') && src.includes('obKey(o)'));
+    assert('prefetch also uses obKey dedup for round-trip', (src.match(/bestPerOb/g) ?? []).length >= 2);
+    assert('prefetch dedup triggered by prefetchRet (round-trip mode)', src.includes('if (prefetchRet)') || src.includes('if (ret)'));
+    assert('stuck skeleton fixed — catch sets null to force re-render', src.includes("setChipPrices(prev => ({ ...prev, [iso]: null }))"));
+    assert('Number.isFinite guard prevents Infinity from empty dedup map', src.includes('Number.isFinite(min)') || src.includes('Number.isFinite(minRaw)'));
+  });
+
   // ── Airline internal_error retry ─────────────────────────────────────────
   await section('Booking error — internal_error shows retry button', async () => {
     const src = readFileSync(resolve(__dir, 'frontend-next/components/FlightResults.tsx'), 'utf8');

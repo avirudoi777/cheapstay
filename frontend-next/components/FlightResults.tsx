@@ -634,9 +634,21 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       })
         .then(r => r.json())
         .then(json => {
-          const minPrice = json.offers?.length
-            ? calcGross(Math.min(...(json.offers as DuffelOffer[]).map((o: DuffelOffer) => o.totalAmount)))
-            : null;
+          let minPrice: number | null = null;
+          if (json.offers?.length) {
+            if (prefetchRet) {
+              // Round-trip: dedup by outbound key — chip must match cheapest visible card in step 1
+              const bestPerOb = new Map<string, number>();
+              for (const o of json.offers as DuffelOffer[]) {
+                const k = obKey(o);
+                if (!bestPerOb.has(k) || o.totalAmount < bestPerOb.get(k)!) bestPerOb.set(k, o.totalAmount);
+              }
+              const min = Math.min(...Array.from(bestPerOb.values()));
+              minPrice = Number.isFinite(min) ? calcGross(min) : null;
+            } else {
+              minPrice = calcGross(Math.min(...(json.offers as DuffelOffer[]).map((o: DuffelOffer) => o.totalAmount)));
+            }
+          }
           setChipPrices(prev => ({ ...prev, [iso]: minPrice }));
         })
         .catch(() => {
