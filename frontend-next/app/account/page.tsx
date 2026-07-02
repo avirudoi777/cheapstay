@@ -302,12 +302,20 @@ export default function AccountPage() {
           <div className="flex items-end gap-5">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
-              <div className="w-24 h-24 rounded-full ring-4 ring-white shadow-md overflow-hidden bg-gradient-to-br from-teal to-blue-500 flex items-center justify-center">
-                {avatarUrl ? (
+              <div className="w-24 h-24 rounded-full ring-4 ring-white shadow-md overflow-hidden bg-gradient-to-br from-teal to-blue-500 flex items-center justify-center relative">
+                {/* Initials always visible as background — no flash when image is loading */}
+                <span className="text-white text-2xl font-bold absolute select-none">{initials}</span>
+                {avatarUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  <span className="text-white text-2xl font-bold">{initials}</span>
+                  <img
+                    src={avatarUrl}
+                    alt="Avatar"
+                    className="w-full h-full object-cover absolute inset-0 transition-opacity duration-200"
+                    style={{ opacity: 0 }}
+                    referrerPolicy="no-referrer"
+                    onLoad={e => { (e.target as HTMLImageElement).style.opacity = '1'; }}
+                    onError={() => setAvatarUrl('')}
+                  />
                 )}
               </div>
               <button
