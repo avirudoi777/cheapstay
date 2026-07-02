@@ -20,8 +20,11 @@ export async function GET(request: Request) {
           .eq('id', user.id)
           .single();
 
-        // New Google/OAuth user — no profile row yet. Send welcome email.
-        if (!profile && user.email) {
+        // New OAuth user — created_at within 2 min means this is a fresh sign-up.
+        // More reliable than checking profile row (which may linger after account deletion).
+        const isNewUser = user.created_at
+          && (Date.now() - new Date(user.created_at).getTime()) < 120_000;
+        if (isNewUser && user.email) {
           const name = user.user_metadata?.full_name || user.user_metadata?.name || '';
           sendEmail({ to: user.email, ...welcomeEmail({ name }) }).catch(() => {});
         }
