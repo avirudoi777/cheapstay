@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/email';
 import { welcomeEmail } from '@/lib/email-templates';
 
+export const maxDuration = 30;
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
@@ -13,6 +15,8 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('[callback] user:', user?.id, 'email:', user?.email, 'created_at:', user?.created_at);
+
       if (user) {
         const { data: profile } = await supabase
           .from('user_profiles')
@@ -20,14 +24,14 @@ export async function GET(request: Request) {
           .eq('id', user.id)
           .single();
 
-        // New OAuth user — created_at within 2 min means this is a fresh sign-up.
-        // MUST await before redirecting — Vercel kills the function the moment the
-        // response is sent, so fire-and-forget never completes in serverless.
-        const isNewUser = user.created_at
-          && (Date.now() - new Date(user.created_at).getTime()) < 120_000;
+        const ageMs = user.created_at ? Date.now() - new Date(user.created_at).getTime() : Infinity;
+        const isNewUser = ageMs < 120_000;
+        console.log('[callback] ageMs:', ageMs, 'isNewUser:', isNewUser, 'hasEmail:', !!user.email);
+
         if (isNewUser && user.email) {
           const name = user.user_metadata?.full_name || user.user_metadata?.name || '';
-          await sendEmail({ to: user.email, ...welcomeEmail({ name }) });
+          const result = await sendEmail({ to: user.email, ...welcomeEmail({ name }) });
+          console.log('[callback] welcome email result:', JSON.stringify(result));
         }
 
         if (!profile?.onboarding_done) {
