@@ -545,13 +545,17 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
   const [cabinOpen, setCabinOpen] = useState(false);
   const [paxAnchor, setPaxAnchor] = useState<DOMRect | null>(null);
   const paxRef = useRef<HTMLDivElement>(null);
+  const paxPortalRef = useRef<HTMLDivElement>(null);
   const cabinRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!paxOpen && !cabinOpen) return;
     function handleClickOutside(e: MouseEvent) {
-      if (paxRef.current && !paxRef.current.contains(e.target as Node)) setPaxOpen(false);
-      if (cabinRef.current && !cabinRef.current.contains(e.target as Node)) setCabinOpen(false);
+      const t = e.target as Node;
+      // Check both the trigger button wrapper AND the portal dropdown content
+      const insidePax = (paxRef.current?.contains(t)) || (paxPortalRef.current?.contains(t));
+      if (!insidePax) setPaxOpen(false);
+      if (cabinRef.current && !cabinRef.current.contains(t)) setCabinOpen(false);
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -629,7 +633,7 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
                 : paxAnchor.bottom + 6;
               const left = Math.max(8, Math.min(paxAnchor.right - 256, window.innerWidth - 264));
               return (
-                <div style={{ position: 'fixed', top, left, width: 256, zIndex: 9999, background: '#fff', border: '1px solid #e2e8f0' }}
+                <div ref={paxPortalRef} style={{ position: 'fixed', top, left, width: 256, zIndex: 9999, background: '#fff', border: '1px solid #e2e8f0' }}
                   className="rounded-2xl shadow-xl p-4">
                   {[
                     { label: 'Adults', sub: 'Age 12+', val: adults, set: (n: number) => { setAdults(n); if (infants > n) setInfants(n); }, min: 1, max: 6 },
