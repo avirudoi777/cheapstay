@@ -2081,7 +2081,7 @@ if (runUnit) {
     assert('auth callback imports sendEmail and welcomeEmail', callbackSrc.includes('sendEmail') && callbackSrc.includes('welcomeEmail'));
     assert('welcome email sent for new OAuth users via created_at timestamp check', callbackSrc.includes('created_at') && callbackSrc.includes('120_000'));
     assert('created_at check: new user = within 2 minutes of sign-up', callbackSrc.includes('Date.now()') && callbackSrc.includes('new Date(user.created_at)'));
-    assert('welcome email is awaited before redirect (Vercel kills fire-and-forget)', callbackSrc.includes('await sendEmail') && !callbackSrc.includes('sendEmail({').replace('await sendEmail', '').includes('sendEmail({'));
+    assert('welcome email is awaited before redirect (Vercel kills fire-and-forget)', callbackSrc.includes('await sendEmail({ to: user.email'));
     assert('uses user_metadata for name in OAuth welcome email', callbackSrc.includes('user_metadata?.full_name') || callbackSrc.includes('user_metadata?.name'));
   });
 
