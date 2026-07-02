@@ -587,8 +587,20 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         else {
           setOffers(json.offers);
           setChipCurrency(json.offers[0]?.totalCurrency ?? 'USD');
-          const minRaw = Math.min(...(json.offers as DuffelOffer[]).map((o: DuffelOffer) => o.totalAmount));
-          setChipPrices(prev => ({ ...prev, [activeDate]: calcGross(minRaw) }));
+          // Round-trip: chip price should match the cheapest DISPLAYED outbound (deduplicated by obKey)
+          // to avoid showing a price from a hidden combination the user can't directly select.
+          let minRaw: number;
+          if (ret) {
+            const bestPerOb = new Map<string, number>();
+            for (const o of json.offers as DuffelOffer[]) {
+              const k = obKey(o);
+              if (!bestPerOb.has(k) || o.totalAmount < bestPerOb.get(k)!) bestPerOb.set(k, o.totalAmount);
+            }
+            minRaw = Math.min(...Array.from(bestPerOb.values()));
+          } else {
+            minRaw = Math.min(...(json.offers as DuffelOffer[]).map((o: DuffelOffer) => o.totalAmount));
+          }
+          setChipPrices(prev => ({ ...prev, [activeDate]: Number.isFinite(minRaw) ? calcGross(minRaw) : null }));
         }
       })
       .catch(() => setSearchError('Search failed — please try again.'))

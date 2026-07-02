@@ -543,6 +543,7 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
   const [cabinClass, setCabinClass] = useState<CabinClass>('economy');
   const [paxOpen, setPaxOpen] = useState(false);
   const [cabinOpen, setCabinOpen] = useState(false);
+  const [paxAnchor, setPaxAnchor] = useState<DOMRect | null>(null);
   const paxRef = useRef<HTMLDivElement>(null);
   const cabinRef = useRef<HTMLDivElement>(null);
 
@@ -610,49 +611,63 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
         </div>
         {/* Passenger selector */}
         <div className="relative" ref={paxRef}>
-          <button type="button" onClick={() => { setPaxOpen(o => !o); setCabinOpen(false); }}
+          <button type="button" onClick={e => {
+              setPaxAnchor((e.currentTarget as HTMLButtonElement).getBoundingClientRect());
+              setPaxOpen(o => !o); setCabinOpen(false);
+            }}
             className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700"
             style={{ background: '#f1f5f9' }}>
             👤 {paxLabel}
             <span className="text-gray-400">{paxOpen ? '▲' : '▼'}</span>
           </button>
-          {paxOpen && (
-            <div className="absolute right-0 top-full mt-1 z-50 rounded-2xl shadow-lg p-4 w-64"
-              style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
-              {[
-                { label: 'Adults', sub: 'Age 12+', val: adults, set: (n: number) => { setAdults(n); if (infants > n) setInfants(n); }, min: 1, max: 6 },
-                { label: 'Children', sub: 'Age 2–11', val: children, set: (n: number) => setChildren(n), min: 0, max: 6 },
-                { label: 'Infants', sub: 'Under 2, on lap', val: infants, set: (n: number) => setInfants(Math.min(n, adults)), min: 0, max: adults },
-              ].map(row => (
-                <div key={row.label} className="flex items-center justify-between py-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <div>
-                    <p className="text-sm font-bold text-gray-800">{row.label}</p>
-                    <p className="text-[11px] text-gray-400">{row.sub}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button type="button" onClick={() => row.set(Math.max(row.min, row.val - 1))}
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-base font-bold transition-colors"
-                      style={{ color: row.val > row.min ? '#1D9E75' : '#9ca3af', background: row.val > row.min ? '#e6f7f1' : '#f9fafb' }}>
-                      −
-                    </button>
-                    <span className="text-base font-bold text-gray-900 w-5 text-center">{row.val}</span>
-                    <button type="button" onClick={() => row.set(Math.min(row.max, row.val + 1))}
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-base font-bold transition-colors"
-                      style={{ color: row.val < row.max ? '#1D9E75' : '#9ca3af', background: row.val < row.max ? '#e6f7f1' : '#f9fafb' }}>
-                      +
-                    </button>
-                  </div>
+          {paxOpen && paxAnchor && typeof window !== 'undefined' && createPortal(
+            (() => {
+              const dropH = 280 + (infants > 0 ? 36 : 0);
+              const spaceBelow = window.innerHeight - paxAnchor.bottom;
+              const top = spaceBelow < dropH + 8
+                ? Math.max(8, paxAnchor.top - dropH - 6)
+                : paxAnchor.bottom + 6;
+              const left = Math.max(8, Math.min(paxAnchor.right - 256, window.innerWidth - 264));
+              return (
+                <div style={{ position: 'fixed', top, left, width: 256, zIndex: 9999, background: '#fff', border: '1px solid #e2e8f0' }}
+                  className="rounded-2xl shadow-xl p-4">
+                  {[
+                    { label: 'Adults', sub: 'Age 12+', val: adults, set: (n: number) => { setAdults(n); if (infants > n) setInfants(n); }, min: 1, max: 6 },
+                    { label: 'Children', sub: 'Age 2–11', val: children, set: (n: number) => setChildren(n), min: 0, max: 6 },
+                    { label: 'Infants', sub: 'Under 2, on lap', val: infants, set: (n: number) => setInfants(Math.min(n, adults)), min: 0, max: adults },
+                  ].map(row => (
+                    <div key={row.label} className="flex items-center justify-between py-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <div>
+                        <p className="text-sm font-bold text-gray-800">{row.label}</p>
+                        <p className="text-[11px] text-gray-400">{row.sub}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button type="button" onClick={() => row.set(Math.max(row.min, row.val - 1))}
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-base font-bold transition-colors"
+                          style={{ color: row.val > row.min ? '#1D9E75' : '#9ca3af', background: row.val > row.min ? '#e6f7f1' : '#f9fafb' }}>
+                          −
+                        </button>
+                        <span className="text-base font-bold text-gray-900 w-5 text-center">{row.val}</span>
+                        <button type="button" onClick={() => row.set(Math.min(row.max, row.val + 1))}
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-base font-bold transition-colors"
+                          style={{ color: row.val < row.max ? '#1D9E75' : '#9ca3af', background: row.val < row.max ? '#e6f7f1' : '#f9fafb' }}>
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {infants > 0 && (
+                    <p className="text-[11px] text-amber-600 mt-2 leading-relaxed">👶 Infants travel on an adult&apos;s lap — no seat. Max 1 per adult.</p>
+                  )}
+                  <button type="button" onClick={() => setPaxOpen(false)}
+                    className="w-full mt-3 py-2.5 rounded-xl text-sm font-bold text-white"
+                    style={{ background: '#1D9E75' }}>
+                    Done · {totalPax} passenger{totalPax !== 1 ? 's' : ''}
+                  </button>
                 </div>
-              ))}
-              {infants > 0 && (
-                <p className="text-[11px] text-amber-600 mt-2 leading-relaxed">👶 Infants travel on an adult&apos;s lap — no seat. Max 1 per adult.</p>
-              )}
-              <button type="button" onClick={() => setPaxOpen(false)}
-                className="w-full mt-3 py-2.5 rounded-xl text-sm font-bold text-white"
-                style={{ background: '#1D9E75' }}>
-                Done · {totalPax} passenger{totalPax !== 1 ? 's' : ''}
-              </button>
-            </div>
+              );
+            })(),
+            document.body
           )}
         </div>
         </div>{/* end cabin+pax wrapper */}
