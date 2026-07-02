@@ -627,7 +627,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             : null;
           setChipPrices(prev => ({ ...prev, [iso]: minPrice }));
         })
-        .catch(() => {})
+        .catch(() => {
+          // Set null so the chip shows "See prices" instead of staying stuck in skeleton
+          setChipPrices(prev => ({ ...prev, [iso]: null }));
+        })
         .finally(() => prefetchingDates.current.delete(iso));
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps

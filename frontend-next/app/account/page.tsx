@@ -310,9 +310,10 @@ export default function AccountPage() {
                   <img
                     src={avatarUrl}
                     alt="Avatar"
-                    className="w-full h-full object-cover absolute inset-0 transition-opacity duration-200"
+                    className="w-full h-full object-cover absolute inset-0 transition-opacity duration-150"
                     style={{ opacity: 0 }}
                     referrerPolicy="no-referrer"
+                    ref={el => { if (el?.complete && el.naturalHeight > 0) el.style.opacity = '1'; }}
                     onLoad={e => { (e.target as HTMLImageElement).style.opacity = '1'; }}
                     onError={() => setAvatarUrl('')}
                   />
