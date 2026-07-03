@@ -24,14 +24,13 @@ export async function GET(request: Request) {
           .eq('id', user.id)
           .single();
 
-        const ageMs = user.created_at ? Date.now() - new Date(user.created_at).getTime() : Infinity;
-        const isNewUser = ageMs < 120_000;
-        console.log('[callback] ageMs:', ageMs, 'isNewUser:', isNewUser, 'hasEmail:', !!user.email);
-
-        if (isNewUser && user.email) {
+        // !profile = no profile row = brand new user (new UUID, no history)
+        // More reliable than created_at time check which fails if OAuth took >2 min
+        console.log('[callback] profile:', JSON.stringify(profile), 'email:', user.email);
+        if (!profile && user.email) {
           const name = user.user_metadata?.full_name || user.user_metadata?.name || '';
           const result = await sendEmail({ to: user.email, ...welcomeEmail({ name }) });
-          console.log('[callback] welcome email result:', JSON.stringify(result));
+          console.log('[callback] email result:', JSON.stringify(result));
         }
 
         if (!profile?.onboarding_done) {
