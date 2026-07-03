@@ -197,7 +197,9 @@ export default function ManageBookingPage() {
           // Auto-fix stale Supabase status: Duffel is source of truth.
           // Covers the case where a previous cancellation succeeded in Duffel
           // but Supabase wasn't updated (e.g. due to the old router.refresh() race).
-          if (json.status === 'cancelled' && data.status !== 'cancelled') {
+          if (json.status === 'needs_review') {
+            // Airline made changes — handled below as a banner, no status change needed
+          } else if (json.status === 'cancelled' && data.status !== 'cancelled') {
             setBooking(prev => prev ? { ...prev, status: 'cancelled' } : prev);
             // Admin client via API (no auth needed for sync action now)
             fetch('/api/flights/duffel-cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -622,6 +624,15 @@ export default function ManageBookingPage() {
           )}
           {orderError && !orderLoading && (
             <p className="text-sm text-gray-400">Could not load live details — showing saved info.</p>
+          )}
+          {order?.status === 'needs_review' && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 mb-2 flex items-start gap-3">
+              <span className="text-amber-500 text-lg shrink-0">⚠️</span>
+              <div>
+                <p className="text-sm font-bold text-amber-800">Your flight has been changed by the airline</p>
+                <p className="text-xs text-amber-700 mt-0.5">The details below reflect the latest update. Contact the airline using your booking reference <strong>{booking.booking_reference}</strong> if you need to accept or reject these changes.</p>
+              </div>
+            </div>
           )}
           {allSegs.length > 0 ? (
             <div className="space-y-5">
