@@ -6,8 +6,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { city } = await params;
   const name = city.charAt(0).toUpperCase() + city.slice(1);
   return {
-    title: `Cheap Hotels in ${name} — Best Prices | Cheapstay`,
+    title: `Cheap Hotels in ${name} — Best Prices`,
     description: `Find the cheapest hotel prices in ${name}. Compare Agoda, Booking.com and more to always get the best deal.`,
+    openGraph: {
+      url: `https://www.cheapstay.co/hotels/${city}`,
+    },
+    alternates: {
+      canonical: `https://www.cheapstay.co/hotels/${city}`,
+    },
   };
 }
 

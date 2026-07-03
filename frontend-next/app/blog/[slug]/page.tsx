@@ -279,15 +279,22 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: post.title,
     description: post.excerpt,
-    authors: [{ name: 'Avi', url: 'https://cheapstay.co/about' }],
+    authors: [{ name: 'Avi', url: 'https://www.cheapstay.co/about' }],
     openGraph: {
       title: post.title,
       description: post.excerpt,
       images: [post.img],
       type: 'article',
       authors: ['Avi'],
+      url: `https://www.cheapstay.co/blog/${slug}`,
     },
-    alternates: { canonical: `https://cheapstay.co/blog/${slug}` },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt,
+      images: [post.img],
+    },
+    alternates: { canonical: `https://www.cheapstay.co/blog/${slug}` },
   };
 }
 
@@ -362,15 +369,15 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     author: {
       '@type': 'Person',
       name: 'Avi',
-      url: 'https://cheapstay.co/about',
+      url: 'https://www.cheapstay.co/about',
     },
     publisher: {
       '@type': 'Organization',
       name: 'CheapStay',
-      url: 'https://cheapstay.co',
+      url: 'https://www.cheapstay.co',
     },
-    url: `https://cheapstay.co/blog/${slug}`,
-    mainEntityOfPage: `https://cheapstay.co/blog/${slug}`,
+    url: `https://www.cheapstay.co/blog/${slug}`,
+    mainEntityOfPage: `https://www.cheapstay.co/blog/${slug}`,
   };
 
   return (

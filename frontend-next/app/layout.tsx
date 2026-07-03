@@ -11,29 +11,29 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? 'G-4N9WY15BK2';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://cheapstay.co'),
+  metadataBase: new URL('https://www.cheapstay.co'),
   title: {
     default: 'CheapStay — Compare Hotel Prices & Save Up to 40%',
     template: '%s | CheapStay',
   },
   description: 'Compare Agoda and Booking.com side by side and find the lowest hotel price instantly. Stack cashback and credit card points for extra savings. Used by 10,000+ travelers.',
   keywords: ['travel hacks', 'cheap hotel deals', 'hotel price comparison', 'save money on hotels', 'travel savings', 'VPN hotel hack', 'Agoda discount', 'Booking.com discount', 'travel tips', 'digital nomad hotels', 'cheap travel', 'hotel booking tips', 'cashback travel', 'best travel credit cards'],
-  authors: [{ name: 'Avi', url: 'https://cheapstay.co/about' }],
+  authors: [{ name: 'Avi', url: 'https://www.cheapstay.co/about' }],
   creator: 'CheapStay',
   openGraph: {
     title: 'CheapStay — Compare Hotel Prices & Save Up to 40%',
     description: 'Compare Agoda and Booking.com side by side and find the lowest hotel price instantly. Stack cashback and credit card points for extra savings.',
-    url: 'https://cheapstay.co',
+    url: 'https://www.cheapstay.co',
     siteName: 'CheapStay',
     type: 'website',
     locale: 'en_US',
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'CheapStay — Compare Hotel Prices & Save Up to 40%' }],
+    images: [{ url: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=1200&h=630&fit=crop&auto=format', width: 1200, height: 630, alt: 'CheapStay — Compare Hotel Prices & Save Up to 40%' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'CheapStay — Compare Hotel Prices & Save Up to 40%',
     description: 'Compare Agoda and Booking.com side by side and find the lowest hotel price instantly. Stack cashback and credit card points for extra savings.',
-    images: ['/og-image.png'],
+    images: ['https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=1200&h=630&fit=crop&auto=format'],
   },
   robots: {
     index: true,
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: 'https://cheapstay.co',
+    canonical: 'https://www.cheapstay.co',
   },
 };
 

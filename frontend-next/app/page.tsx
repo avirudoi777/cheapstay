@@ -71,22 +71,7 @@ const VPN_CARDS = [
     features: ['Thailand server', 'Fast & reliable', 'All devices', '30-day money back'],
     url: 'https://go.nordvpn.net/aff_c?offer_id=15&aff_id=151019&url_id=902',
   },
-  {
-    name: 'ExpressVPN',
-    price: '$6.67/mo',
-    label: 'Also great',
-    featured: false,
-    features: ['Thailand server', 'Ultra-fast speeds', 'All devices', '30-day money back'],
-    url: '#',
-  },
-  {
-    name: 'Surfshark',
-    price: '$2.49/mo',
-    label: 'Budget pick',
-    featured: false,
-    features: ['Thailand server', 'Unlimited devices', 'Budget-friendly', '30-day money back'],
-    url: '#',
-  },
+  // ExpressVPN/Surfshark: re-add once affiliate programs approved
 ];
 
 const CREDIT_CARDS = [
@@ -735,9 +720,9 @@ export default function HomePage() {
               A VPN protects your connection on hotel & airport WiFi. Takes 5 minutes to set up, works on every device.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
             {VPN_CARDS.map(vpn => (
-              <div key={vpn.name} className={`rounded-2xl p-5 flex flex-col ${vpn.featured ? 'border-2' : 'border border-white/10'}`}
+              <div key={vpn.name} className={`rounded-2xl p-5 flex flex-col sm:max-w-sm w-full ${vpn.featured ? 'border-2' : 'border border-white/10'}`}
                 style={{ background: vpn.featured ? 'rgba(29,158,117,0.1)' : 'rgba(255,255,255,0.05)', borderColor: vpn.featured ? '#1D9E75' : undefined }}>
                 {vpn.featured && (
                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full self-start mb-3"
