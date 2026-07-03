@@ -35,18 +35,20 @@ function button(label: string, href: string): string {
 export function welcomeEmail({ name }: { name: string }): { subject: string; html: string } {
   const subject = `Welcome to CheapStay${name ? `, ${name}` : ''}!`;
   const html = layout(
-    'Compare Agoda + Booking.com side by side, real-time prices, up to 40% cheaper.',
+    'Find cheap flights, hotel deals, and travel tools — all in one place.',
     `
     <h1 style="margin:0 0 16px;font-size:22px;color:${NAVY};">Welcome${name ? `, ${name}` : ''} 👋</h1>
     <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#475569;">
-      Your account is ready. CheapStay compares Agoda and Booking.com side by side so you always see the cheaper rate — no sign-up required to search, but your account saves passport details, travel companions, and booking history.
+      Your CheapStay account is ready. We help travellers find cheaper flights and hotel deals — your account saves your passport details, travel companions, and booking history so checkout is faster every time.
     </p>
     <ul style="margin:0 0 24px;padding-left:18px;font-size:14px;line-height:1.8;color:#475569;">
-      <li>Real-time prices, updated constantly</li>
-      <li>Up to 40% cheaper than booking directly</li>
-      <li>Save passenger &amp; passport details for faster checkout</li>
+      <li>✈️ Search &amp; book flights with real-time prices</li>
+      <li>🏨 Browse hotel deals and go straight to checkout</li>
+      <li>🛂 Save passenger details once, auto-fill every booking</li>
+      <li>💺 Seat selection, baggage, trip management — all in one place</li>
     </ul>
-    ${button('Start searching →', SITE_URL)}
+    ${button('Start exploring →', SITE_URL)}
+    <p style="margin:16px 0 0;font-size:12px;color:#94A3B8;">If this ends up in Promotions, move it to your inbox so you never miss a booking confirmation.</p>
     `
   );
   return { subject, html };
