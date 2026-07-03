@@ -2079,8 +2079,8 @@ if (runUnit) {
     // Google OAuth welcome email — sent in auth callback for new users
     const callbackSrc = readFileSync(resolve(__dir, 'frontend-next/app/auth/callback/route.ts'), 'utf8');
     assert('auth callback imports sendEmail and welcomeEmail', callbackSrc.includes('sendEmail') && callbackSrc.includes('welcomeEmail'));
-    assert('welcome email sent for new OAuth users via created_at timestamp check', callbackSrc.includes('created_at') && callbackSrc.includes('120_000'));
-    assert('created_at check: new user = within 2 minutes of sign-up', callbackSrc.includes('Date.now()') && callbackSrc.includes('new Date(user.created_at)'));
+    assert('welcome email sent for new OAuth users when no profile row exists', callbackSrc.includes('!profile') && callbackSrc.includes('user.email'));
+    assert('new user detection uses profile row not time check (more reliable)', callbackSrc.includes('!profile && user.email') && !callbackSrc.includes('120_000'));
     assert('welcome email is awaited before redirect (Vercel kills fire-and-forget)', callbackSrc.includes('await sendEmail({ to: user.email'));
     assert('uses user_metadata for name in OAuth welcome email', callbackSrc.includes('user_metadata?.full_name') || callbackSrc.includes('user_metadata?.name'));
   });
