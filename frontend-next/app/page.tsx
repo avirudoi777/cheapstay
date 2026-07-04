@@ -231,7 +231,7 @@ export default function HomePage() {
   const [passportBannerDismissed, setPassportBannerDismissed] = useState(false);
 
   // Hero tab
-  const [activeTab, setActiveTab] = useState<'hotel' | 'flight'>('hotel');
+  const [activeTab, setActiveTab] = useState<'hotel' | 'flight'>('flight');
 
   // Flight search state
   const [flightSearch, setFlightSearch] = useState<{
@@ -452,7 +452,7 @@ export default function HomePage() {
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section style={{ background: '#0a1628' }} className="relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">
-          <Image src="/hero.jpg" alt="Hotel view" fill className="object-cover" priority />
+          <Image src="/hero.jpg" alt="Travel" fill className="object-cover" priority />
         </div>
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-12 pb-10 text-center">
           {/* Badge */}
@@ -461,24 +461,24 @@ export default function HomePage() {
             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
-            Compare Agoda &amp; Booking.com — find the lowest price instantly
+            Visa, vaccine &amp; layover info — before you book
           </div>
 
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-tight">
-            Stop overpaying for hotels.<br className="hidden sm:block" />
-            <span style={{ color: '#1D9E75' }}>Save up to 40%</span> by comparing the right prices.
+            Know what you need before you fly.<br className="hidden sm:block" />
+            <span style={{ color: '#1D9E75' }}>Book it once you do.</span>
           </h1>
 
           <p className="mt-4 text-sm sm:text-base text-white/70 max-w-2xl mx-auto">
-            We search Agoda and Booking.com simultaneously and show you the lowest available rate — no sign-up required.
+            We check passport, visa, and vaccine requirements for your route — plus real layover and airport tips — then let you book the flight right here.
           </p>
 
           {/* 3-step flow */}
           <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-0">
             {[
-              { n: '1', text: 'Search any destination worldwide' },
-              { n: '2', text: 'Compare prices across Agoda & Booking.com' },
-              { n: '3', text: 'Click Book → go straight to the cheapest option' },
+              { n: '1', text: 'Search your route' },
+              { n: '2', text: 'See exactly what you need to know' },
+              { n: '3', text: 'Book directly — no extra tabs' },
             ].map((step, i) => (
               <div key={i} className="flex items-center gap-2">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
@@ -495,7 +495,7 @@ export default function HomePage() {
           {/* Hotel / Flight tabs */}
           <div className="mt-8">
             <div className="flex gap-1 mb-4 justify-center">
-              {(['hotel', 'flight'] as const).map(tab => (
+              {(['flight', 'hotel'] as const).map(tab => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
                   className="px-5 py-2 rounded-full text-sm font-bold transition-all"
                   style={activeTab === tab
@@ -512,6 +512,18 @@ export default function HomePage() {
               ) : (
                 <FlightSearchBar onSearch={handleFlightSearch} />
               )}
+            </div>
+
+            {/* Secondary CTA */}
+            <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link href="/consult"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-opacity hover:opacity-80"
+                style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}>
+                📞 Or talk to me directly →
+              </Link>
+              <p className="text-xs text-white/50 max-w-xs">
+                Route planning, visa tips, best prices. 1-on-1 with Avi — $49.
+              </p>
             </div>
           </div>
         </div>

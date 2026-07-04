@@ -169,6 +169,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div>
                 <p className="text-xs font-bold text-navy uppercase tracking-wider mb-3">Guides</p>
                 <div className="space-y-2">
+                  <Link href="/fly-to" className="block text-xs text-gray-400 hover:text-navy transition-colors">Travel requirements by country</Link>
                   <Link href="/vpn-guide" className="block text-xs text-gray-400 hover:text-navy transition-colors">How to use a VPN for cheaper hotels</Link>
                   <Link href="/cashback" className="block text-xs text-gray-400 hover:text-navy transition-colors">Cashback guide</Link>
                   <Link href="/blog" className="block text-xs text-gray-400 hover:text-navy transition-colors">Travel hacks &amp; tips</Link>

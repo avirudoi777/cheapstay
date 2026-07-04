@@ -3,7 +3,6 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import BlogScrollTracker from '@/components/BlogScrollTracker';
-import { buildPageMetadata } from '@/lib/metadata';
 
 const POSTS: Record<string, {
   title: string;
@@ -61,6 +60,10 @@ I've used NordVPN for 3 years. It's fast, has reliable Thai servers, and hasn't 
 ## Try it yourself
 
 Use CheapStay to compare Agoda and Booking.com prices instantly — it fetches prices server-side from a Bangkok IP so you see Thai-market rates without needing a VPN yourself.
+
+## Planning a trip to Thailand?
+
+Before you book, check our [Thailand entry requirements guide](/fly-to/thailand) — visa rules, vaccine requirements, and Bangkok airport arrival tips in one place.
     `.trim(),
   },
   'three-cards-i-always-travel-with': {
@@ -222,6 +225,10 @@ I also search from a Thai IP (using CheapStay or a VPN) which drops prices anoth
 ## The $60/night formula
 
 Thai IP pricing + Agoda comparison + Asakusa or Akihabara location = consistently under $70/night for a decent private room in central Tokyo. I've done it 4 times in the last 2 years.
+
+## Flying to Japan?
+
+Check our [Japan entry requirements guide](/fly-to/japan) for visa rules, what to know at Narita airport, and the cheapest way into Tokyo from the terminal.
     `.trim(),
   },
   'when-booking-direct-beats-agoda': {
@@ -277,13 +284,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const post = POSTS[slug];
   if (!post) return {};
+  const url = `https://www.cheapstay.co/blog/${slug}`;
   return {
-    ...buildPageMetadata({
-      title: post.title,
-      description: post.excerpt,
-      path: `/blog/${slug}`,
-      image: post.img,
-    }),
+    title: post.title,
+    description: post.excerpt,
     authors: [{ name: 'Avi', url: 'https://www.cheapstay.co/about' }],
     openGraph: {
       title: post.title,
@@ -291,9 +295,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       images: [{ url: post.img, width: 1200, height: 630, alt: post.title }],
       type: 'article',
       authors: ['Avi'],
-      url: `https://www.cheapstay.co/blog/${slug}`,
+      url,
       siteName: 'CheapStay',
     },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt,
+      images: [post.img],
+    },
+    alternates: { canonical: url },
   };
 }
 
