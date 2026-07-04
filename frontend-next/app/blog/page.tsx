@@ -54,9 +54,36 @@ const POSTS = [
     featured: false,
     img: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=360&fit=crop&auto=format',
   },
+  {
+    slug: 'bangkok-vs-chiang-mai',
+    title: 'Bangkok vs Chiang Mai: which is actually cheaper for long stays?',
+    excerpt: "I've lived in both for months at a time. Here's the honest cost breakdown — accommodation, food, transport, coworking.",
+    category: 'Destinations',
+    readTime: 7,
+    featured: false,
+    img: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&h=360&fit=crop&auto=format',
+  },
+  {
+    slug: 'japan-budget-travel',
+    title: 'Japan on a budget: the complete cost breakdown for 2 weeks',
+    excerpt: "Japan's reputation for being expensive is outdated. Here's what I actually spent — flights, hotels, food, transport — and how to do it for less.",
+    category: 'Destinations',
+    readTime: 8,
+    featured: false,
+    img: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&h=360&fit=crop&auto=format',
+  },
+  {
+    slug: 'best-months-fly-southeast-asia',
+    title: 'The best months to fly to Southeast Asia — and the ones to avoid',
+    excerpt: 'Timing your Southeast Asia flight can save you $200–400 on the ticket alone. Here are the exact windows I use after 4 years of booking these routes.',
+    category: 'Flights',
+    readTime: 6,
+    featured: false,
+    img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&h=360&fit=crop&auto=format',
+  },
 ];
 
-const FILTERS = ['All posts', 'Booking hacks', 'Hotel reviews', 'Flights', 'Credit cards', 'Countries'];
+const FILTERS = ['All posts', 'Booking hacks', 'Hotel reviews', 'Flights', 'Credit cards', 'Destinations'];
 
 const CATEGORY_COLORS: Record<string, string> = {
   'Booking hack': '#1D9E75',

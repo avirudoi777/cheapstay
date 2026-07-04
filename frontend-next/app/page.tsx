@@ -200,6 +200,30 @@ const BLOG_POSTS = [
     featured: false,
     img: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=240&fit=crop&auto=format',
   },
+  {
+    slug: 'bangkok-vs-chiang-mai',
+    title: 'Bangkok vs Chiang Mai: which is actually cheaper for long stays?',
+    category: 'Destinations',
+    readTime: 7,
+    featured: false,
+    img: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=400&h=240&fit=crop&auto=format',
+  },
+  {
+    slug: 'japan-budget-travel',
+    title: 'Japan on a budget: the complete cost breakdown for 2 weeks',
+    category: 'Destinations',
+    readTime: 8,
+    featured: false,
+    img: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=240&fit=crop&auto=format',
+  },
+  {
+    slug: 'best-months-fly-southeast-asia',
+    title: 'The best months to fly to Southeast Asia — and the ones to avoid',
+    category: 'Flights',
+    readTime: 6,
+    featured: false,
+    img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=240&fit=crop&auto=format',
+  },
 ];
 
 const TRAVEL_GEAR = [
@@ -534,10 +558,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-8 text-center">
             {[
-              'Agoda + Booking.com compared side by side',
-              'Real-time prices, updated constantly',
-              'No sign-up required',
-              'Up to 40% cheaper than booking directly',
+              'Visa & vaccine requirements checked',
+              'Flights bookable directly — no redirect',
+              'Layover & airport tips inline',
+              'Hotel prices from a Thai IP — up to 40% less',
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-2 text-xs font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>
                 <span style={{ color: '#1D9E75' }}>✓</span>

@@ -1213,6 +1213,36 @@ export default function ManageBookingPage() {
           </Section>
         )}
 
+        {/* ── Fly-to requirements cross-sell ──────────────────────────── */}
+        {(() => {
+          const AIRPORT_TO_COUNTRY: Record<string, { slug: string; name: string }> = {
+            BKK: { slug: 'thailand', name: 'Thailand' }, DMK: { slug: 'thailand', name: 'Thailand' },
+            NRT: { slug: 'japan', name: 'Japan' }, HND: { slug: 'japan', name: 'Japan' }, KIX: { slug: 'japan', name: 'Japan' },
+            DPS: { slug: 'indonesia', name: 'Indonesia' }, CGK: { slug: 'indonesia', name: 'Indonesia' },
+            SGN: { slug: 'vietnam', name: 'Vietnam' }, HAN: { slug: 'vietnam', name: 'Vietnam' },
+            DXB: { slug: 'uae', name: 'UAE' }, AUH: { slug: 'uae', name: 'UAE' },
+            SIN: { slug: 'singapore', name: 'Singapore' },
+            DEL: { slug: 'india', name: 'India' }, BOM: { slug: 'india', name: 'India' },
+            ICN: { slug: 'south-korea', name: 'South Korea' }, GMP: { slug: 'south-korea', name: 'South Korea' },
+          };
+          const dest = AIRPORT_TO_COUNTRY[booking.destination_code];
+          if (!dest) return null;
+          return (
+            <div className="rounded-2xl border border-teal/20 bg-teal/5 px-5 py-4 flex items-center gap-4">
+              <span className="text-2xl flex-shrink-0">🛂</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-navy">Know before you fly to {dest.name}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Visa rules, vaccine requirements, and arrival tips for {booking.destination_city}.</p>
+              </div>
+              <a href={`/fly-to/${dest.slug}`}
+                className="text-xs font-bold text-white px-4 py-2 rounded-lg whitespace-nowrap flex-shrink-0 transition-opacity hover:opacity-90"
+                style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+                View guide →
+              </a>
+            </div>
+          );
+        })()}
+
         {/* ── Destination tips ────────────────────────────────────────── */}
         <DestinationTipsSection
           destinationCode={booking.destination_code}

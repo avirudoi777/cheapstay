@@ -270,6 +270,214 @@ For Marriott, Hilton, Hyatt, IHG — book through the chain's own site or app. T
 OTA first, then a 3-minute check on the hotel's direct site. If the hotel is independent and the direct rate is within $10 of the OTA, I book direct and ask for one extra perk. If it's a chain, I book direct regardless. Everything else, Agoda wins.
     `.trim(),
   },
+
+  'bangkok-vs-chiang-mai': {
+    title: 'Bangkok vs Chiang Mai: which is actually cheaper for long stays?',
+    excerpt: "I've lived in both for months at a time. Here's the honest cost breakdown — accommodation, food, transport, coworking.",
+    category: 'Destinations',
+    readTime: 7,
+    img: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=1200&h=600&fit=crop&auto=format',
+    content: `
+I've spent over 6 months in Bangkok and 4 months in Chiang Mai across multiple trips. People always ask which is cheaper. The honest answer: Chiang Mai is cheaper, but Bangkok is better value for some things. Here's the full breakdown.
+
+## Accommodation
+
+**Chiang Mai:** A private room in a guesthouse in the Old City or Nimman area runs $20–40/night. A furnished studio monthly rental is $350–600/month. A serviced apartment with pool is $600–900/month.
+
+**Bangkok:** Decent private room in Silom or Sukhumvit area runs $35–60/night. Monthly studio rentals are $500–900/month. The range is wider because Bangkok is bigger — you can find cheaper if you go further from the BTS.
+
+**Winner: Chiang Mai** — about 20–30% cheaper for comparable quality.
+
+## Food
+
+**Chiang Mai:** Street food at a night market or local spot: 40–80 THB per meal. Café lunch: 100–150 THB. You can eat well for under $10/day without trying.
+
+**Bangkok:** Street food is similar in price but there are more mid-range options pulling your average up. Local restaurant meal: 60–120 THB. The city is bigger and prices near tourist zones are higher.
+
+**Winner: Tie** — if you eat local, both are extremely cheap. Chiang Mai has slightly more "local" options per square kilometer.
+
+## Transport
+
+**Chiang Mai:** No BTS or metro. You need a scooter rental ($80–120/month) or rely on Grab. A daily Grab habit adds up — budget $3–5/day.
+
+**Bangkok:** The BTS/MRT covers most of the city. A 30-day unlimited pass is around 1,400 THB (~$40 USD). If you're near a BTS station, no scooter needed.
+
+**Winner: Bangkok** — surprisingly cheaper if you live near a BTS line. Chiang Mai's scooter is cheap but requires confidence riding in Thai traffic.
+
+## Coworking
+
+**Chiang Mai:** CAMP (free with a coffee purchase), MANA, CAMP Nimman — cheap and good. Paid coworking is $5–8/day or $60–100/month.
+
+**Bangkok:** More options but slightly pricier. Good coworking is $8–15/day or $100–180/month in central areas.
+
+**Winner: Chiang Mai.**
+
+## Internet
+
+Both cities have excellent internet. True Move H and AIS offer fiber that's fast and cheap. Bangkok has more redundancy in upscale condos. Chiang Mai is fine for remote work.
+
+## The total monthly budget
+
+**Chiang Mai budget (comfortable):** $800–1,200/month — accommodation, food, scooter, coworking, social life.
+
+**Bangkok budget (comfortable):** $1,000–1,500/month — slightly higher accommodation and transport offset by more variety.
+
+## Which should you choose?
+
+**Choose Chiang Mai if:** you want a slower pace, mountains nearby, a tight-knit nomad community, and to stretch your budget. It's a city you can walk and cycle.
+
+**Choose Bangkok if:** you want a bigger city, more international flights, nightlife options, and you don't mind paying slightly more for the infrastructure. The BTS system makes it surprisingly liveable.
+
+I switch between the two every few months. Chiang Mai to decompress and save; Bangkok when I need urban energy and direct flights.
+
+## Flying to Thailand?
+
+Before you book, check our [Thailand entry requirements guide](/fly-to/thailand) — visa rules, yellow fever requirements, and Bangkok airport tips in one place.
+    `.trim(),
+  },
+
+  'japan-budget-travel': {
+    title: 'Japan on a budget: the complete cost breakdown for 2 weeks',
+    excerpt: "Japan's reputation for being expensive is outdated. Here's what I actually spent — flights, hotels, food, transport — and how to do it for less.",
+    category: 'Destinations',
+    readTime: 8,
+    img: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200&h=600&fit=crop&auto=format',
+    content: `
+Japan has a reputation for being expensive. That reputation is about 20 years out of date. With the yen at historic lows against the USD and EUR, Japan is one of the best value destinations in Asia right now. Here's exactly what a 2-week trip costs if you do it right.
+
+## Flights
+
+From Southeast Asia (Bangkok, Singapore, KL): $150–350 return. From the US West Coast: $600–900 return. From Europe: $700–1,100 return.
+
+Use CheapStay to search — flights from BKK to NRT regularly come in under $250 return. Book 6–8 weeks out for the best prices.
+
+## Accommodation
+
+**Budget (hostel dorm):** $20–35/night in Tokyo, Osaka, Kyoto. Japan has excellent hostels — clean, organized, often with great social spaces.
+
+**Mid-range (business hotel):** $55–90/night. Dormy Inn chain is the best value in this category — clean rooms, often includes breakfast, onsen on the top floor. I've stayed in Dormy Inn Tokyo, Osaka, and Sapporo and it's consistently excellent.
+
+**Budget tip:** Stay in Asakusa (Tokyo) or Higashiyama (Kyoto) — slightly further from the busiest areas but on direct subway lines and 15–20% cheaper.
+
+## Food
+
+This is where Japan surprises people. You can eat incredibly well for almost nothing.
+
+**Convenience store meal (7-Eleven, FamilyMart, Lawson):** 400–700 JPY. Onigiri, sandwiches, hot food — Japanese convenience store food is genuinely good.
+
+**Ramen shop:** 800–1,200 JPY (~$5–8 USD). This is a full meal.
+
+**Izakaya (Japanese pub-restaurant):** 2,000–4,000 JPY for dinner with a couple of drinks.
+
+**Sushi conveyor belt (kaiten-zushi):** 1,500–2,500 JPY for a proper meal. Not the tourist traps — go to Sushiro, Kura Sushi, or Hama Sushi chains.
+
+**My average food cost:** ~3,000 JPY/day (~$20 USD) eating well, mixing convenience store lunches with sit-down dinners.
+
+## Transport
+
+**IC Card (Suica/Pasmo):** Load cash onto this card at any train station — works on all trains, buses, and even convenience stores in most cities. Essential.
+
+**JR Pass:** Worth it ONLY if you're doing multiple bullet train legs (Tokyo → Kyoto → Hiroshima → Osaka etc.). A 7-day JR Pass costs ~$300 USD — do the math on your actual itinerary before buying.
+
+**Tokyo Metro day pass:** 600 JPY for unlimited metro rides — use if you're doing more than 3–4 trips in a day.
+
+**Within-city transport:** Plan around 500–1,000 JPY/day for an urban trip.
+
+## 2-week budget breakdown
+
+| Category | Budget option | Comfortable option |
+|---|---|---|
+| Flights (from SE Asia) | $200 | $300 |
+| Accommodation (14 nights) | $400 (hostel) | $1,000 (Dormy Inn) |
+| Food | $280 (~$20/day) | $560 (~$40/day) |
+| Transport | $150 | $250 |
+| Attractions + misc | $100 | $200 |
+| **Total** | **~$1,130** | **~$2,310** |
+
+Japan on $80/day is completely doable and you'll eat and sleep well. The $40/day budget is backpacker-but-still-good.
+
+## When to go
+
+**Best value:** March (before cherry blossom peak), November. Flights and hotels 20–30% cheaper than peak.
+
+**Avoid:** Golden Week (late April–early May) and mid-August (Obon). Hotels double in price and everything is packed.
+
+**Cherry blossom:** Beautiful but prices peak. If you want it, book hotels 3–4 months out.
+
+## Flying to Japan?
+
+Check our [Japan entry requirements guide](/fly-to/japan) — visa rules, no vaccine requirements, and Narita airport arrival tips.
+    `.trim(),
+  },
+
+  'best-months-fly-southeast-asia': {
+    title: 'The best months to fly to Southeast Asia — and the ones to avoid',
+    excerpt: 'Timing your Southeast Asia flight can save you $200–400 on the ticket alone. Here are the exact windows I use after 4 years of booking these routes.',
+    category: 'Flights',
+    readTime: 6,
+    img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1200&h=600&fit=crop&auto=format',
+    content: `
+After 4 years of flying in and out of Southeast Asia — Bangkok, Bali, Vietnam, Singapore — I've learned that when you book matters almost as much as where you book from. Here's exactly when prices peak, when they drop, and how I time it.
+
+## The core pattern
+
+Southeast Asia has two distinct travel seasons that drive flight prices:
+
+**High season (expensive):** December 15 – January 15, July–August. Christmas/New Year + European summer = full flights and peak prices.
+
+**Shoulder season (best value):** February–March, October–November. Weather is still good in most of SE Asia, flights are 20–40% cheaper, and hotels have availability.
+
+**Rainy season (cheap but wet):** May–June, September. Prices drop significantly but you'll get afternoon rain in Thailand, Vietnam, and Bali. Not a dealbreaker — rain usually comes in short heavy bursts, not all-day drizzle.
+
+## By destination
+
+**Thailand (Bangkok, Phuket, Chiang Mai)**
+- Best months to fly: February, March, November
+- Cheap but acceptable: May, September, October
+- Avoid (price peak): December 20 – January 10
+- Avoid (rainy + cheap): June–August in Bangkok (humid and wet but not unvisitable)
+
+**Bali, Indonesia**
+- Best months: April–May, September–October
+- Dry season July–August is peak — beautiful weather but flight prices surge, especially from Australia
+- Avoid for Australians: school holidays (July, September, April)
+- Rainy season (wet but cheap): November–March
+
+**Vietnam (HCMC, Hanoi, Da Nang)**
+- More complex because the country spans a large latitude — north and south have different climates
+- HCMC best months: December–April (dry season, still peak pricing Dec–Jan)
+- Hanoi best months: October–November, March–April
+- Avoid: Typhoon season August–October in central/north Vietnam
+
+**Singapore**
+- Year-round destination — no seasonal weather variation
+- Prices peak December and Chinese New Year (January–February)
+- Best value: May–June, September
+
+## How far in advance to book
+
+For SE Asia routes from the US or Europe: **6–10 weeks out** is typically the sweet spot. Earlier than that and prices are often inflated. Closer than 3 weeks and it starts going up again.
+
+For intra-Asia routes (Bangkok to Tokyo, Singapore to Bali): these routes are competitive and deals appear even 2–3 weeks out. I regularly book 2–3 weeks out for sub-$200 return fares within the region.
+
+## The Thai IP pricing advantage
+
+Regardless of when you book, searching from a Thai IP (either using CheapStay or a VPN connected to Thailand) cuts 15–30% off OTA hotel prices for the destination you're flying to. The flight itself is priced globally, but your accommodation savings more than cover the difference in off-peak vs peak flight pricing.
+
+## My actual booking strategy
+
+1. Set a price alert on Google Flights for the route
+2. When I see a price within $50 of the historical low, I book (don't wait for the absolute bottom)
+3. I always book at least 7 days out so I get the 24-hour free cancellation window under US DOT rules
+4. I then keep watching — if the price drops significantly in 24 hours, I cancel and rebook
+
+The last time I used this on a Bangkok–Tokyo route I saved $140 by rebooking within the window.
+
+## Flying soon?
+
+Check out our destination guides before you go — [Thailand](/fly-to/thailand), [Vietnam](/fly-to/vietnam), [Japan](/fly-to/japan) — visa rules, vaccine requirements, and airport arrival tips all in one place.
+    `.trim(),
+  },
 };
 
 const CATEGORY_COLORS: Record<string, string> = {

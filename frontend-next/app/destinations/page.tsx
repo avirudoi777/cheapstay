@@ -177,6 +177,31 @@ export default function DestinationsPage() {
           ))}
         </div>
 
+        {/* Fly-to cross-links */}
+        <div className="mb-12">
+          <h2 className="text-lg font-bold text-navy mb-1">Before you fly</h2>
+          <p className="text-xs text-gray-400 mb-4">Visa rules, vaccine requirements &amp; airport arrival tips for these destinations.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {[
+              { slug: 'thailand', name: 'Thailand', flag: '🇹🇭', verified: true },
+              { slug: 'japan', name: 'Japan', flag: '🇯🇵', verified: true },
+              { slug: 'indonesia', name: 'Indonesia (Bali)', flag: '🇮🇩', verified: true },
+              { slug: 'vietnam', name: 'Vietnam', flag: '🇻🇳', verified: true },
+              { slug: 'singapore', name: 'Singapore', flag: '🇸🇬', verified: true },
+              { slug: 'uae', name: 'UAE (Dubai)', flag: '🇦🇪', verified: true },
+              { slug: 'india', name: 'India', flag: '🇮🇳', verified: true },
+              { slug: 'south-korea', name: 'South Korea', flag: '🇰🇷', verified: true },
+            ].map(d => (
+              <Link key={d.slug} href={`/fly-to/${d.slug}`}
+                className="flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 px-3.5 py-3 hover:border-teal/40 hover:shadow-sm transition-all group">
+                <span className="text-xl flex-shrink-0">{d.flag}</span>
+                <span className="text-xs font-semibold text-navy group-hover:text-teal transition-colors">{d.name}</span>
+                <span className="text-gray-300 group-hover:text-teal transition-colors text-xs ml-auto">→</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
         {/* Bottom CTA */}
         <div className="rounded-2xl p-8 text-center" style={{ background: '#0a1628' }}>
           <h2 className="text-xl font-extrabold text-white mb-2">Don&apos;t see your destination?</h2>

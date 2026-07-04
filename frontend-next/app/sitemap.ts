@@ -8,6 +8,9 @@ const BLOG_SLUGS = [
   'priceline-24hr-cancellation',
   'tokyo-sixty-per-night',
   'when-booking-direct-beats-agoda',
+  'bangkok-vs-chiang-mai',
+  'japan-budget-travel',
+  'best-months-fly-southeast-asia',
 ];
 
 const CITY_SLUGS = [
@@ -17,7 +20,7 @@ const CITY_SLUGS = [
 
 // Destination requirements pages (fly-to)
 const FLY_TO_SLUGS = [
-  'thailand', 'japan', 'indonesia', 'vietnam', 'uae',
+  'thailand', 'japan', 'indonesia', 'vietnam', 'uae', 'singapore', 'india', 'south-korea',
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
