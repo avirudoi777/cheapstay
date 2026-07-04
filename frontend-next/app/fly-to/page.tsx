@@ -1,36 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { buildPageMetadata } from '@/lib/metadata';
+import { FLY_TO } from '@/lib/fly-to-data';
 
 export const metadata: Metadata = buildPageMetadata({
   title: 'Travel Requirements by Country — Visa, Vaccines & Arrival Tips',
   description: 'Entry requirements, visa rules, vaccine certificates, and arrival tips for popular flight destinations. Know what you need before you book.',
   path: '/fly-to',
 });
-
-const DESTINATIONS = [
-  {
-    slug: 'thailand',
-    name: 'Thailand',
-    flag: '🇹🇭',
-    airport: 'BKK · Suvarnabhumi',
-    summary: 'Visa-free for 60+ nationalities · No vaccines required · Grab available at BKK',
-  },
-  {
-    slug: 'japan',
-    name: 'Japan',
-    flag: '🇯🇵',
-    airport: 'NRT / HND · Tokyo',
-    summary: 'Visa-free for 68+ nationalities · No vaccines required · N\'EX train from Narita',
-  },
-  {
-    slug: 'indonesia',
-    name: 'Indonesia (Bali)',
-    flag: '🇮🇩',
-    airport: 'DPS · Ngurah Rai',
-    summary: 'Visa on arrival available · Check yellow fever rules · Grab from airport',
-  },
-];
 
 export default function FlyToIndexPage() {
   return (
@@ -43,14 +20,24 @@ export default function FlyToIndexPage() {
         </p>
 
         <div className="space-y-3">
-          {DESTINATIONS.map(d => (
-            <Link key={d.slug} href={`/fly-to/${d.slug}`}
+          {Object.entries(FLY_TO).map(([slug, dest]) => (
+            <Link key={slug} href={`/fly-to/${slug}`}
               className="flex items-center gap-4 bg-white rounded-2xl border border-gray-100 px-5 py-4 hover:border-teal/40 hover:shadow-sm transition-all group">
-              <span className="text-3xl flex-shrink-0">{d.flag}</span>
+              <span className="text-3xl flex-shrink-0">{dest.flag}</span>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-navy text-sm group-hover:text-teal transition-colors">{d.name}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{d.airport}</p>
-                <p className="text-xs text-gray-500 mt-1">{d.summary}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-bold text-navy text-sm group-hover:text-teal transition-colors">{dest.name}</p>
+                  {dest.last_verified
+                    ? <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-semibold">Verified</span>
+                    : <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">Pending review</span>
+                  }
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">{dest.airportName}</p>
+                {dest.last_verified && (
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Last verified: {new Date(dest.last_verified).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                )}
               </div>
               <span className="text-gray-300 group-hover:text-teal transition-colors text-sm">→</span>
             </Link>
