@@ -3144,6 +3144,27 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
               }
             </p>
           </div>
+          {/* LCC disclaimer — shown for routes where AirAsia/Lion Air are common */}
+          {(() => {
+            const LCC_AIRPORTS = new Set(['BKK','DMK','SGN','HAN','DAD','CGK','DPS','SUB','KUL','KBR','PEN','SIN','MNL','CEB','BKI','HKT','CNX','USM','KHH','TPE','MFM','PNH','RGN','VTE']);
+            const isLccRoute = LCC_AIRPORTS.has(fromCode) || LCC_AIRPORTS.has(toCode);
+            if (!isLccRoute) return null;
+            const lccUrl = `https://www.airasia.com/flights/search?origin=${fromCode}&destination=${toCode}`;
+            return (
+              <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs text-amber-800 bg-amber-50 border border-amber-200">
+                <svg className="w-4 h-4 flex-shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>
+                  Low-cost carriers (AirAsia, Lion Air, VietJet) aren&apos;t available here — they don&apos;t distribute through our booking system.{' '}
+                  <a href={lccUrl} target="_blank" rel="noopener noreferrer"
+                    className="font-bold underline underline-offset-2 cursor-pointer">
+                    Check AirAsia →
+                  </a>
+                </span>
+              </div>
+            );
+          })()}
           {(ret ? rtStep1Offers : filteredOffers).length === 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center">
               <p className="text-sm font-bold text-gray-600">No flights match your filters</p>
