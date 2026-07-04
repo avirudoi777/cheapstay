@@ -61,8 +61,6 @@ export default function HeaderClient() {
       {/* Nav links — hidden on mobile */}
       <nav className="hidden md:flex items-center gap-1 mr-4">
         {[
-          { href: '/#how-it-works', label: 'The hack' },
-          { href: '/vpn-guide', label: 'VPN guide' },
           { href: '/blog', label: 'Blog' },
           { href: '/shop', label: 'Shop' },
           { href: '/consult', label: '📞 Book a call' },
