@@ -188,6 +188,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <Link href="/consult" className="block text-xs font-semibold hover:opacity-80 transition-colors" style={{ color: '#1D9E75' }}>📞 Book a call with Avi</Link>
                   <Link href="/contact" className="block text-xs text-gray-400 hover:text-navy transition-colors">Contact</Link>
                   <Link href="/privacy" className="block text-xs text-gray-400 hover:text-navy transition-colors">Privacy Policy</Link>
+                  <Link href="/terms" className="block text-xs text-gray-400 hover:text-navy transition-colors">Terms of Service</Link>
                 </div>
               </div>
             </div>
@@ -198,6 +199,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
               <p className="text-xs text-gray-400">Compare hotel prices worldwide · Agoda & Booking.com</p>
             </div>
+            <p className="text-[11px] text-gray-300 text-center mt-4">
+              Some links on this site are affiliate links — we may earn a commission at no extra cost to you.{' '}
+              <Link href="/terms" className="underline hover:text-gray-400 transition-colors">Terms</Link>
+              {' · '}
+              <Link href="/privacy" className="underline hover:text-gray-400 transition-colors">Privacy</Link>
+            </p>
           </div>
         </footer>
 
