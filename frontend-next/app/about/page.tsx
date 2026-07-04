@@ -17,9 +17,8 @@ export default function AboutPage() {
       <div className="mb-12">
         <h1 className="text-3xl font-bold text-navy mb-4">Built by a traveler, for travelers</h1>
         <div className="flex items-start gap-5 bg-gray-50 rounded-2xl p-6">
-          <div className="w-14 h-14 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xl font-bold shadow-md"
-            style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
-            A
+          <div className="w-16 h-16 rounded-full flex-shrink-0 overflow-hidden shadow-md">
+            <Image src="/avi.jpg" alt="Avi — Founder of CheapStay" width={64} height={64} className="w-full h-full object-cover" />
           </div>
           <div>
             <p className="font-bold text-navy text-base">Avi — Founder</p>
