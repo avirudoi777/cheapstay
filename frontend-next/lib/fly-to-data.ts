@@ -197,4 +197,78 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     ],
   },
 
+  vietnam: {
+    name: 'Vietnam',
+    capital: 'Hanoi',
+    flag: '🇻🇳',
+    airportCode: 'SGN',
+    airportName: 'Tan Son Nhat Airport, Ho Chi Minh City (SGN) / Noi Bai Airport, Hanoi (HAN)',
+    img: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=1200&h=600&fit=crop&auto=format',
+    last_verified: null,
+    sources: [],
+    entry: {
+      visaFreeCountries: '[VERIFY: As of 2023 Vietnam extended visa-free access to many nationalities for 45 days — confirm current list and duration at Vietnam Immigration Department. Some nationalities (South Korea, Japan, some ASEAN) have bilateral arrangements of varying lengths.]',
+      visaOnArrival: '[VERIFY: Vietnam does not widely offer traditional visa on arrival — e-visa is the standard route for most nationalities. Confirm current policy.]',
+      evisa: '[VERIFY: Vietnam e-visa available to citizens of all countries for up to 90 days (single or multiple entry) via evisa.xuatnhapcanh.gov.vn. Processing typically 3 business days. Confirm current pricing and eligibility.]',
+      passportValidity: '[VERIFY: passport typically required to be valid for at least 6 months beyond entry date — confirm current requirement.]',
+      notes: '⚠️ Content not yet verified against authoritative sources. Always check the Vietnam Immigration Department or IATA Travel Centre before booking.',
+    },
+    health: {
+      vaccines: '[VERIFY: no vaccines legally required for most travelers. Hepatitis A, Typhoid, and routine vaccines commonly recommended. Japanese Encephalitis sometimes recommended for rural or extended stays.]',
+      yellowFever: '[VERIFY: yellow fever certificate required if arriving from a country with risk of yellow fever transmission — confirm current at-risk country list with Vietnamese authorities.]',
+      malaria: '[VERIFY: low risk in major cities (Ho Chi Minh City, Hanoi, Da Nang) but higher in some rural/forested areas — check CDC or WHO maps for your specific itinerary.]',
+      notes: '⚠️ Content not yet verified against authoritative sources. Check WHO, CDC, and your travel clinic before departure.',
+    },
+    arrival: {
+      currency: 'Vietnamese Dong (VND). ATMs widely available in cities. USD accepted informally in tourist areas but VND gets better rates. Exchange at banks or gold shops in the city — not at the airport.',
+      simCard: '[VERIFY: Viettel, Vinaphone, and Vietnamobile SIM cards available at airports and convenience stores. Tourist SIMs with data approx. 100,000–200,000 VND — confirm current pricing.]',
+      transport: 'Ho Chi Minh City (SGN): Grab is the most reliable option (~150,000–200,000 VND to District 1, 20–30 min). Metered taxis (Mai Linh, Vinasun) also trustworthy. Hanoi (HAN): Grab or metered taxi to Old Quarter (~250,000–350,000 VND, 30–45 min).',
+      customs: '[VERIFY: 200 cigarettes or 250g tobacco duty-free. 1.5 litres spirits or 2 litres wine. Declare cash over USD 5,000 — confirm current limits.]',
+    },
+    faqs: [
+      { q: 'Do I need a visa to visit Vietnam?', a: '[VERIFY] Many nationalities can apply for a Vietnam e-visa (90 days, single or multiple entry) via the official government portal. Some nationalities have visa-free access for 45 days. Check Vietnam Immigration Department for your passport.' },
+      { q: 'Do I need any vaccinations for Vietnam?', a: '[VERIFY] No vaccines are legally required for entry for most travelers. Hepatitis A, Typhoid, and routine vaccines are commonly recommended. Yellow fever certificate required if arriving from endemic countries. Confirm with your travel clinic.' },
+      { q: 'Is Grab available in Vietnam?', a: 'Yes — Grab works well in Ho Chi Minh City and Hanoi and is the safest way to get a fixed-price ride. Always use Grab or reputable metered taxis (Mai Linh, Vinasun) rather than unmarked taxis, which commonly overcharge tourists.' },
+      { q: 'What is the currency in Vietnam and can I use USD?', a: 'The official currency is Vietnamese Dong (VND). USD is informally accepted in tourist areas but you will get better rates paying in VND. Exchange at banks or gold shops in the city rather than at the airport.' },
+      { q: 'Is Ho Chi Minh City or Hanoi better for a first visit?', a: 'Ho Chi Minh City is faster-paced, warmer, and closer to the Mekong Delta. Hanoi is the capital, cooler (seasonally), and closer to Ha Long Bay. Both are great — it depends on your onward itinerary.' },
+    ],
+  },
+
+  uae: {
+    name: 'UAE (Dubai)',
+    capital: 'Abu Dhabi',
+    flag: '🇦🇪',
+    airportCode: 'DXB',
+    airportName: 'Dubai International Airport (DXB)',
+    img: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200&h=600&fit=crop&auto=format',
+    last_verified: null,
+    sources: [],
+    entry: {
+      visaFreeCountries: '[VERIFY: many nationalities including US, UK, EU, AU, CA receive a free visa on arrival (30 days, extendable once). GCC nationals have unrestricted access. Confirm current list at UAE GDRFA website.]',
+      visaOnArrival: '[VERIFY: free 30-day visa on arrival available at DXB for many nationalities. 96-hour transit visa available for layovers. Confirm eligibility for your passport.]',
+      evisa: '[VERIFY: UAE e-visa available for nationalities not covered by visa on arrival — apply via ICP Smart Services or through your airline. Confirm processing times and fees.]',
+      passportValidity: '[VERIFY: passport typically required to be valid for at least 6 months beyond entry — confirm current requirement for your nationality.]',
+      notes: '⚠️ UAE visa rules vary significantly by nationality. Always verify at the UAE GDRFA or IATA Travel Centre before booking.',
+    },
+    health: {
+      vaccines: '[VERIFY: no vaccines legally required for entry for most travelers. Routine vaccines recommended. Confirm with your travel clinic.]',
+      yellowFever: '[VERIFY: yellow fever vaccination certificate required if arriving from a country with risk of yellow fever transmission — confirm current at-risk country list.]',
+      malaria: '[VERIFY: UAE is considered malaria-free. No prophylaxis needed for most travelers — confirm current status.]',
+      notes: '⚠️ Content not yet verified against authoritative sources. Check WHO, CDC, and your travel clinic before departure.',
+    },
+    arrival: {
+      currency: 'UAE Dirham (AED), pegged to USD at ~3.67 AED per USD. ATMs widely available at DXB. Currency exchange available in arrivals — rates are fair.',
+      simCard: '[VERIFY: du and Etisalat (e&) SIM cards available at DXB arrivals. Note: VoIP apps (WhatsApp calls, FaceTime) are restricted in the UAE — confirm current status.]',
+      transport: 'Dubai Metro Red Line runs from DXB Terminal 1 & 3 to central Dubai (15–35 min, ~15 AED). Taxis metered from airport (~50–100 AED to Downtown Dubai). Careem (ride-hailing) also available.',
+      customs: '200 cigarettes or 50 cigars duty-free. 4 litres alcohol (non-Muslims only, must be declared). Strict rules on drugs, pork products, and certain medications. Declare cash over AED 100,000.',
+    },
+    faqs: [
+      { q: 'Do I need a visa to visit Dubai / UAE?', a: '[VERIFY] Many nationalities — including US, UK, EU, AU — receive a free 30-day visa on arrival at Dubai airport. Others require a pre-arranged e-visa. Check the UAE GDRFA website for your specific passport.' },
+      { q: 'Do I need any vaccinations for the UAE?', a: '[VERIFY] No vaccines are legally required for entry for most travelers. Yellow fever certificate required if arriving from endemic countries. Confirm with your travel clinic.' },
+      { q: 'Can I drink alcohol in Dubai?', a: 'Alcohol is available in licensed hotels, restaurants, and bars in Dubai. It is illegal to drink in public or be intoxicated in public spaces. Non-Muslims can purchase alcohol from licensed shops. Rules are stricter in other Emirates.' },
+      { q: 'Do WhatsApp and Skype calls work in the UAE?', a: '[VERIFY] VoIP calls (WhatsApp calls, FaceTime, Skype) are restricted in the UAE on local SIM cards. Regular WhatsApp messaging works fine. Consider using your home country SIM with roaming for calls, or a VPN.' },
+      { q: 'What is the cheapest way from Dubai airport to the city?', a: 'The Dubai Metro Red Line is the cheapest option (~15 AED, 20–35 min to central Dubai) from Terminal 1 and Terminal 3. Taxis from the airport cost roughly 50–100 AED to Downtown depending on traffic.' },
+    ],
+  },
+
 };

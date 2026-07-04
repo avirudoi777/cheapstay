@@ -17,7 +17,7 @@ const CITY_SLUGS = [
 
 // Destination requirements pages (fly-to)
 const FLY_TO_SLUGS = [
-  'thailand', 'japan', 'indonesia',
+  'thailand', 'japan', 'indonesia', 'vietnam', 'uae',
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
