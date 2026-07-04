@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { buildPageMetadata } from '@/lib/metadata';
 
+export const revalidate = 3600; // ISR: rebuild at most once per hour
+
 interface Props { params: Promise<{ city: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

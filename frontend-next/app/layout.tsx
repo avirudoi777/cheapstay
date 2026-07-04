@@ -55,22 +55,30 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'WebSite',
-      '@id': 'https://cheapstay.co/#website',
-      url: 'https://cheapstay.co',
+      '@id': 'https://www.cheapstay.co/#website',
+      url: 'https://www.cheapstay.co',
       name: 'CheapStay',
       description: 'Hotel price comparison and travel savings hacks for digital nomads and frequent travelers',
       potentialAction: {
         '@type': 'SearchAction',
-        target: { '@type': 'EntryPoint', urlTemplate: 'https://cheapstay.co/search?q={search_term_string}' },
+        target: { '@type': 'EntryPoint', urlTemplate: 'https://www.cheapstay.co/search?q={search_term_string}' },
         'query-input': 'required name=search_term_string',
       },
+    },
+    {
+      '@type': 'Organization',
+      '@id': 'https://www.cheapstay.co/#organization',
+      name: 'CheapStay',
+      url: 'https://www.cheapstay.co',
+      logo: 'https://www.cheapstay.co/logo.png',
+      sameAs: ['https://www.facebook.com/profile.php?id=61591071667374'],
     },
     {
       '@type': 'Person',
       name: 'Avi',
       jobTitle: 'Full-time traveler & founder of CheapStay',
-      description: 'Full-time traveler who has visited 50+ countries and stayed in hundreds of hotels. Founded CheapStay to share insider booking hacks.',
-      url: 'https://cheapstay.co/about',
+      description: 'Full-time traveler who has visited nearly 50 countries. Founded CheapStay to share insider booking hacks.',
+      url: 'https://www.cheapstay.co/about',
       sameAs: ['https://www.facebook.com/profile.php?id=61591071667374'],
     },
     {

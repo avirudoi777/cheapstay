@@ -5,7 +5,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
+      disallow: ['/account', '/bookings', '/auth', '/onboarding', '/api/'],
     },
-    sitemap: 'https://cheapstay.co/sitemap.xml',
+    sitemap: 'https://www.cheapstay.co/sitemap.xml',
   };
 }
