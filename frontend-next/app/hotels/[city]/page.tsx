@@ -1,20 +1,16 @@
 import type { Metadata } from 'next';
+import { buildPageMetadata } from '@/lib/metadata';
 
 interface Props { params: Promise<{ city: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { city } = await params;
   const name = city.charAt(0).toUpperCase() + city.slice(1);
-  return {
+  return buildPageMetadata({
     title: `Cheap Hotels in ${name} — Best Prices`,
     description: `Find the cheapest hotel prices in ${name}. Compare Agoda, Booking.com and more to always get the best deal.`,
-    openGraph: {
-      url: `https://www.cheapstay.co/hotels/${city}`,
-    },
-    alternates: {
-      canonical: `https://www.cheapstay.co/hotels/${city}`,
-    },
-  };
+    path: `/hotels/${city}`,
+  });
 }
 
 export default async function CityPage({ params }: Props) {

@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import BlogScrollTracker from '@/components/BlogScrollTracker';
+import { buildPageMetadata } from '@/lib/metadata';
 
 const POSTS: Record<string, {
   title: string;
@@ -277,24 +278,22 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const post = POSTS[slug];
   if (!post) return {};
   return {
-    title: post.title,
-    description: post.excerpt,
+    ...buildPageMetadata({
+      title: post.title,
+      description: post.excerpt,
+      path: `/blog/${slug}`,
+      image: post.img,
+    }),
     authors: [{ name: 'Avi', url: 'https://www.cheapstay.co/about' }],
     openGraph: {
       title: post.title,
       description: post.excerpt,
-      images: [post.img],
+      images: [{ url: post.img, width: 1200, height: 630, alt: post.title }],
       type: 'article',
       authors: ['Avi'],
       url: `https://www.cheapstay.co/blog/${slug}`,
+      siteName: 'CheapStay',
     },
-    twitter: {
-      card: 'summary_large_image',
-      title: post.title,
-      description: post.excerpt,
-      images: [post.img],
-    },
-    alternates: { canonical: `https://www.cheapstay.co/blog/${slug}` },
   };
 }
 
