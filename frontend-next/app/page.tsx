@@ -1119,54 +1119,77 @@ export default function HomePage() {
   );
 }
 
-const CAR_CITIES = ['Bangkok', 'Bali', 'Tokyo', 'Dubai', 'Singapore', 'Jakarta'];
-
 function CarSearchWidget() {
   const [pickup, setPickup] = useState('');
   const [pickupDate, setPickupDate] = useState('');
   const [dropoffDate, setDropoffDate] = useState('');
+  const [suggestions, setSuggestions] = useState<{ name: string; city?: string; country?: string }[]>([]);
+  const [showSug, setShowSug] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const sugRef = useRef<HTMLDivElement>(null);
 
-  // Set default dates client-side to avoid hydration mismatch
-  useState(() => {
+  useEffect(() => {
     const p = new Date(); p.setDate(p.getDate() + 7);
     const d = new Date(); d.setDate(d.getDate() + 14);
     const fmt = (x: Date) => x.toISOString().split('T')[0];
     setPickupDate(fmt(p));
     setDropoffDate(fmt(d));
-  });
+  }, []);
+
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (!inputRef.current?.contains(e.target as Node) && !sugRef.current?.contains(e.target as Node))
+        setShowSug(false);
+    }
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, []);
+
+  async function handleChange(v: string) {
+    setPickup(v);
+    if (v.length < 2) { setSuggestions([]); setShowSug(false); return; }
+    try {
+      const items = await getSuggestions(v);
+      setSuggestions(items.slice(0, 8));
+      setShowSug(items.length > 0);
+    } catch { setSuggestions([]); }
+  }
+
+  function selectSuggestion(s: { name: string; city?: string }) {
+    setPickup(s.city ? `${s.name}, ${s.city}` : s.name);
+    setShowSug(false);
+  }
 
   const today = new Date().toISOString().split('T')[0];
-
-  function buildUrl(city: string) {
-    const dest = `https://www.getrentacar.com/en/search/?pickUpLocName=${encodeURIComponent(city)}&pickUpDate=${pickupDate}&returnDate=${dropoffDate}`;
-    return `https://getrentacar.tpo.lv/Xdm1FCMq?u=${encodeURIComponent(dest)}`;
-  }
 
   function search(e: React.FormEvent) {
     e.preventDefault();
     if (!pickup.trim()) return;
-    window.open(buildUrl(pickup.trim()), '_blank', 'noopener');
+    const dest = `https://www.getrentacar.com/en/search/?pickUpLocName=${encodeURIComponent(pickup.trim())}&pickUpDate=${pickupDate}&returnDate=${dropoffDate}`;
+    window.open(`https://getrentacar.tpo.lv/Xdm1FCMq?u=${encodeURIComponent(dest)}`, '_blank', 'noopener');
   }
 
   return (
     <form onSubmit={search} className="space-y-4">
-      <div>
+      <div className="relative">
         <label className="block text-xs font-semibold text-gray-500 mb-1.5">Pickup location</label>
-        <input type="text" value={pickup} onChange={e => setPickup(e.target.value)}
+        <input ref={inputRef} type="text" value={pickup}
+          onChange={e => handleChange(e.target.value)}
+          onFocus={() => suggestions.length > 0 && setShowSug(true)}
           placeholder="City or airport (e.g. Bangkok, Tokyo)"
           className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal cursor-text" />
-        {/* Quick-pick cities */}
-        <div className="flex flex-wrap gap-1.5 mt-2">
-          {CAR_CITIES.map(city => (
-            <button key={city} type="button" onClick={() => setPickup(city)}
-              className="text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors cursor-pointer"
-              style={pickup === city
-                ? { background: '#1D9E75', color: 'white', borderColor: '#1D9E75' }
-                : { background: '#F9FAFB', color: '#6B7280', borderColor: '#E5E7EB' }}>
-              {city}
-            </button>
-          ))}
-        </div>
+        {showSug && suggestions.length > 0 && (
+          <div ref={sugRef} className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+            {suggestions.map((s, i) => (
+              <button key={i} type="button" onMouseDown={() => selectSuggestion(s)}
+                className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center gap-2 cursor-pointer">
+                <span className="text-gray-400">📍</span>
+                <span className="font-medium text-gray-900">{s.name}</span>
+                {s.city && <span className="text-gray-400 text-xs">{s.city}</span>}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
