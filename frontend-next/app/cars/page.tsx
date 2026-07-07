@@ -2,12 +2,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-const MARKER = '537802';
+const AFFILIATE_BASE = 'https://getrentacar.tpo.lv/Xdm1FCMq';
 
-// GetRentacar.com via Travelpayouts affiliate marker
+// GetRentacar.com via Travelpayouts affiliate deeplink
 function buildSearchUrl(pickup: string, pickupDate: string, dropoffDate: string) {
-  const base = `https://www.getrentacar.com/en/search/?pickUpLocName=${encodeURIComponent(pickup)}&pickUpDate=${pickupDate}&returnDate=${dropoffDate}&marker=${MARKER}`;
-  return base;
+  const dest = `https://www.getrentacar.com/en/search/?pickUpLocName=${encodeURIComponent(pickup)}&pickUpDate=${pickupDate}&returnDate=${dropoffDate}`;
+  return `${AFFILIATE_BASE}?u=${encodeURIComponent(dest)}`;
 }
 
 function defaultDates() {
