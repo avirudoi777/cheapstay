@@ -478,6 +478,161 @@ The last time I used this on a Bangkok–Tokyo route I saved $140 by rebooking w
 Check out our destination guides before you go — [Thailand](/fly-to/thailand), [Vietnam](/fly-to/vietnam), [Japan](/fly-to/japan) — visa rules, vaccine requirements, and airport arrival tips all in one place.
     `.trim(),
   },
+
+  'jakarta-underrated-city': {
+    title: "Jakarta: Southeast Asia's most underrated city — and I'm writing this from there",
+    excerpt: "Everyone goes to Bali. Almost nobody goes to Jakarta. That's exactly why you should. It's cheaper than Bangkok, the food scene rivals anywhere in Asia, and you'll have it largely to yourself.",
+    category: 'Destinations',
+    readTime: 7,
+    img: 'https://images.unsplash.com/photo-1555899434-94d1368aa7af?w=1200&h=600&fit=crop&auto=format',
+    content: `
+I'm writing this from Jakarta. I've been here for a few weeks and I keep asking myself the same question: why doesn't anyone talk about this city?
+
+Everyone in Southeast Asia goes to Bali. Some people go to Yogyakarta. Almost nobody — at least among the digital nomad / long-term traveler crowd — ends up in Jakarta. That's a mistake.
+
+## What Jakarta actually is
+
+Jakarta is a megacity of 10+ million people. It's the capital of Indonesia, a major business hub, and has one of the most diverse and underrated food scenes in all of Asia. It has malls that rival Singapore, beaches within 2 hours, and a cost of living that makes Bangkok look expensive.
+
+It's also chaotic, sprawling, and takes a few days to figure out. That's probably why people skip it. Their loss.
+
+## Cost of living
+
+This is where it gets interesting. Jakarta is genuinely one of the cheapest cities in Southeast Asia for the level of quality you get.
+
+**Accommodation:**
+- Budget guesthouse: $15–25/night
+- Good serviced apartment: $35–55/night
+- Decent monthly rental (furnished studio): $400–700/month
+- That's significantly cheaper than Bangkok for comparable quality
+
+**Food:**
+- Warung meal (local restaurant): 20,000–40,000 IDR ($1.25–2.50 USD)
+- Mid-range restaurant: 80,000–150,000 IDR (~$5–9 USD)
+- Western café lunch: 80,000–150,000 IDR
+- You can eat extremely well for under $10/day
+
+**Transport:**
+- Grab is ubiquitous and cheap. Cross-city ride: 30,000–80,000 IDR (~$2–5 USD)
+- MRT and TransJakarta bus network covers a lot of the city and costs a few thousand IDR per trip
+- Ojek (motorbike taxi via Gojek) for short hops: 10,000–25,000 IDR
+
+**Overall monthly budget:** $700–1,100/month for a comfortable life — below Bangkok, significantly below Bali.
+
+## The food scene
+
+Jakarta's food is the real reason to come. Indonesia has hundreds of regional cuisines and Jakarta, as the capital, has all of them.
+
+**Things you need to eat:**
+- **Nasi Padang** — Minangkabau food from West Sumatra. You sit down, they bring 8–12 small dishes of curries, rendang, and vegetables, and you pay for what you eat. Rendang from a good Padang place in Jakarta is one of the best things I've eaten anywhere.
+- **Soto Betawi** — Jakarta's own beef soup with coconut milk. Rich, deeply flavoured, eaten for breakfast.
+- **Gado-gado** — peanut sauce salad with tofu, tempeh, vegetables, and lontong (rice cake). Cheap, filling, excellent.
+- **Street food markets (Pasar)** — every neighborhood has one. Go in the evening.
+- **PIK 2 food strip** — newer area in North Jakarta with hundreds of restaurants, very local, very cheap.
+
+## What to do
+
+Jakarta isn't a sightseeing city in the traditional sense. There are things to see, but the experience is about living in it.
+
+**Kota Tua (Old Town):** Dutch colonial architecture, museums, the old port. Worth a half-day.
+
+**SCBD and Sudirman:** The modern business/expat district. Good coffee shops, co-working spaces, walkable streets (rare in Jakarta).
+
+**Ancol:** Beach resort area on the north coast. Not pristine, but a legitimate beach escape 30–45 minutes from the center.
+
+**Thousand Islands (Pulau Seribu):** Day trip or overnight from the port at Ancol. White sand, clear water, 90 minutes by boat. Completely undervisited.
+
+**Malls:** Indonesians love malls and Jakarta's are world-class. Grand Indonesia, Plaza Indonesia, Pacific Place — they're genuinely worth visiting for the food courts alone.
+
+## Practical notes
+
+**Getting around:** Grab and Gojek are your friends. The MRT is clean and fast but limited in coverage. Traffic is notoriously bad — don't plan tight schedules.
+
+**Language:** Most people in service roles speak enough English. Menus in tourist-adjacent areas are often bilingual. Learning a few Indonesian words (terima kasih = thank you, berapa = how much) goes a long way.
+
+**Safety:** Jakarta is generally safe for travelers in normal tourist and expat areas. Standard big-city awareness applies.
+
+**Weather:** Hot and humid year-round (~28–33°C). Wet season is October–April with heavy afternoon rains. Dry season May–September is more comfortable.
+
+## Why it's underrated
+
+Honestly? I think it's the reputation. "Jakarta" conjures traffic and pollution. That's not wrong — it has both. But so does Bangkok, and everyone loves Bangkok.
+
+The difference is that Bangkok has been discovered. Jakarta hasn't. That means cheaper prices, fewer tourists at every restaurant and attraction, and a more authentic experience of a genuinely interesting city.
+
+If you want the Bangkok experience from 10 years ago — the food, the chaos, the value — go to Jakarta.
+
+## Visa and entry
+
+Most nationalities can visit Indonesia visa-free or get a Visa on Arrival. Check our [Indonesia entry requirements guide](/fly-to/indonesia) for the full breakdown.
+    `.trim(),
+  },
+
+  'anytime-fitness-global-hack': {
+    title: 'The Anytime Fitness hack every traveler should know: sign up cheap, train anywhere',
+    excerpt: "Sign up for Anytime Fitness in Jakarta at local prices — then use that membership at gyms in Japan, Singapore, or anywhere else in the world. Here's exactly how it works.",
+    category: 'Travel hacks',
+    readTime: 5,
+    img: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&h=600&fit=crop&auto=format',
+    content: `
+Most people don't know this, but Anytime Fitness memberships are global. If you sign up at any Anytime Fitness location in the world, you can walk into any other Anytime Fitness — in any country — and work out.
+
+The hack: sign up in a country where memberships are cheap, then use that membership everywhere else.
+
+## The price difference is significant
+
+Anytime Fitness membership costs vary massively by country:
+
+- **Indonesia (Jakarta):** ~$15–25 USD/month
+- **Thailand (Bangkok):** ~$30–45 USD/month
+- **Japan (Tokyo):** ~$60–90 USD/month
+- **Singapore:** ~$80–110 USD/month
+- **Australia:** ~$60–80 AUD/month
+- **USA:** ~$30–50 USD/month
+
+If you sign up in Jakarta at $20/month, you're saving $40–90/month compared to joining in Japan or Singapore. Over a year of travel, that's $500–1,000 saved on gym access alone.
+
+## How the global access works
+
+Anytime Fitness operates a "home club" model. When you join, one location is designated as your home club. You can then visit any other Anytime Fitness worldwide using the same key fob or app.
+
+The key rule to understand: **Anytime Fitness can reclassify your membership if you consistently use other clubs more than your home club.** The threshold is roughly 50% — if your usage at away locations exceeds your usage at your home club over time, the system may flag your account and your membership could be transferred to the club you're actually using most, at that club's local pricing.
+
+**How to stay under the threshold:** Use your home gym when you're in Jakarta (or wherever you signed up) for at least half your total monthly visits. If you're traveling constantly, just make sure you're not exclusively using away clubs month after month.
+
+In practice, this works fine for most travelers. If you're based in Southeast Asia and traveling periodically to Japan or Singapore, you'll naturally be at your home gym often enough.
+
+## How to set it up
+
+1. **Find an Anytime Fitness in Jakarta** (or any cheap city you spend time in) — there are many locations across the city
+2. **Sign up in person** — bring your passport and a payment method. Monthly membership, no long-term contract required at most locations
+3. **Get your key fob** — this is your access to any Anytime Fitness worldwide
+4. **Download the Anytime Fitness app** — use it to find locations globally and check in
+5. **Visit any gym anywhere** — walk in, tap your fob, done
+
+## What to watch out for
+
+**Contracts:** Some locations require a minimum term (3 or 6 months). Ask before signing. Many Jakarta locations offer month-to-month.
+
+**The 50% rule:** As noted above, Anytime Fitness monitors home vs away usage. Don't use it as a pure "away-only" membership for months on end — that's likely to trigger a reclassification. Use your home gym when you're in the city.
+
+**Policy changes:** Gym chain policies change. Confirm the current global access terms with the specific location before signing up. This post reflects the policy as I experienced it — verify directly.
+
+**Not every city has one:** Anytime Fitness has 5,000+ locations in 30+ countries, but it's not everywhere. Check the app or website for coverage before committing.
+
+## Where it's useful
+
+Great coverage in: Japan, South Korea, Australia, New Zealand, USA, Canada, Philippines, Singapore, Thailand, Taiwan, UK.
+
+## The bottom line
+
+If you're a traveler who cares about staying fit on the road, this is one of the best travel hacks available. A $20/month Jakarta membership gives you access to a global gym network that would cost $80–100/month in Tokyo or Singapore.
+
+Sign up in Jakarta (or the cheapest city you're spending time in), use it at home when you're there, and enjoy global gym access at local prices everywhere else.
+
+**Currently in Indonesia?** Check our [Indonesia entry requirements guide](/fly-to/indonesia) for visa, arrival, and travel tips.
+    `.trim(),
+  },
 };
 
 const CATEGORY_COLORS: Record<string, string> = {

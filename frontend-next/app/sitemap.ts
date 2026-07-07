@@ -11,6 +11,8 @@ const BLOG_SLUGS = [
   'bangkok-vs-chiang-mai',
   'japan-budget-travel',
   'best-months-fly-southeast-asia',
+  'jakarta-underrated-city',
+  'anytime-fitness-global-hack',
 ];
 
 const CITY_SLUGS = [

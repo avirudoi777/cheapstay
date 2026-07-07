@@ -224,6 +224,22 @@ const BLOG_POSTS = [
     featured: false,
     img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=240&fit=crop&auto=format',
   },
+  {
+    slug: 'jakarta-underrated-city',
+    title: "Jakarta: Southeast Asia's most underrated city — and I'm writing this from there",
+    category: 'Destinations',
+    readTime: 7,
+    featured: false,
+    img: 'https://images.unsplash.com/photo-1555899434-94d1368aa7af?w=400&h=240&fit=crop&auto=format',
+  },
+  {
+    slug: 'anytime-fitness-global-hack',
+    title: 'The Anytime Fitness hack every traveler should know: sign up cheap, train anywhere',
+    category: 'Travel hacks',
+    readTime: 5,
+    featured: false,
+    img: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=240&fit=crop&auto=format',
+  },
 ];
 
 const TRAVEL_GEAR = [

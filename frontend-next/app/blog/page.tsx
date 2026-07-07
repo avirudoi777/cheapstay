@@ -81,9 +81,27 @@ const POSTS = [
     featured: false,
     img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&h=360&fit=crop&auto=format',
   },
+  {
+    slug: 'jakarta-underrated-city',
+    title: "Jakarta: Southeast Asia's most underrated city — and I'm writing this from there",
+    excerpt: "Everyone goes to Bali. Almost nobody goes to Jakarta. That's exactly why you should. Cheaper than Bangkok, incredible food, and almost no tourists.",
+    category: 'Destinations',
+    readTime: 7,
+    featured: false,
+    img: 'https://images.unsplash.com/photo-1555899434-94d1368aa7af?w=600&h=360&fit=crop&auto=format',
+  },
+  {
+    slug: 'anytime-fitness-global-hack',
+    title: 'The Anytime Fitness hack every traveler should know: sign up cheap, train anywhere',
+    excerpt: "Sign up in Jakarta at local prices — then use that membership at Anytime Fitness gyms in Japan, Singapore, or anywhere else in the world.",
+    category: 'Travel hacks',
+    readTime: 5,
+    featured: false,
+    img: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&h=360&fit=crop&auto=format',
+  },
 ];
 
-const FILTERS = ['All posts', 'Booking hacks', 'Hotel reviews', 'Flights', 'Credit cards', 'Destinations'];
+const FILTERS = ['All posts', 'Booking hacks', 'Hotel reviews', 'Flights', 'Credit cards', 'Destinations', 'Travel hacks'];
 
 const CATEGORY_COLORS: Record<string, string> = {
   'Booking hack': '#1D9E75',
