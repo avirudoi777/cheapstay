@@ -188,6 +188,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <p className="text-xs font-bold text-navy uppercase tracking-wider mb-3">Shop</p>
                 <div className="space-y-2">
                   <Link href="/shop" className="block text-xs text-gray-400 hover:text-navy transition-colors">Travel gear</Link>
+                  <Link href="/cars" className="block text-xs text-gray-400 hover:text-navy transition-colors">Rent a car</Link>
                 </div>
               </div>
               <div>
