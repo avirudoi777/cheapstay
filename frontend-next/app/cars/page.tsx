@@ -4,10 +4,10 @@ import Link from 'next/link';
 
 const MARKER = '537802';
 
-// Rentalcars.com via Travelpayouts affiliate redirect
+// GetRentacar.com via Travelpayouts affiliate marker
 function buildSearchUrl(pickup: string, pickupDate: string, dropoffDate: string) {
-  const base = `https://www.rentalcars.com/SearchResults.do?country=&affiliateCode=travelpayouts&adcamp=${MARKER}&preflang=en&puLocation=${encodeURIComponent(pickup)}&puDay=${pickupDate.split('-')[2]}&puMonth=${pickupDate.split('-')[1]}&puYear=${pickupDate.split('-')[0]}&doDay=${dropoffDate.split('-')[2]}&doMonth=${dropoffDate.split('-')[1]}&doYear=${dropoffDate.split('-')[0]}`;
-  return `https://tp.media/r?marker=${MARKER}&p=4114&u=${encodeURIComponent(base)}`;
+  const base = `https://www.getrentacar.com/en/search/?pickUpLocName=${encodeURIComponent(pickup)}&pickUpDate=${pickupDate}&returnDate=${dropoffDate}&marker=${MARKER}`;
+  return base;
 }
 
 function defaultDates() {
@@ -61,7 +61,7 @@ export default function CarsPage() {
         <div className="max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold mb-5"
             style={{ background: 'rgba(29,158,117,0.15)', color: '#1D9E75', border: '1px solid rgba(29,158,117,0.3)' }}>
-            🚗 Powered by Rentalcars.com
+            🚗 Powered by GetRentacar.com
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">
             Rent a car anywhere in the world
@@ -163,7 +163,7 @@ export default function CarsPage() {
 
         {/* Affiliate disclosure */}
         <p className="text-[11px] text-gray-400 text-center">
-          Car rental prices are provided by Rentalcars.com. CheapStay may earn a commission if you book — at no extra cost to you.{' '}
+          Car rental prices are provided by GetRentacar.com via Travelpayouts. CheapStay may earn a commission if you book — at no extra cost to you.{' '}
           <Link href="/terms" className="underline">Terms</Link>
         </p>
 
