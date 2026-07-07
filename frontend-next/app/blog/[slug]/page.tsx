@@ -903,15 +903,15 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-200">
-          <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
-            <Image src="/avi.jpg" alt="Avi" width={36} height={36} className="w-full h-full object-cover" />
+        <a href="/about" className="flex items-center gap-4 mb-8 pb-6 border-b border-gray-200 group">
+          <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 shadow-sm ring-2 ring-gray-100 group-hover:ring-teal transition-all">
+            <Image src="/avi.jpg" alt="Avi — founder of CheapStay" width={56} height={56} className="w-full h-full object-cover" />
           </div>
           <div>
-            <div className="text-sm font-bold text-gray-900">Avi</div>
-            <div className="text-xs text-gray-400">{post.readTime} min read · Full-time traveler, 50+ countries</div>
+            <div className="text-base font-bold text-gray-900 group-hover:text-teal transition-colors">Avi</div>
+            <div className="text-sm text-gray-500 mt-0.5">Full-time traveler · 50+ countries · {post.readTime} min read</div>
           </div>
-        </div>
+        </a>
 
         <article className="space-y-1">
           {renderContent(post.content)}
