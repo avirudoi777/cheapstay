@@ -279,7 +279,7 @@ export default function HomePage() {
   const [passportBannerDismissed, setPassportBannerDismissed] = useState(false);
 
   // Hero tab
-  const [activeTab, setActiveTab] = useState<'hotel' | 'flight'>('flight');
+  const [activeTab, setActiveTab] = useState<'hotel' | 'flight' | 'car'>('flight');
 
   // Flight search state
   const [flightSearch, setFlightSearch] = useState<{
@@ -540,16 +540,16 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* Hotel / Flight tabs */}
+          {/* Flight / Hotel / Cars tabs */}
           <div className="mt-8">
             <div className="flex gap-1 mb-4 justify-center">
-              {(['flight', 'hotel'] as const).map(tab => (
+              {(['flight', 'hotel', 'car'] as const).map(tab => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
                   className="px-5 py-2 rounded-full text-sm font-bold transition-all"
                   style={activeTab === tab
                     ? { background: '#1D9E75', color: 'white' }
                     : { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}>
-                  {tab === 'hotel' ? '🏨 Hotels' : '✈️ Flights'}
+                  {tab === 'hotel' ? '🏨 Hotels' : tab === 'flight' ? '✈️ Flights' : '🚗 Cars'}
                 </button>
               ))}
             </div>
@@ -557,8 +557,10 @@ export default function HomePage() {
             <div className="bg-white rounded-2xl shadow-2xl p-5 sm:p-6 text-left">
               {activeTab === 'hotel' ? (
                 <SearchBar onSearch={handleSearch} loading={loading} />
-              ) : (
+              ) : activeTab === 'flight' ? (
                 <FlightSearchBar onSearch={handleFlightSearch} />
+              ) : (
+                <CarSearchWidget />
               )}
             </div>
 
@@ -1114,5 +1116,49 @@ export default function HomePage() {
         CheapStay earns a small commission when you book through our links — at no extra cost to you. This is how we keep the site free.
       </div>
     </>
+  );
+}
+
+function CarSearchWidget() {
+  const [pickup, setPickup] = useState('');
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 7);
+  const weekLater = new Date(); weekLater.setDate(weekLater.getDate() + 14);
+  const fmt = (d: Date) => d.toISOString().split('T')[0];
+  const [pickupDate, setPickupDate] = useState(fmt(tomorrow));
+  const [dropoffDate, setDropoffDate] = useState(fmt(weekLater));
+
+  function search(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pickup.trim()) return;
+    const dest = `https://www.getrentacar.com/en/search/?pickUpLocName=${encodeURIComponent(pickup.trim())}&pickUpDate=${pickupDate}&returnDate=${dropoffDate}`;
+    window.open(`https://getrentacar.tpo.lv/Xdm1FCMq?u=${encodeURIComponent(dest)}`, '_blank', 'noopener');
+  }
+
+  return (
+    <form onSubmit={search} className="space-y-4">
+      <div>
+        <label className="block text-xs font-semibold text-gray-500 mb-1.5">Pickup location</label>
+        <input type="text" value={pickup} onChange={e => setPickup(e.target.value)}
+          placeholder="City or airport (e.g. Bangkok, Tokyo)"
+          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5">Pickup date</label>
+          <input type="date" value={pickupDate} min={fmt(new Date())} onChange={e => setPickupDate(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal/30" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5">Drop-off date</label>
+          <input type="date" value={dropoffDate} min={pickupDate} onChange={e => setDropoffDate(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal/30" />
+        </div>
+      </div>
+      <button type="submit"
+        className="w-full py-3.5 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
+        style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+        Search rental cars →
+      </button>
+    </form>
   );
 }
