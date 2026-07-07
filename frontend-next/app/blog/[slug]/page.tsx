@@ -904,8 +904,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-200">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-            style={{ background: '#1D9E75' }}>AV</div>
+          <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
+            <Image src="/avi.jpg" alt="Avi" width={36} height={36} className="w-full h-full object-cover" />
+          </div>
           <div>
             <div className="text-sm font-bold text-gray-900">Avi</div>
             <div className="text-xs text-gray-400">{post.readTime} min read · Full-time traveler, 50+ countries</div>
