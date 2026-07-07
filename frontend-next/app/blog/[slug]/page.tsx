@@ -568,6 +568,135 @@ Most nationalities can visit Indonesia visa-free or get a Visa on Arrival. Check
     `.trim(),
   },
 
+  'long-flight-ideas': {
+    title: "14 things to do on a long flight — including a few that might actually improve your life",
+    excerpt: "A 12-hour flight is dead time if you let it be. It can also be the most focused, uninterrupted block of time you get all month. Here's how I use it.",
+    category: 'Travel hacks',
+    readTime: 8,
+    img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1200&h=600&fit=crop&auto=format',
+    content: `
+A 12-hour flight used to feel like a punishment. Now I look forward to them. No notifications, no meetings, no one asking you anything. It's one of the last remaining places where you can have a genuinely uninterrupted block of time.
+
+The difference is preparation. Here's what I actually do on long flights — and a few things worth trying if you haven't.
+
+## Before you board: get the setup right
+
+The quality of your flight is mostly determined in the hour before you board.
+
+**Noise-cancelling headphones** are non-negotiable for anything over 4 hours. The constant drone of the engines is more exhausting than you think — blocking it makes a real difference to how you arrive. I use them even when I'm not listening to anything. [Sony or Bose are the standard picks](https://www.amazon.com/s?k=noise+cancelling+headphones+travel&tag=cheapstay-20) — worth every cent on long-haul.
+
+**Sleep kit** if you're flying overnight: eye mask, earplugs, and a neck pillow. A [decent travel sleep kit](https://www.amazon.com/s?k=travel+sleep+kit+eye+mask+neck+pillow&tag=cheapstay-20) costs $20 and transforms a red-eye from exhausting to actually restful.
+
+Download everything before you board — offline Spotify playlists, Netflix downloads, podcasts, Kindle books. Assume in-flight WiFi will be slow or expensive.
+
+---
+
+## Things to do that actually move your life forward
+
+### 1. Learn the basics of the local language
+
+You have 10–14 hours and nothing to do. That's enough time to learn 100–150 words and basic phrases in almost any language using Duolingo or Babbel. You won't be fluent, but you'll arrive able to say hello, thank you, how much, and where is the bathroom — which is 80% of what you need for the first 48 hours.
+
+I did this before my first trip to Japan. I was shocked by how much goodwill a few words in Japanese got me.
+
+**Good apps for offline use:** Duolingo (download the language pack), Pimsleur (audio-based, great for flights).
+
+### 2. Finish the online course you've been ignoring
+
+Most people have a half-finished Udemy or Coursera course collecting digital dust. Download the videos and actually finish it. 12 hours is enough to complete most courses.
+
+Good use cases: a new programming language, design basics, video editing, anything business-related. This is one of those things that's easy to justify at 35,000 feet and hard to start on the ground.
+
+### 3. Write
+
+Planes are unusually good for writing. No distractions, no WiFi temptation, and something about the altitude seems to make it easier. I've written some of my best blog posts at cruising altitude.
+
+Doesn't have to be a blog post. Could be journaling, planning a project, writing letters, drafting something you've been putting off.
+
+### 4. Read a book you've been avoiding
+
+Not an article. Not a Twitter thread. An actual book. A long flight is often the only time people who claim "I don't have time to read" actually finish one.
+
+A [Kindle Paperwhite](https://www.amazon.com/s?k=kindle+paperwhite&tag=cheapstay-20) makes this easier — lightweight, weeks of battery, holds your entire library. Dark mode for night flights.
+
+### 5. Plan the trip in detail
+
+I don't mean "look at Instagram." I mean actually plan: neighbourhoods, day itineraries, restaurants to book, transportation logistics, visa entry details. Most people land without a plan and waste the first day figuring it out.
+
+Use the flight to build a proper itinerary. Check [our fly-to guides](/fly-to) for the entry requirements for your destination — worth reading before you arrive.
+
+### 6. Deep work — if you have the right project
+
+Some creative or analytical work is actually better done at altitude. Writing, coding, designing, strategy planning. If you have a laptop and a specific project, treat the flight like a focus session. Put your phone in airplane mode even if WiFi is available.
+
+---
+
+## Things to do that are just about enjoying the flight
+
+### 7. Watch a film you've been meaning to see
+
+Specifically: a long one. A 3-hour film you wouldn't normally sit through is perfect on a plane. Download it before you leave.
+
+Good genre for flights: something visually spectacular (Dune, Lawrence of Arabia, anything IMAX-worthy) — it's one of the few times you'll watch a screen in the dark with headphones on for 3 hours straight.
+
+### 8. Catch up on podcasts or audiobooks
+
+Download 3–4 hours of podcasts before you go. Long-form interviews or documentary-style podcasts work well — the kind you never have time for normally.
+
+Audiobooks are underrated for flights. A 10-hour audiobook fits neatly in a long-haul.
+
+### 9. Sleep — properly
+
+If it's a red-eye or you're crossing many time zones, sleeping on the plane is the best thing you can do for your first day at the destination. Don't fight it to watch movies.
+
+The setup: window seat, sleep kit, melatonin (optional, ~0.5–1mg is enough), neck pillow, and headphones playing something low-key. Adjust your watch to destination time as soon as you board and act like it's that time.
+
+---
+
+## Things for your health
+
+### 10. Stretch every 90 minutes
+
+Blood pooling in your legs over 12 hours is genuinely uncomfortable and can cause real issues. Set a timer for every 90 minutes. Walk to the back of the plane, do a few calf raises and hip flexor stretches. Takes 5 minutes. You'll arrive feeling significantly better.
+
+### 11. Hydrate aggressively
+
+Cabin air is extremely dry — humidity is around 10–15%, compared to 40–60% on the ground. You lose water faster than you feel thirsty. Drink a glass of water every hour. Avoid alcohol or limit it (dehydrates you further). Your skin and your head will thank you on arrival.
+
+### 12. Skip a meal and use that time for something else
+
+Airline meals are rarely worth the disruption. You eat, you get sleepy, you lose the momentum of whatever you were doing. On longer flights I sometimes skip one meal, drink water instead, and use the time to keep reading or working. Arrive, eat well.
+
+---
+
+## Things that are just honest fun
+
+### 13. Actually talk to the person next to you
+
+Most of the time: fine to not do this. But occasionally you end up next to someone interesting. I've had some genuinely good conversations on long flights — people in unusual jobs, travelers with good stories, locals who can tell you where to actually go.
+
+Worth at least a "where are you headed?" if the mood is right.
+
+### 14. Plan your next trip
+
+You're already in travel mode. Use the flight to daydream productively — look at where you want to go next, rough timelines, what it costs. I've planned entire months of travel on long-haul flights.
+
+And when you're ready to actually book — [search for flights here](/).
+
+---
+
+## The gear that makes the difference
+
+For a long flight, the investment that pays off most is the stuff that helps you sleep or focus:
+
+- [Noise-cancelling headphones](https://www.amazon.com/s?k=noise+cancelling+headphones+travel&tag=cheapstay-20) — the single best upgrade
+- [Sleep travel kit](https://www.amazon.com/s?k=travel+sleep+kit+eye+mask+neck+pillow&tag=cheapstay-20) — eye mask + earplugs + neck pillow, under $25
+- [Kindle Paperwhite](https://www.amazon.com/s?k=kindle+paperwhite&tag=cheapstay-20) — your entire reading library, 6 weeks of battery
+
+Everything else in our [travel shop](/shop) for the full packing list.
+    `.trim(),
+  },
+
   'anytime-fitness-global-hack': {
     title: 'The Anytime Fitness hack every traveler should know: sign up cheap, train anywhere',
     excerpt: "Sign up for Anytime Fitness in Jakarta at local prices — then use that membership at gyms in Japan, Singapore, or anywhere else in the world. Here's exactly how it works.",

@@ -91,6 +91,15 @@ const POSTS = [
     img: 'https://images.unsplash.com/photo-1555899434-94d1368aa7af?w=600&h=360&fit=crop&auto=format',
   },
   {
+    slug: 'long-flight-ideas',
+    title: '14 things to do on a long flight — including a few that might actually improve your life',
+    excerpt: "A 12-hour flight is dead time if you let it be. It can also be the most focused, uninterrupted block of time you get all month. Here's how I use it.",
+    category: 'Travel hacks',
+    readTime: 8,
+    featured: false,
+    img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&h=360&fit=crop&auto=format',
+  },
+  {
     slug: 'anytime-fitness-global-hack',
     title: 'The Anytime Fitness hack every traveler should know: sign up cheap, train anywhere',
     excerpt: "Sign up in Jakarta at local prices — then use that membership at Anytime Fitness gyms in Japan, Singapore, or anywhere else in the world.",

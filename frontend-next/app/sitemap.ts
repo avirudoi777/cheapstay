@@ -13,6 +13,7 @@ const BLOG_SLUGS = [
   'best-months-fly-southeast-asia',
   'jakarta-underrated-city',
   'anytime-fitness-global-hack',
+  'long-flight-ideas',
 ];
 
 const CITY_SLUGS = [

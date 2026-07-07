@@ -233,6 +233,14 @@ const BLOG_POSTS = [
     img: 'https://images.unsplash.com/photo-1555899434-94d1368aa7af?w=400&h=240&fit=crop&auto=format',
   },
   {
+    slug: 'long-flight-ideas',
+    title: '14 things to do on a long flight — including a few that might actually improve your life',
+    category: 'Travel hacks',
+    readTime: 8,
+    featured: false,
+    img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=240&fit=crop&auto=format',
+  },
+  {
     slug: 'anytime-fitness-global-hack',
     title: 'The Anytime Fitness hack every traveler should know: sign up cheap, train anywhere',
     category: 'Travel hacks',
