@@ -745,16 +745,50 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ── How it works — 3-layer savings stack ─────────────────────────── */}
+      {/* ── What CheapStay does ───────────────────────────────────────────── */}
       <section className="py-14 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-2xl font-extrabold text-navy">Stack 3 layers of savings on every booking</h2>
-            <p className="text-gray-400 text-sm mt-2">Most travelers leave all three on the table. You don&apos;t have to.</p>
+            <h2 className="text-2xl font-extrabold text-navy">Everything you need, before and after you book</h2>
+            <p className="text-gray-400 text-sm mt-2">Flights, cars, visa requirements, and a real human if you need one.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {SAVINGS_STACK.map((card, i) => (
-              <div key={i} className={`rounded-2xl p-5 flex flex-col ${card.featured ? 'border-2 shadow-lg' : 'bg-white border border-gray-100 shadow-sm'}`}
+            {[
+              {
+                icon: '✈️',
+                title: 'Book flights',
+                desc: 'Search and book flights directly — seats, baggage, and cancellation policy all shown before you pay. No redirects.',
+                badge: 'Live now',
+                href: '/',
+                featured: true,
+              },
+              {
+                icon: '🚗',
+                title: 'Rent a car',
+                desc: 'Compare rental car prices from major companies worldwide. Pick up at the airport or in the city.',
+                badge: 'Live now',
+                href: '/cars',
+                featured: false,
+              },
+              {
+                icon: '🛂',
+                title: 'Visa & entry requirements',
+                desc: 'Check what you need before you fly — visa rules, vaccine certificates, and arrival tips for your destination.',
+                badge: '8 countries covered',
+                href: '/fly-to',
+                featured: false,
+              },
+              {
+                icon: '📞',
+                title: 'Book a call with Avi',
+                desc: 'Want to save 30–40% on your next hotel? I\'ll walk you through Thai IP pricing, cashback stacking, and the right credit card. 1-on-1, 45 minutes, $49.',
+                badge: '$49 · Book now',
+                href: '/consult',
+                featured: false,
+              },
+            ].map((card, i) => (
+              <a key={i} href={card.href}
+                className={`rounded-2xl p-5 flex flex-col cursor-pointer transition-shadow hover:shadow-md ${card.featured ? 'border-2 shadow-lg' : 'bg-white border border-gray-100 shadow-sm'}`}
                 style={card.featured ? { borderColor: '#1D9E75', background: '#f0fdf9' } : {}}>
                 <div className="text-3xl mb-3">{card.icon}</div>
                 {card.featured && (
@@ -762,12 +796,12 @@ export default function HomePage() {
                     style={{ background: '#1D9E75', color: 'white' }}>Featured</span>
                 )}
                 <h3 className="font-bold text-navy text-sm mb-1">{card.title}</h3>
-                <p className="text-xs text-gray-500 flex-1">{card.desc}</p>
+                <p className="text-xs text-gray-500 flex-1 leading-relaxed">{card.desc}</p>
                 <div className="mt-3 text-xs font-bold px-2.5 py-1 rounded-full self-start"
                   style={{ background: card.featured ? '#1D9E75' : '#E1F5EE', color: card.featured ? 'white' : '#0F6E56' }}>
                   {card.badge}
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         </div>
