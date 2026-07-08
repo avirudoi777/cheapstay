@@ -209,32 +209,6 @@ export default function ConsultPage() {
         </div>
       </section>
 
-      {/* ── Testimonials ── */}
-      <section className="py-12 px-4 bg-white border-t border-gray-100">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-xl font-extrabold text-gray-900 text-center mb-8">What travelers say</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              { text: '"Avi saved me hours of research and probably $400 on my Southeast Asia trip. Worth every dollar."', name: 'Sarah M.', flag: '🇺🇸' },
-              { text: '"I almost flew to Colombia without my yellow fever vaccine — Avi caught it. Literally saved my trip."', name: 'James K.', flag: '🇬🇧' },
-              { text: '"Best $49 I ever spent on travel. Got a full 3-week Thailand itinerary with hotel recs and price hacks."', name: 'Priya R.', flag: '🇦🇺' },
-            ].map((t, i) => (
-              <div key={i} className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
-                <div className="flex gap-0.5 mb-3">
-                  {[...Array(5)].map((_, i) => <span key={i} className="text-yellow-400 text-sm">★</span>)}
-                </div>
-                <p className="text-sm text-gray-600 leading-relaxed italic mb-4">{t.text}</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{t.flag}</span>
-                  <span className="text-xs font-bold text-gray-900">{t.name}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-xs text-gray-400 mt-4">* Early reviews from beta testers</p>
-        </div>
-      </section>
-
       {/* ── Final CTA ── */}
       <section className="py-16 px-4" style={{ background: '#0a1628' }}>
         <div className="max-w-xl mx-auto text-center">

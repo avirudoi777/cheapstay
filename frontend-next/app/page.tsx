@@ -560,7 +560,16 @@ export default function HomePage() {
               ) : activeTab === 'flight' ? (
                 <FlightSearchBar onSearch={handleFlightSearch} />
               ) : (
-                <CarSearchWidget />
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500 mb-1">Compare rental cars from major companies worldwide.</p>
+                  <p className="text-xs text-gray-400 mb-5">Enterprise, Hertz, Avis, Sixt and more — pickup at airport or city.</p>
+                  <a href="https://getrentacar.tpo.lv/Xdm1FCMq" target="_blank" rel="noopener noreferrer"
+                    className="inline-block px-8 py-3.5 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+                    Search rental cars →
+                  </a>
+                  <p className="text-[11px] text-gray-400 mt-3">Opens GetRentacar.com · Affiliate link</p>
+                </div>
               )}
             </div>
 
