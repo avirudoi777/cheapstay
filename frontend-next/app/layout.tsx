@@ -13,26 +13,26 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? 'G-4N9WY15BK2';
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.cheapstay.co'),
   title: {
-    default: 'CheapStay — Compare Hotel Prices & Save Up to 40%',
+    default: 'CheapStay — Know What You Need Before You Fly',
     template: '%s | CheapStay',
   },
-  description: 'Compare Agoda and Booking.com side by side and find the lowest hotel price instantly. Stack cashback and credit card points for extra savings. Used by 10,000+ travelers.',
-  keywords: ['travel hacks', 'cheap hotel deals', 'hotel price comparison', 'save money on hotels', 'travel savings', 'VPN hotel hack', 'Agoda discount', 'Booking.com discount', 'travel tips', 'digital nomad hotels', 'cheap travel', 'hotel booking tips', 'cashback travel', 'best travel credit cards'],
+  description: 'Check passport, visa, and vaccine requirements for your route, plus real layover and airport tips — then book flights, hotels, and cars in one place.',
+  keywords: ['visa requirements', 'passport requirements', 'travel vaccine requirements', 'layover guide', 'airport tips', 'flight booking', 'hotel price comparison', 'car rental search', 'travel hacks', 'entry requirements by country', 'transit visa', 'cashback travel', 'best travel credit cards'],
   authors: [{ name: 'Avi', url: 'https://www.cheapstay.co/about' }],
   creator: 'CheapStay',
   openGraph: {
-    title: 'CheapStay — Compare Hotel Prices & Save Up to 40%',
-    description: 'Compare Agoda and Booking.com side by side and find the lowest hotel price instantly. Stack cashback and credit card points for extra savings.',
+    title: 'CheapStay — Know What You Need Before You Fly',
+    description: 'Check passport, visa, and vaccine requirements for your route, plus real layover and airport tips — then book flights, hotels, and cars in one place.',
     url: 'https://www.cheapstay.co',
     siteName: 'CheapStay',
     type: 'website',
     locale: 'en_US',
-    images: [{ url: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=1200&h=630&fit=crop&auto=format', width: 1200, height: 630, alt: 'CheapStay — Compare Hotel Prices & Save Up to 40%' }],
+    images: [{ url: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=1200&h=630&fit=crop&auto=format', width: 1200, height: 630, alt: 'CheapStay — Know What You Need Before You Fly' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'CheapStay — Compare Hotel Prices & Save Up to 40%',
-    description: 'Compare Agoda and Booking.com side by side and find the lowest hotel price instantly. Stack cashback and credit card points for extra savings.',
+    title: 'CheapStay — Know What You Need Before You Fly',
+    description: 'Check passport, visa, and vaccine requirements for your route, plus real layover and airport tips — then book flights, hotels, and cars in one place.',
     images: ['https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=1200&h=630&fit=crop&auto=format'],
   },
   robots: {
@@ -58,7 +58,7 @@ const jsonLd = {
       '@id': 'https://www.cheapstay.co/#website',
       url: 'https://www.cheapstay.co',
       name: 'CheapStay',
-      description: 'Hotel price comparison and travel savings hacks for digital nomads and frequent travelers',
+      description: 'Passport, visa, and vaccine requirements plus flight, hotel, and car booking — everything you need to know before you fly',
       potentialAction: {
         '@type': 'SearchAction',
         target: { '@type': 'EntryPoint', urlTemplate: 'https://www.cheapstay.co/search?q={search_term_string}' },
@@ -211,7 +211,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Image src="/logo.png" alt="CheapStay" width={100} height={28} className="h-7 w-auto opacity-80" />
                 <span className="text-xs text-gray-400">© 2026 CheapStay</span>
               </div>
-              <p className="text-xs text-gray-400">Compare hotel prices worldwide · Agoda & Booking.com</p>
+              <p className="text-xs text-gray-400">Know what you need before you fly · Flights, hotels & cars</p>
             </div>
             <p className="text-[11px] text-gray-300 text-center mt-4">
               Some links on this site are affiliate links — we may earn a commission at no extra cost to you.{' '}
