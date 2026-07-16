@@ -25,7 +25,7 @@ export default function ContactPage() {
     <div className="max-w-xl mx-auto px-4 py-16">
       <div className="text-center mb-10">
         <div className="w-12 h-12 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, #0F1F3D, #00C9B1)' }}>
+          style={{ background: 'linear-gradient(135deg, var(--color-pro-navy), var(--color-primary))' }}>
           <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0l-9.75 6.75L2.25 6.75" />
           </svg>
@@ -79,7 +79,7 @@ export default function ContactPage() {
 
             <button type="submit" disabled={sending}
               className="w-full py-3 rounded-xl font-bold text-white text-sm transition-opacity disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+              style={{ background: 'var(--color-primary)' }}>
               Send message
             </button>
           </form>

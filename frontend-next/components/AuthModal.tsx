@@ -32,7 +32,7 @@ export default function AuthModal({ open, onClose, onContinue, hotelName }: Auth
       <div className="w-full sm:max-w-sm bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden animate-slide-up">
         {/* Gradient header */}
         <div className="relative px-6 pt-6 pb-8 text-white"
-          style={{ background: 'linear-gradient(135deg, #0F1F3D 0%, #00C9B1 100%)' }}>
+          style={{ background: 'linear-gradient(135deg, var(--color-pro-navy) 0%, var(--color-primary) 100%)' }}>
           <button onClick={onClose}
             className="absolute top-4 right-4 w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -69,7 +69,7 @@ export default function AuthModal({ open, onClose, onContinue, hotelName }: Auth
             </Link>
             <Link href="/auth/signup"
               className="flex-1 text-center py-2.5 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+              style={{ background: 'var(--color-primary)' }}>
               Sign up free
             </Link>
           </div>

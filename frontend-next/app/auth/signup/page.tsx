@@ -89,7 +89,7 @@ export default function SignupPage() {
             </div>
             <button type="submit" disabled={loading}
               className="w-full py-3 rounded-xl font-bold text-white text-sm transition-opacity disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+              style={{ background: 'var(--color-primary)' }}>
               {loading ? 'Creating account…' : 'Create account'}
             </button>
           </form>

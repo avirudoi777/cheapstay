@@ -52,7 +52,7 @@ export default function NewsletterForm() {
         />
         <button type="submit" disabled={status === 'loading'}
           className="px-6 py-3 rounded-xl text-sm font-bold text-white transition-opacity disabled:opacity-60"
-          style={{ background: '#1D9E75' }}>
+          style={{ background: 'var(--color-primary)' }}>
           {status === 'loading' ? 'Subscribing…' : 'Subscribe free'}
         </button>
       </form>

@@ -294,7 +294,7 @@ export default function AccountPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
       {/* Header banner */}
-      <div className="h-28 w-full" style={{ background: 'linear-gradient(135deg, #0F1F3D 0%, #00C9B1 100%)' }} />
+      <div className="h-28 w-full" style={{ background: 'linear-gradient(135deg, var(--color-pro-navy) 0%, var(--color-primary) 100%)' }} />
 
       <div className="max-w-2xl mx-auto px-4 -mt-14">
         {/* Avatar card */}
@@ -379,7 +379,7 @@ export default function AccountPage() {
                 ? (isOpen ? '#EF4444' : '#FEE2E2')
                 : expiryStatus === 'soon'
                   ? (isOpen ? '#F59E0B' : '#FEF3C7')
-                  : (isOpen ? '#1D9E75' : '#E5E7EB');
+                  : (isOpen ? 'var(--color-primary)' : '#E5E7EB');
               const bgColor = expiryStatus === 'expired'
                 ? (isOpen ? '#FEF2F2' : '#FAFAFA')
                 : expiryStatus === 'soon'
@@ -686,7 +686,7 @@ export default function AccountPage() {
                   setCompanionForm(null);
                 }}
                   className="flex-1 py-2 rounded-xl text-sm font-bold text-white transition"
-                  style={{ background: '#1D9E75' }}>
+                  style={{ background: 'var(--color-primary)' }}>
                   Save companion
                 </button>
                 <button onClick={() => setCompanionForm(null)}
@@ -779,8 +779,7 @@ export default function AccountPage() {
 
         {/* Save */}
         <button onClick={handleSave} disabled={saving}
-          className="w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-60 shadow-md"
-          style={{ background: saved ? '#00C9B1' : 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+          className="w-full py-3.5 rounded-xl font-bold text-white text-sm bg-primary transition-all disabled:opacity-60 shadow-md">
           {saving ? 'Saving…' : saved ? '✓ Saved!' : 'Save changes'}
         </button>
 

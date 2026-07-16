@@ -151,7 +151,7 @@ export default function BookingModal({ hotel, open, onClose, userEmail = '', use
 
               <button onClick={() => setStep('guest')}
                 className="w-full py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+                style={{ background: 'var(--color-primary)' }}>
                 Continue to Guest Details →
               </button>
             </div>
@@ -212,7 +212,7 @@ export default function BookingModal({ hotel, open, onClose, userEmail = '', use
                 <button type="submit"
                   disabled={!firstName.trim() || !lastName.trim() || !email.trim() || !phone.trim()}
                   className="flex-1 py-3 rounded-xl font-bold text-white text-sm disabled:opacity-40 transition-opacity hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+                  style={{ background: 'var(--color-primary)' }}>
                   Confirm Booking →
                 </button>
               </div>
@@ -248,7 +248,7 @@ export default function BookingModal({ hotel, open, onClose, userEmail = '', use
               <p className="text-xs text-gray-400">A confirmation email has been sent to {email}.</p>
               <button onClick={onClose}
                 className="w-full py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+                style={{ background: 'var(--color-primary)' }}>
                 Done
               </button>
             </div>

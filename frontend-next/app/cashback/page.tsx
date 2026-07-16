@@ -90,9 +90,9 @@ export default function CashbackPage() {
     <main className="min-h-screen bg-gray-50">
 
       {/* Hero */}
-      <section style={{ background: '#0a1628' }} className="py-14 px-4 text-center">
+      <section style={{ background: 'var(--color-pro-navy)' }} className="py-14 px-4 text-center">
         <div className="max-w-3xl mx-auto">
-          <div className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 text-white" style={{ background: '#1D9E75' }}>
+          <div className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 text-white" style={{ background: 'var(--color-primary)' }}>
             Cashback guide
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-4 leading-tight">
@@ -154,7 +154,7 @@ export default function CashbackPage() {
           {STACK_STEPS.map(s => (
             <div key={s.step} className="bg-white rounded-2xl p-5 border border-gray-100 flex gap-4">
               <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold text-white flex-shrink-0"
-                style={{ background: '#1D9E75' }}>{s.step}</div>
+                style={{ background: 'var(--color-primary)' }}>{s.step}</div>
               <div>
                 <p className="font-bold text-gray-900 text-sm mb-1">{s.title}</p>
                 <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
@@ -212,11 +212,11 @@ export default function CashbackPage() {
         </div>
 
         {/* CTA */}
-        <div className="rounded-2xl p-8 text-center" style={{ background: '#0a1628' }}>
+        <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--color-pro-navy)' }}>
           <h2 className="text-xl font-extrabold text-white mb-2">Start with the Thai IP price</h2>
           <p className="text-white/60 text-sm mb-6">CheapStay shows you Agoda and Booking.com prices from Bangkok servers — then you cashback on top.</p>
           <Link href="/" className="inline-block px-6 py-3 rounded-xl text-sm font-bold text-white"
-            style={{ background: '#1D9E75' }}>
+            style={{ background: 'var(--color-primary)' }}>
             Search hotels →
           </Link>
         </div>

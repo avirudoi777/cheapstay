@@ -146,7 +146,7 @@ export default function OnboardingPage() {
       </div>
       <button onClick={() => setStep(1)} disabled={styles.length === 0}
         className="w-full py-3 rounded-xl font-bold text-white text-sm disabled:opacity-40 transition-opacity"
-        style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+        style={{ background: 'var(--color-primary)' }}>
         Next →
       </button>
     </div>,
@@ -174,7 +174,7 @@ export default function OnboardingPage() {
         </button>
         <button onClick={() => setStep(2)} disabled={regions.length === 0}
           className="flex-1 py-3 rounded-xl font-bold text-white text-sm disabled:opacity-40 transition-opacity"
-          style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+          style={{ background: 'var(--color-primary)' }}>
           Next →
         </button>
       </div>
@@ -225,7 +225,7 @@ export default function OnboardingPage() {
         </button>
         <button onClick={() => setStep(3)}
           className="flex-1 py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+          style={{ background: 'var(--color-primary)' }}>
           Next →
         </button>
       </div>
@@ -244,7 +244,7 @@ export default function OnboardingPage() {
         <div className="flex flex-wrap gap-2">
           {passports.map(code => (
             <div key={code} className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
-              style={{ background: '#F0FBF7', border: '1px solid #1D9E75', color: '#0F6E56' }}>
+              style={{ background: '#F0FBF7', border: '1px solid var(--color-primary)', color: '#0F6E56' }}>
               <span className="text-base">{flagEmoji(code)}</span>
               <span>{COUNTRIES.find(c => c.code === code)?.name}</span>
               <button type="button" onClick={() => setPassports(p => p.filter(x => x !== code))}
@@ -271,7 +271,7 @@ export default function OnboardingPage() {
         </button>
         <button onClick={() => setStep(4)}
           className="flex-1 py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+          style={{ background: 'var(--color-primary)' }}>
           {passports.length > 0 ? 'Next →' : 'Skip →'}
         </button>
       </div>
@@ -321,7 +321,7 @@ export default function OnboardingPage() {
         </button>
         <button onClick={finish} disabled={saving}
           className="flex-1 py-3 rounded-xl font-bold text-white text-sm disabled:opacity-60 transition-opacity"
-          style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+          style={{ background: 'var(--color-primary)' }}>
           {saving ? 'Saving…' : 'Start exploring 🚀'}
         </button>
       </div>

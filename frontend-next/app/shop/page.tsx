@@ -88,7 +88,7 @@ export default function ShopPage() {
                   <div className="p-5 flex flex-col flex-1">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-bold text-navy text-sm group-hover:text-teal transition-colors">{item.name}</h3>
-                      <span className="text-sm font-bold" style={{ color: '#1D9E75' }}>{item.price}</span>
+                      <span className="text-sm font-bold" style={{ color: 'var(--color-primary)' }}>{item.price}</span>
                     </div>
                     <p className="text-xs text-gray-500 flex-1 leading-relaxed">{item.desc}</p>
                     <div className="mt-4 flex items-center justify-between">

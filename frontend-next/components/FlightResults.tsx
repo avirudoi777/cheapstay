@@ -86,7 +86,7 @@ interface SeatCabin { cabinClass: string; cabinClassName?: string; rows: SeatRow
 interface SeatMap { segmentId: string; cabins: SeatCabin[] }
 
 const SEAT_COLORS = {
-  free:     { bg: '#E6F7F1', text: '#1D9E75', border: '#A7F3D0' },
+  free:     { bg: '#E6F7F1', text: 'var(--color-primary)', border: '#A7F3D0' },
   paid:     { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' },
   sel:      { bg: '#2563EB', border: '#1D4ED8' }, // single blue for selected — always distinct
   taken:    { bg: '#F3F4F6', text: '#D1D5DB', border: '#E5E7EB' },
@@ -418,12 +418,12 @@ function RouteMap({ fromCode, toCode, fromName, toName, stops = [], duration }: 
   const planeY = 0.25*baseY + 0.5*cpY + 0.25*baseY;
 
   return (
-    <div className="rounded-2xl overflow-hidden mb-5" style={{ background: 'linear-gradient(135deg, #0a1628, #0f2547)' }}>
+    <div className="rounded-2xl overflow-hidden mb-5" style={{ background: 'linear-gradient(135deg, var(--color-pro-navy), #0f2547)' }}>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
         <path d={`M ${depX} ${baseY} Q 250 ${cpY} ${arrX} ${baseY}`}
-          stroke="rgba(29,158,117,0.15)" strokeWidth="8" fill="none" />
+          stroke="rgba(0,106,97,0.15)" strokeWidth="8" fill="none" />
         <path d={`M ${depX} ${baseY} Q 250 ${cpY} ${arrX} ${baseY}`}
-          stroke="rgba(29,158,117,0.6)" strokeWidth="2" fill="none" strokeDasharray="6 4" />
+          stroke="rgba(0,106,97,0.6)" strokeWidth="2" fill="none" strokeDasharray="6 4" />
         {/* Plane only on direct flights — stop dots replace it on connecting flights */}
         {stops.length === 0 && (
           <text x="250" y={planeY - 4} textAnchor="middle" fontSize="18">✈️</text>
@@ -436,11 +436,11 @@ function RouteMap({ fromCode, toCode, fromName, toName, stops = [], duration }: 
             <text x={cx} y={cy - 13} textAnchor="middle" fontSize="10" fill="rgba(255,220,60,1)" fontWeight="bold">{code}</text>
           </g>
         ))}
-        <circle cx={depX} cy={baseY} r="6" fill="#1D9E75" />
-        <circle cx={depX} cy={baseY} r="10" fill="none" stroke="#1D9E75" strokeWidth="1.5" strokeOpacity="0.4" />
+        <circle cx={depX} cy={baseY} r="6" fill="var(--color-primary)" />
+        <circle cx={depX} cy={baseY} r="10" fill="none" stroke="var(--color-primary)" strokeWidth="1.5" strokeOpacity="0.4" />
         <text x={depX} y={baseY + 18} textAnchor="middle" fontSize="13" fill="white" fontWeight="bold">{fromCode}</text>
-        <circle cx={arrX} cy={baseY} r="6" fill="#1A73E8" />
-        <circle cx={arrX} cy={baseY} r="10" fill="none" stroke="#1A73E8" strokeWidth="1.5" strokeOpacity="0.4" />
+        <circle cx={arrX} cy={baseY} r="6" fill="var(--color-sky-blue)" />
+        <circle cx={arrX} cy={baseY} r="10" fill="none" stroke="var(--color-sky-blue)" strokeWidth="1.5" strokeOpacity="0.4" />
         <text x={arrX} y={baseY + 18} textAnchor="middle" fontSize="13" fill="white" fontWeight="bold">{toCode}</text>
       </svg>
       {/* Caption bar — duration lives here, not in the SVG, so it never collides with stop codes */}
@@ -1232,7 +1232,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       <p className="font-semibold text-gray-900">{savedProfile.givenName} {savedProfile.familyName}</p>
                       <p className="text-sm text-gray-500 mt-0.5">{savedProfile.email}{savedProfile.phone ? ` · ${savedProfile.phone}` : ''}</p>
                     </div>
-                    <a href="/account" target="_blank" className="text-xs font-bold flex items-center gap-1" style={{ color: '#1A73E8' }}>
+                    <a href="/account" target="_blank" className="text-xs font-bold flex items-center gap-1" style={{ color: 'var(--color-sky-blue)' }}>
                       ✏️ Edit
                     </a>
                   </div>
@@ -1443,7 +1443,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     className="mt-0.5 w-4 h-4 rounded accent-teal-600 cursor-pointer flex-shrink-0" />
                   <label htmlFor="savePassenger" className="text-xs text-gray-600 cursor-pointer">
                     Save/update passenger info for future bookings.{' '}
-                    <a href="/account" target="_blank" className="font-semibold underline" style={{ color: '#1A73E8' }}>See Privacy Policy</a>.
+                    <a href="/account" target="_blank" className="font-semibold underline" style={{ color: 'var(--color-sky-blue)' }}>See Privacy Policy</a>.
                   </label>
                 </div>
               </div>}
@@ -1533,7 +1533,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                       el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                     }}
                                     className="text-[10px] font-bold px-2 py-0.5 rounded-full cursor-pointer"
-                                    style={{ background: '#E6F7F1', color: '#1D9E75' }}>
+                                    style={{ background: '#E6F7F1', color: 'var(--color-primary)' }}>
                                     + Add below
                                   </button>
                                 ) : (
@@ -1611,7 +1611,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           {idx === 0 && <p className="text-xs text-gray-500 mt-0.5">{paxForm.email} · {paxForm.phoneNumber}</p>}
                           <p className="text-xs text-gray-400 mt-0.5">Passport {paxForm.passportNumber} · {flagEmoji(paxForm.passportCountry)} {paxForm.passportCountry} · Expires {paxForm.passportExpiry}</p>
                         </div>
-                        <button onClick={() => setBookStep('passenger')} className="text-xs font-bold underline flex-shrink-0" style={{ color: '#1D9E75' }}>Edit</button>
+                        <button onClick={() => setBookStep('passenger')} className="text-xs font-bold underline flex-shrink-0" style={{ color: 'var(--color-primary)' }}>Edit</button>
                       </div>
                     </div>
                   ))}
@@ -1686,7 +1686,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     </button>
                     <button onClick={confirmBooking} disabled={booking}
                       className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white disabled:opacity-60 flex items-center justify-center gap-2"
-                      style={{ background: holdMode ? 'linear-gradient(135deg, #1A73E8, #6366F1)' : 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+                      style={{ background: holdMode ? 'linear-gradient(135deg, var(--color-sky-blue), #6366F1)' : 'linear-gradient(135deg, var(--color-primary), var(--color-sky-blue))' }}>
                       {booking
                         ? <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Processing…</>
                         : holdMode ? '⏳ Hold seat (pay later) →' : `Pay ${fmtPrice(gross, offer.totalCurrency)} →`
@@ -1705,7 +1705,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       <p className="text-xs text-gray-400 mt-0.5">Extra baggage</p>
                     </div>
                     {extrasTotal > 0 && (
-                      <span className="text-sm font-bold px-3 py-1 rounded-full" style={{ background: '#E6F7F1', color: '#1D9E75' }}>
+                      <span className="text-sm font-bold px-3 py-1 rounded-full" style={{ background: '#E6F7F1', color: 'var(--color-primary)' }}>
                         +{fmtPrice(extrasTotal, offer.totalCurrency)}
                       </span>
                     )}
@@ -1721,16 +1721,16 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             <div key={svc.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
                               <div className="flex-1 min-w-0 mr-3">
                                 <p className="text-sm font-bold text-gray-800">{svc.metadata?.maximumWeightKg ? `${svc.metadata.maximumWeightKg}kg bag` : 'Checked bag'}</p>
-                                <p className="text-sm font-bold mt-0.5" style={{ color: '#1D9E75' }}>+{fmtPrice(svc.totalAmount, svc.totalCurrency)}</p>
+                                <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-primary)' }}>+{fmtPrice(svc.totalAmount, svc.totalCurrency)}</p>
                               </div>
                               <div className="flex items-center gap-2">
                                 <button onClick={() => setQty(svc.id, Math.max(0, qty - 1))}
                                   className="w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center transition-colors"
-                                  style={{ background: qty > 0 ? '#E6F7F1' : '#F3F4F6', color: qty > 0 ? '#1D9E75' : '#9CA3AF' }}>−</button>
+                                  style={{ background: qty > 0 ? '#E6F7F1' : '#F3F4F6', color: qty > 0 ? 'var(--color-primary)' : '#9CA3AF' }}>−</button>
                                 <span className="w-4 text-center text-sm font-bold tabular-nums">{qty}</span>
                                 <button onClick={() => setQty(svc.id, qty + 1)}
                                   className="w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center transition-colors"
-                                  style={{ background: '#E6F7F1', color: '#1D9E75' }}>+</button>
+                                  style={{ background: '#E6F7F1', color: 'var(--color-primary)' }}>+</button>
                               </div>
                             </div>
                           );
@@ -1758,7 +1758,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         ? `${selectedCount / paxCount} of ${legCount} legs seated`
                         : `${selectedCount} seat${selectedCount > 1 ? 's' : ''} selected`;
                       return (
-                        <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#E6F7F1', color: '#1D9E75' }}>
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#E6F7F1', color: 'var(--color-primary)' }}>
                           {label}
                         </span>
                       );
@@ -1986,7 +1986,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                   </div>
                                   {l.price && (
                                     <div className="text-right flex-shrink-0">
-                                      <span className="text-lg font-extrabold" style={{ color: '#1D9E75' }}>{l.price}</span>
+                                      <span className="text-lg font-extrabold" style={{ color: 'var(--color-primary)' }}>{l.price}</span>
                                       <p className="text-[9px] text-gray-400 leading-none mt-0.5">per person</p>
                                     </div>
                                   )}
@@ -2060,7 +2060,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         }
                       }}
                       className="w-full py-4 rounded-2xl text-sm font-bold text-white transition"
-                      style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)', opacity: 1 }}>
+                      style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-sky-blue))', opacity: 1 }}>
                       Continue to payment →
                     </button>
                     {offer.paymentRequirements && !offer.paymentRequirements.requiresInstantPayment && (
@@ -2072,7 +2072,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         }}
                         title={offer.paymentRequirements.paymentRequiredBy ? `Pay by ${new Date(offer.paymentRequirements.paymentRequiredBy).toLocaleDateString()}` : undefined}
                         className="w-full py-3 rounded-2xl text-sm font-bold border-2 transition"
-                        style={{ borderColor: '#1A73E8', color: '#1A73E8', background: 'white' }}>
+                        style={{ borderColor: 'var(--color-sky-blue)', color: 'var(--color-sky-blue)', background: 'white' }}>
                         ⏳ Hold seat — pay later{offer.paymentRequirements.paymentRequiredBy ? ` (by ${new Date(offer.paymentRequirements.paymentRequiredBy).toLocaleDateString()})` : ''}
                       </button>
                     )}
@@ -2113,18 +2113,18 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                               <div className="flex-1 min-w-0 mr-4">
                                 <p className="text-sm font-bold text-gray-800">🧳 {label}</p>
                                 <p className="text-xs text-gray-400 mt-0.5">{segLabel} · {svc.passengerIds.length} passenger{svc.passengerIds.length > 1 ? 's' : ''}</p>
-                                <p className="text-sm font-extrabold mt-1" style={{ color: '#1D9E75' }}>{fmtPrice(svc.totalAmount, svc.totalCurrency)} each</p>
+                                <p className="text-sm font-extrabold mt-1" style={{ color: 'var(--color-primary)' }}>{fmtPrice(svc.totalAmount, svc.totalCurrency)} each</p>
                               </div>
                               <div className="flex items-center gap-3 flex-shrink-0">
                                 <button onClick={() => setQty(svc.id, Math.max(0, qty - 1))}
                                   className="w-9 h-9 rounded-full border-2 flex items-center justify-center text-base font-bold transition-colors"
-                                  style={{ borderColor: qty > 0 ? '#1D9E75' : '#E2E8F0', color: qty > 0 ? '#1D9E75' : '#9CA3AF', background: qty > 0 ? '#E6F7F1' : 'white' }}>
+                                  style={{ borderColor: qty > 0 ? 'var(--color-primary)' : '#E2E8F0', color: qty > 0 ? 'var(--color-primary)' : '#9CA3AF', background: qty > 0 ? '#E6F7F1' : 'white' }}>
                                   −
                                 </button>
                                 <span className="w-6 text-center text-base font-extrabold text-gray-900">{qty}</span>
                                 <button onClick={() => setQty(svc.id, Math.min(svc.maximumQuantity, qty + 1))}
                                   className="w-9 h-9 rounded-full border-2 flex items-center justify-center text-base font-bold transition-colors"
-                                  style={{ borderColor: qty < svc.maximumQuantity ? '#1D9E75' : '#E2E8F0', color: qty < svc.maximumQuantity ? '#1D9E75' : '#9CA3AF', background: qty < svc.maximumQuantity ? '#E6F7F1' : 'white' }}>
+                                  style={{ borderColor: qty < svc.maximumQuantity ? 'var(--color-primary)' : '#E2E8F0', color: qty < svc.maximumQuantity ? 'var(--color-primary)' : '#9CA3AF', background: qty < svc.maximumQuantity ? '#E6F7F1' : 'white' }}>
                                   +
                                 </button>
                               </div>
@@ -2248,7 +2248,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                             price = offer.availableServices.find(s => s.id === selSvcId)?.totalAmount ?? parseFloat(svc.total_amount);
                                           }
                                         }
-                                        return <p className="text-xs font-semibold mt-1" style={{ color: '#1D9E75' }}>✓ Seat {designator} · {price > 0 ? `+${fmtPrice(price, offer.totalCurrency)}` : 'Free'}</p>;
+                                        return <p className="text-xs font-semibold mt-1" style={{ color: 'var(--color-primary)' }}>✓ Seat {designator} · {price > 0 ? `+${fmtPrice(price, offer.totalCurrency)}` : 'Free'}</p>;
                                       })()}
                                     </div>
                                   ))}
@@ -2280,13 +2280,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             <div key={svc.id} className="flex items-center justify-between p-4 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
                               <div className="flex-1 min-w-0 mr-3">
                                 <p className="text-sm font-bold text-gray-800 capitalize">{svc.type.replace(/_/g, ' ')}</p>
-                                <p className="text-sm font-bold mt-0.5" style={{ color: '#1D9E75' }}>{fmtPrice(svc.totalAmount, svc.totalCurrency)}</p>
+                                <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-primary)' }}>{fmtPrice(svc.totalAmount, svc.totalCurrency)}</p>
                               </div>
                               <button onClick={() => toggleService(svc.id)}
                                 className="text-sm font-bold px-4 py-2 rounded-xl transition-colors"
                                 style={added
                                   ? { background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA' }
-                                  : { background: '#E6F7F1', color: '#1D9E75', border: '1px solid #A7F3D0' }}>
+                                  : { background: '#E6F7F1', color: 'var(--color-primary)', border: '1px solid #A7F3D0' }}>
                                 {added ? '− Remove' : '+ Add'}
                               </button>
                             </div>
@@ -2308,7 +2308,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   </button>
                   <button onClick={() => setBookStep('payment')}
                     className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white"
-                    style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+                    style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-sky-blue))' }}>
                     Continue to payment →
                   </button>
                 </div>
@@ -2370,7 +2370,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 </div>
                 <button onClick={() => setSidebarDetailsOpen(o => !o)}
                   className="text-xs font-semibold flex items-center gap-1 cursor-pointer w-full py-2 px-3 rounded-xl border transition-colors"
-                  style={{ color: '#1A73E8', borderColor: '#BFDBFE', background: sidebarDetailsOpen ? '#EFF6FF' : '#F8FAFF' }}>
+                  style={{ color: 'var(--color-sky-blue)', borderColor: '#BFDBFE', background: sidebarDetailsOpen ? '#EFF6FF' : '#F8FAFF' }}>
                   {sidebarDetailsOpen ? '▲' : '▼'} {sidebarDetailsOpen ? 'Hide' : 'View'} flight details &amp; policies
                 </button>
 
@@ -2434,7 +2434,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     );
                     const extrasLabel = hasSeats && hasBags ? 'Seat & baggage' : hasSeats ? 'Seat selection' : 'Baggage';
                     return (
-                      <div className="flex justify-between text-xs font-semibold" style={{ color: '#1D9E75' }}>
+                      <div className="flex justify-between text-xs font-semibold" style={{ color: 'var(--color-primary)' }}>
                         <span>💺 {extrasLabel}</span>
                         <span>+{fmtPrice(extrasTotal, offer.totalCurrency)}</span>
                       </div>
@@ -2567,8 +2567,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <svg className="w-10 h-10 animate-spin mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="#1D9E75" strokeWidth="4"/>
-            <path className="opacity-75" fill="#1D9E75" d="M4 12a8 8 0 018-8v8z"/>
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="var(--color-primary)" strokeWidth="4"/>
+            <path className="opacity-75" fill="var(--color-primary)" d="M4 12a8 8 0 018-8v8z"/>
           </svg>
           <p className="text-sm font-semibold text-gray-500">Confirming your booking…</p>
         </div>
@@ -2608,14 +2608,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
     // Theme: amber=held, gold=business/first, green=economy confirmed
     const accentRgb    = isHeld ? '217,119,6' : isBusinessOrFirst ? '212,175,55'  : '29,158,117';
-    const accentHex    = isHeld ? '#D97706'    : isBusinessOrFirst ? '#D4AF37'     : '#1D9E75';
+    const accentHex    = isHeld ? '#D97706'    : isBusinessOrFirst ? '#D4AF37'     : 'var(--color-primary)';
     const bgGradient   = isHeld
       ? 'linear-gradient(160deg, #1a1200 0%, #2d1f00 60%, #1a1200 100%)'
       : isBusinessOrFirst
       ? cabin === 'first'
         ? 'linear-gradient(160deg, #0d0618 0%, #1a0b2e 50%, #0f1a10 100%)'
-        : 'linear-gradient(160deg, #0f0d00 0%, #1f1800 50%, #0a1628 100%)'
-      : 'linear-gradient(160deg, #0a1628 0%, #0f2e4a 60%, #0d3d2e 100%)';
+        : 'linear-gradient(160deg, #0f0d00 0%, #1f1800 50%, var(--color-pro-navy) 100%)'
+      : 'linear-gradient(160deg, var(--color-pro-navy) 0%, #0f2e4a 60%, #0d3d2e 100%)';
 
     return (
       <div ref={confirmationRef} className="max-w-lg mx-auto px-4 sm:px-6 mt-8 mb-16">
@@ -2809,14 +2809,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
               <div className="flex items-center gap-2 mb-0.5">
                 <button onClick={() => { setRtStep('outbound'); setRtSelectedOutbound(null); }}
                   className="text-xs font-bold px-2 py-1 rounded-lg transition-colors"
-                  style={{ color: '#1A73E8', background: '#EFF6FF' }}>
+                  style={{ color: 'var(--color-sky-blue)', background: '#EFF6FF' }}>
                   ← Outbound
                 </button>
                 <span className="text-gray-300">›</span>
                 <span className="text-xs font-bold text-gray-800">Select return</span>
               </div>
               <h2 className="text-xl font-extrabold text-gray-900">
-                Select return to <span style={{ color: '#1D9E75' }}>{fromName}</span>
+                Select return to <span style={{ color: 'var(--color-primary)' }}>{fromName}</span>
               </h2>
             </div>
           ) : (
@@ -2863,10 +2863,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
               const isBest = iso === bestPriceDate;
               const price = chipPrices[iso];
               const isLoading = (iso === activeDate && loading) || (iso !== activeDate && chipPrices[iso] === undefined && prefetchingDates.current.has(iso));
-              const borderColor = isActive ? '#1A73E8' : isBest ? '#16A34A' : '#E5E7EB';
+              const borderColor = isActive ? 'var(--color-sky-blue)' : isBest ? '#16A34A' : '#E5E7EB';
               const bgColor = isActive ? '#EEF4FE' : isBest ? '#F0FDF4' : '#FFFFFF';
-              const labelColor = isActive ? '#1A73E8' : isBest ? '#16A34A' : '#374151';
-              const priceColor = isActive ? '#1A73E8' : isBest ? '#15803D' : '#111827';
+              const labelColor = isActive ? 'var(--color-sky-blue)' : isBest ? '#16A34A' : '#374151';
+              const priceColor = isActive ? 'var(--color-sky-blue)' : isBest ? '#15803D' : '#111827';
               return (
                 <button
                   key={iso}
@@ -2905,12 +2905,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-bold text-gray-900">Recommended</p>
                   {filterBaggage && (
-                    <button onClick={() => setFilterBaggage(false)} className="text-[11px] font-bold cursor-pointer" style={{ color: '#1A73E8' }}>Clear</button>
+                    <button onClick={() => setFilterBaggage(false)} className="text-[11px] font-bold cursor-pointer" style={{ color: 'var(--color-sky-blue)' }}>Clear</button>
                   )}
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={filterBaggage} onChange={e => setFilterBaggage(e.target.checked)}
-                    className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: '#1D9E75' }} />
+                    className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: 'var(--color-primary)' }} />
                   <span className="text-sm text-gray-700">Checked baggage included</span>
                 </label>
               </div>
@@ -2919,7 +2919,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-bold text-gray-900">Stops</p>
                   {filterStops.size > 0 && (
-                    <button onClick={() => setFilterStops(new Set())} className="text-[11px] font-bold cursor-pointer" style={{ color: '#1A73E8' }}>Clear</button>
+                    <button onClick={() => setFilterStops(new Set())} className="text-[11px] font-bold cursor-pointer" style={{ color: 'var(--color-sky-blue)' }}>Clear</button>
                   )}
                 </div>
                 {[{ label: 'Direct', val: 0 }, { label: '1 Stop', val: 1 }, { label: '2 Stops+', val: 2 }].map(({ label, val }) => (
@@ -2933,7 +2933,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           return next;
                         });
                       }}
-                      className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: '#1D9E75' }} />
+                      className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: 'var(--color-primary)' }} />
                     <span className="text-sm text-gray-700">{label}</span>
                   </label>
                 ))}
@@ -2944,7 +2944,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-bold text-gray-900">Airlines</p>
                   {filterAirlines.size > 0 && (
-                    <button onClick={() => setFilterAirlines(new Set())} className="text-[11px] font-bold cursor-pointer" style={{ color: '#1A73E8' }}>Clear</button>
+                    <button onClick={() => setFilterAirlines(new Set())} className="text-[11px] font-bold cursor-pointer" style={{ color: 'var(--color-sky-blue)' }}>Clear</button>
                   )}
                 </div>
                 <label className="flex items-center justify-between gap-2 mb-3 cursor-pointer">
@@ -2952,7 +2952,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   <div
                     onClick={() => setFilterAirlines(new Set())}
                     className="w-10 h-5 rounded-full cursor-pointer transition-colors flex items-center px-0.5"
-                    style={{ background: filterAirlines.size === 0 ? '#6B7280' : '#1D9E75' }}>
+                    style={{ background: filterAirlines.size === 0 ? '#6B7280' : 'var(--color-primary)' }}>
                     <div className="w-4 h-4 bg-white rounded-full shadow transition-transform"
                       style={{ transform: filterAirlines.size === 0 ? 'translateX(18px)' : 'translateX(0)' }} />
                   </div>
@@ -2968,14 +2968,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           return next;
                         });
                       }}
-                      className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: '#1D9E75' }} />
+                      className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: 'var(--color-primary)' }} />
                     <span className="text-sm text-gray-700 truncate">{airline}</span>
                   </label>
                 ))}
                 {allAirlines.length > 5 && (
                   <button onClick={() => setShowAllAirlines(v => !v)}
                     className="text-[11px] font-bold mt-1 cursor-pointer flex items-center gap-1"
-                    style={{ color: '#1A73E8' }}>
+                    style={{ color: 'var(--color-sky-blue)' }}>
                     {showAllAirlines ? '↑ Show less' : `↓ Show ${allAirlines.length - 5} more`}
                   </button>
                 )}
@@ -3000,7 +3000,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       {loading && (
         <div className="space-y-3">
           <p className="text-xs text-gray-400 flex items-center gap-2">
-            <svg className="animate-spin w-3.5 h-3.5" style={{ color: '#1D9E75' }} fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
             </svg>
@@ -3037,7 +3037,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             <div className="text-right ml-3 flex-shrink-0">
               <p className="text-sm font-extrabold text-gray-800">{fmtPrice(rtStep2Data.basePrice, rtSelectedOutbound.totalCurrency)}</p>
               <button onClick={() => { setRtStep('outbound'); setRtSelectedOutbound(null); }}
-                className="text-xs font-bold mt-0.5" style={{ color: '#1A73E8' }}>Change</button>
+                className="text-xs font-bold mt-0.5" style={{ color: 'var(--color-sky-blue)' }}>Change</button>
             </div>
           </div>
 
@@ -3103,27 +3103,27 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   <div className="w-px h-14 flex-shrink-0 hidden sm:block" style={{ background: '#E2E8F0' }} />
                   <div className="hidden sm:flex flex-col items-end flex-shrink-0">
                     <p className="text-[10px] font-semibold uppercase text-gray-400 tracking-wide">{retOffer.totalCurrency}</p>
-                    <p className="text-2xl font-extrabold tabular-nums leading-tight" style={{ color: delta === 0 ? '#1D9E75' : '#1A73E8' }}>
+                    <p className="text-2xl font-extrabold tabular-nums leading-tight" style={{ color: delta === 0 ? 'var(--color-primary)' : 'var(--color-sky-blue)' }}>
                       {delta === 0 ? '+$0' : `+${Math.round(delta).toLocaleString()}`}
                     </p>
                     <p className="text-[10px] text-gray-400 mb-2">extra</p>
                     <button onClick={() => startBooking(retOffer)}
                       className="px-5 py-2 rounded-xl text-sm font-bold text-white whitespace-nowrap hover:opacity-90 transition-opacity"
-                      style={{ background: '#1D9E75' }}>
+                      style={{ background: 'var(--color-primary)' }}>
                       Select →
                     </button>
                   </div>
                 </div>
                 <div className="sm:hidden px-5 pb-3 flex items-center justify-between border-t border-gray-50 pt-3">
                   <div>
-                    <p className="text-xl font-extrabold tabular-nums" style={{ color: delta === 0 ? '#1D9E75' : '#1A73E8' }}>
+                    <p className="text-xl font-extrabold tabular-nums" style={{ color: delta === 0 ? 'var(--color-primary)' : 'var(--color-sky-blue)' }}>
                       {delta === 0 ? '+$0' : `+${fmtPrice(delta, retOffer.totalCurrency)}`}
                     </p>
                     <p className="text-[10px] text-gray-400">extra</p>
                   </div>
                   <button onClick={() => startBooking(retOffer)}
                     className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
-                    style={{ background: '#1D9E75' }}>
+                    style={{ background: 'var(--color-primary)' }}>
                     Select →
                   </button>
                 </div>
@@ -3169,7 +3169,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center">
               <p className="text-sm font-bold text-gray-600">No flights match your filters</p>
               <button onClick={() => { setFilterStops(new Set()); setFilterAirlines(new Set()); setFilterBaggage(false); }}
-                className="mt-2 text-xs font-bold cursor-pointer" style={{ color: '#1A73E8' }}>
+                className="mt-2 text-xs font-bold cursor-pointer" style={{ color: 'var(--color-sky-blue)' }}>
                 Clear all filters
               </button>
             </div>
@@ -3256,13 +3256,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     {(() => {
                       const r = offer.conditions?.refundBeforeDeparture;
                       if (!r) return null;
-                      if (r.allowed && !r.penaltyAmount) return <p className="text-[10px] font-bold mb-2" style={{ color: '#1D9E75' }}>✓ Free cancellation</p>;
+                      if (r.allowed && !r.penaltyAmount) return <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--color-primary)' }}>✓ Free cancellation</p>;
                       if (r.allowed && r.penaltyAmount) return <p className="text-[10px] font-bold mb-2" style={{ color: '#B45309' }}>Cancel fee: {fmtPrice(parseFloat(r.penaltyAmount), r.penaltyCurrency ?? offer.totalCurrency)}</p>;
                       return <p className="text-[10px] font-bold mb-2" style={{ color: '#94A3B8' }}>Non-refundable</p>;
                     })()}
                     <button onClick={() => ret ? selectOutboundFlight(offer) : startBooking(offer)}
                       className="px-5 py-2 rounded-xl text-sm font-bold text-white whitespace-nowrap hover:opacity-90 transition-opacity"
-                      style={{ background: '#1D9E75' }}>
+                      style={{ background: 'var(--color-primary)' }}>
                       {ret ? 'Select →' : 'Book →'}
                     </button>
                   </div>
@@ -3276,14 +3276,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     {(() => {
                       const r = offer.conditions?.refundBeforeDeparture;
                       if (!r) return null;
-                      if (r.allowed && !r.penaltyAmount) return <p className="text-[10px] font-bold mt-0.5" style={{ color: '#1D9E75' }}>✓ Free cancellation</p>;
+                      if (r.allowed && !r.penaltyAmount) return <p className="text-[10px] font-bold mt-0.5" style={{ color: 'var(--color-primary)' }}>✓ Free cancellation</p>;
                       if (r.allowed && r.penaltyAmount) return <p className="text-[10px] font-bold mt-0.5" style={{ color: '#B45309' }}>Cancel fee: {fmtPrice(parseFloat(r.penaltyAmount), r.penaltyCurrency ?? offer.totalCurrency)}</p>;
                       return <p className="text-[10px] font-bold mt-0.5" style={{ color: '#94A3B8' }}>Non-refundable</p>;
                     })()}
                   </div>
                   <button onClick={() => ret ? selectOutboundFlight(offer) : startBooking(offer)}
                     className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
-                    style={{ background: '#1D9E75' }}>
+                    style={{ background: 'var(--color-primary)' }}>
                     {ret ? 'Select →' : 'Book →'}
                   </button>
                 </div>
@@ -3309,9 +3309,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           <div className="flex gap-5">
                             {/* Timeline dots + line */}
                             <div className="flex flex-col items-center flex-shrink-0 pt-1.5" style={{ width: 20 }}>
-                              <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ background: '#1D9E75', border: '3px solid #A7F3D0' }} />
+                              <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ background: 'var(--color-primary)', border: '3px solid #A7F3D0' }} />
                               <div className="flex-1 w-0.5 my-1.5" style={{ background: '#E2E8F0', minHeight: 100 }} />
-                              <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ background: i < offer.segments.length - 1 ? '#64748B' : '#1D9E75', border: `3px solid ${i < offer.segments.length - 1 ? '#CBD5E1' : '#A7F3D0'}` }} />
+                              <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ background: i < offer.segments.length - 1 ? '#64748B' : 'var(--color-primary)', border: `3px solid ${i < offer.segments.length - 1 ? '#CBD5E1' : '#A7F3D0'}` }} />
                             </div>
 
                             {/* Content */}
@@ -3419,7 +3419,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                       ))}
                                       <a href="https://saily.com/" target="_blank" rel="noopener noreferrer"
                                         className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg border mt-1"
-                                        style={{ color: '#1D9E75', borderColor: '#1D9E75' }}>
+                                        style={{ color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>
                                         📶 Get eSIM for {nextCode}
                                       </a>
                                     </div>
@@ -3552,7 +3552,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                       </div>
                                       {l.price && (
                                         <div className="text-right flex-shrink-0">
-                                          <span className="text-base font-extrabold" style={{ color: '#1D9E75' }}>{l.price}</span>
+                                          <span className="text-base font-extrabold" style={{ color: 'var(--color-primary)' }}>{l.price}</span>
                                           <p className="text-[9px] text-gray-400">per person</p>
                                         </div>
                                       )}

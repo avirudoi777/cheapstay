@@ -411,7 +411,7 @@ export default function ManageBookingPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#F8FAFC' }}>
-        <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#1D9E75', borderTopColor: 'transparent' }} />
+        <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
       </div>
     );
   }
@@ -618,7 +618,7 @@ export default function ManageBookingPage() {
         <Section title="Flight Details">
           {orderLoading && (
             <div className="flex items-center gap-2 text-sm text-gray-400">
-              <div className="w-4 h-4 border border-t-transparent rounded-full animate-spin" style={{ borderColor: '#1D9E75', borderTopColor: 'transparent' }} />
+              <div className="w-4 h-4 border border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
               Loading live flight details…
             </div>
           )}
@@ -680,9 +680,9 @@ export default function ManageBookingPage() {
                         <p className="text-xs text-gray-400">{parseDuration(seg.duration)}</p>
                       )}
                       <div className="flex items-center gap-1 my-1">
-                        <div className="w-2 h-2 rounded-full border-2" style={{ borderColor: '#1D9E75' }} />
-                        <div className="w-10 h-px" style={{ background: '#1D9E75' }} />
-                        <div className="w-2 h-2 rounded-full" style={{ background: '#1D9E75' }} />
+                        <div className="w-2 h-2 rounded-full border-2" style={{ borderColor: 'var(--color-primary)' }} />
+                        <div className="w-10 h-px" style={{ background: 'var(--color-primary)' }} />
+                        <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary)' }} />
                       </div>
                       <p className="text-[10px] text-gray-400">{seg.marketing_carrier.iata_code}</p>
                     </div>
@@ -756,9 +756,9 @@ export default function ManageBookingPage() {
                 </div>
                 <div className="text-center pt-2">
                   <div className="flex items-center gap-1 my-1">
-                    <div className="w-2 h-2 rounded-full border-2" style={{ borderColor: '#1D9E75' }} />
-                    <div className="w-10 h-px" style={{ background: '#1D9E75' }} />
-                    <div className="w-2 h-2 rounded-full" style={{ background: '#1D9E75' }} />
+                    <div className="w-2 h-2 rounded-full border-2" style={{ borderColor: 'var(--color-primary)' }} />
+                    <div className="w-10 h-px" style={{ background: 'var(--color-primary)' }} />
+                    <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary)' }} />
                   </div>
                 </div>
                 <div className="flex-1 text-right">
@@ -828,7 +828,7 @@ export default function ManageBookingPage() {
                   {seatLines.map(({ key, label, price }) => (
                     <div key={key} className="flex justify-between items-center">
                       <span className="text-sm text-gray-500">{label}</span>
-                      <span className="text-sm font-semibold" style={{ color: price > 0 ? '#1D9E75' : '#64748B' }}>
+                      <span className="text-sm font-semibold" style={{ color: price > 0 ? 'var(--color-primary)' : '#64748B' }}>
                         {price > 0 ? `+${fmtPrice(price, booking.currency)}` : 'Free'}
                       </span>
                     </div>
@@ -848,7 +848,7 @@ export default function ManageBookingPage() {
                   </div>
                   <div className="border-t border-gray-100 pt-2 mt-2 flex justify-between items-center">
                     <span className="text-base font-extrabold text-gray-900">Total paid</span>
-                    <span className="text-xl font-extrabold" style={{ color: '#1D9E75' }}>
+                    <span className="text-xl font-extrabold" style={{ color: 'var(--color-primary)' }}>
                       {fmtPrice(booking.total_amount, booking.currency)}
                     </span>
                   </div>
@@ -881,7 +881,7 @@ export default function ManageBookingPage() {
               {booking.passenger_names.map((name, i) => (
                 <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
                   <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                    style={{ background: '#1D9E75' }}>
+                    style={{ background: 'var(--color-primary)' }}>
                     {name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
                   <div>
@@ -910,7 +910,7 @@ export default function ManageBookingPage() {
               </div>
               <button onClick={() => router.push('/bookings')}
                 className="w-full py-3 rounded-xl text-sm font-bold transition"
-                style={{ background: '#1D9E75', color: '#fff' }}>
+                style={{ background: 'var(--color-primary)', color: '#fff' }}>
                 ← Back to My Bookings
               </button>
             </div>
@@ -1011,7 +1011,7 @@ export default function ManageBookingPage() {
             <div className="flex items-center gap-2">
               {order.conditions.change_before_departure.allowed ? (
                 <>
-                  <span className="text-sm font-bold" style={{ color: '#1D9E75' }}>Changes allowed</span>
+                  <span className="text-sm font-bold" style={{ color: 'var(--color-primary)' }}>Changes allowed</span>
                   {order.conditions.change_before_departure.penalty_amount && (
                     <span className="text-sm text-gray-500">
                       · fee {fmtPrice(parseFloat(order.conditions.change_before_departure.penalty_amount), order.conditions.change_before_departure.penalty_currency ?? booking.currency)}
@@ -1121,7 +1121,7 @@ export default function ManageBookingPage() {
                     <div key={svc.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
                       <div>
                         <p className="text-sm font-bold text-gray-800">{svc.maxWeightKg ? `${svc.maxWeightKg}kg bag` : 'Checked bag'}</p>
-                        <p className="text-sm font-bold mt-0.5" style={{ color: '#1D9E75' }}>+{fmtPrice(svc.totalAmount, svc.totalCurrency)}</p>
+                        <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-primary)' }}>+{fmtPrice(svc.totalAmount, svc.totalCurrency)}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button onClick={() => setBagSelections(s => ({ ...s, [svc.id]: Math.max(0, (s[svc.id] ?? 0) - 1) }))}
@@ -1137,7 +1137,7 @@ export default function ManageBookingPage() {
                 {Object.values(bagSelections).some(q => q > 0) && (
                   <button onClick={addBags} disabled={bagsSaving}
                     className="w-full py-3 rounded-xl text-sm font-bold text-white mt-2 transition disabled:opacity-60"
-                    style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+                    style={{ background: 'var(--color-primary)' }}>
                     {bagsSaving ? 'Adding…' : `Add bags · ${fmtPrice(Object.entries(bagSelections).reduce((sum, [id, qty]) => sum + (bagServices.find(s => s.id === id)?.totalAmount ?? 0) * qty, 0), bagServices[0]?.totalCurrency ?? booking.currency)}`}
                   </button>
                 )}
@@ -1198,7 +1198,7 @@ export default function ManageBookingPage() {
                     <div className="flex gap-2">
                       <button onClick={saveNameCorrection} disabled={nameSaving}
                         className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition disabled:opacity-60"
-                        style={{ background: '#1D9E75' }}>
+                        style={{ background: 'var(--color-primary)' }}>
                         {nameSaving ? 'Saving…' : 'Save changes'}
                       </button>
                       <button onClick={() => setNameFormOpen(false)}
@@ -1236,7 +1236,7 @@ export default function ManageBookingPage() {
               </div>
               <a href={`/fly-to/${dest.slug}`}
                 className="text-xs font-bold text-white px-4 py-2 rounded-lg whitespace-nowrap flex-shrink-0 transition-opacity hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+                style={{ background: 'var(--color-primary)' }}>
                 View guide →
               </a>
             </div>
@@ -1363,7 +1363,7 @@ function DestinationTipsSection({
                   DragonPass lets you book day-pass access to 1,300+ airport lounges worldwide. No membership needed.
                 </p>
               </div>
-              <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: '#1D9E75', color: '#fff' }}>
+              <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: 'var(--color-primary)', color: '#fff' }}>
                 Book →
               </span>
             </a>
@@ -1638,7 +1638,7 @@ function PassengerCard({ passenger: p, index }: { passenger: DuffelPassenger; in
         onClick={() => setExpanded(e => !e)}
         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-left">
         <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-          style={{ background: '#1D9E75' }}>
+          style={{ background: 'var(--color-primary)' }}>
           {initials}
         </div>
         <div className="flex-1 min-w-0">

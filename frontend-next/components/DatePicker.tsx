@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const TEAL = '#1D9E75';
+const TEAL = 'var(--color-primary)';
 
 function pad(n: number) { return String(n).padStart(2, '0'); }
 function toISO(y: number, m: number, d: number) { return `${y}-${pad(m + 1)}-${pad(d)}`; }

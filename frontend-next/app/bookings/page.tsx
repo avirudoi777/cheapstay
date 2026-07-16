@@ -141,7 +141,7 @@ export default function BookingsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#F8FAFC' }}>
         <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mx-auto" style={{ borderColor: '#1D9E75', borderTopColor: 'transparent' }} />
+          <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mx-auto" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
           <p className="text-sm text-gray-400">Loading your bookings…</p>
         </div>
       </div>
@@ -174,7 +174,7 @@ export default function BookingsPage() {
             <p className="text-sm text-gray-400 mt-1 mb-5">Your flight bookings will appear here</p>
             <button onClick={() => router.push('/')}
               className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
-              style={{ background: '#1D9E75' }}>
+              style={{ background: 'var(--color-primary)' }}>
               Search flights →
             </button>
           </div>
@@ -260,7 +260,7 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
                 style={{ color: isPremium && !isCancelled ? '#fff' : '#111827' }}>
                 {b.origin_code}
                 <span className="flex items-center gap-1 font-normal">
-                  <svg className="w-4 h-4" style={{ color: isPremium && !isCancelled ? (isFirst ? '#A78BFA' : '#D4AF37') : '#1D9E75' }} viewBox="0 0 24 24" fill="currentColor">
+                  <svg className="w-4 h-4" style={{ color: isPremium && !isCancelled ? (isFirst ? '#A78BFA' : '#D4AF37') : 'var(--color-primary)' }} viewBox="0 0 24 24" fill="currentColor">
                     <path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1l3.5 1v-1.5L13 19v-5.5z"/>
                   </svg>
                 </span>
@@ -345,7 +345,7 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
           className="text-xs font-bold px-4 py-2 rounded-lg transition"
           style={isPremium && !isCancelled
             ? { color: isFirst ? '#C4B5FD' : '#D4AF37', background: isFirst ? 'rgba(139,92,246,0.18)' : 'rgba(212,175,55,0.15)', border: `1px solid ${isFirst ? 'rgba(139,92,246,0.35)' : 'rgba(212,175,55,0.35)'}` }
-            : { color: '#1D9E75', background: '#ECFDF5', border: '1px solid #BBF7D0' }}>
+            : { color: 'var(--color-primary)', background: '#ECFDF5', border: '1px solid #BBF7D0' }}>
           Manage →
         </Link>
       </div>

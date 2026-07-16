@@ -112,7 +112,7 @@ export default function DestinationsPage() {
     <main className="min-h-screen bg-gray-50">
 
       {/* Hero */}
-      <section style={{ background: '#0a1628' }} className="py-14 px-4 text-center">
+      <section style={{ background: 'var(--color-pro-navy)' }} className="py-14 px-4 text-center">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">
             Find cheap hotels in the world&apos;s best destinations
@@ -203,11 +203,11 @@ export default function DestinationsPage() {
         </div>
 
         {/* Bottom CTA */}
-        <div className="rounded-2xl p-8 text-center" style={{ background: '#0a1628' }}>
+        <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--color-pro-navy)' }}>
           <h2 className="text-xl font-extrabold text-white mb-2">Don&apos;t see your destination?</h2>
           <p className="text-white/60 text-sm mb-6">Search any hotel worldwide — we compare Agoda and Booking.com from a Bangkok IP.</p>
           <Link href="/" className="inline-block px-6 py-3 rounded-xl text-sm font-bold text-white"
-            style={{ background: '#1D9E75' }}>
+            style={{ background: 'var(--color-primary)' }}>
             Search any destination →
           </Link>
         </div>

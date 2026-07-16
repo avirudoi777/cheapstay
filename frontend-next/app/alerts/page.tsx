@@ -61,7 +61,7 @@ export default function AlertsPage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <section style={{ background: '#0a1628' }} className="py-12 px-4">
+      <section style={{ background: 'var(--color-pro-navy)' }} className="py-12 px-4">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-2xl font-extrabold text-white mb-1">Price Alerts</h1>
           <p className="text-white/60 text-sm">We'll notify you when a hotel hits your target price.</p>
@@ -79,7 +79,7 @@ export default function AlertsPage() {
             </p>
             <Link href="/"
               className="inline-block px-6 py-3 rounded-xl text-sm font-bold text-white"
-              style={{ background: '#1D9E75' }}>
+              style={{ background: 'var(--color-primary)' }}>
               Search hotels →
             </Link>
           </div>
@@ -120,7 +120,7 @@ export default function AlertsPage() {
                     <div className="flex items-center gap-2">
                       <button onClick={() => toggleAlert(alert.id, alert.is_active)}
                         className={`w-10 h-5 rounded-full transition-colors relative ${alert.is_active ? 'bg-teal' : 'bg-gray-200'}`}
-                        style={alert.is_active ? { background: '#1D9E75' } : {}}>
+                        style={alert.is_active ? { background: 'var(--color-primary)' } : {}}>
                         <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${alert.is_active ? 'translate-x-5' : 'translate-x-0.5'}`} />
                       </button>
                       <button onClick={() => deleteAlert(alert.id)}

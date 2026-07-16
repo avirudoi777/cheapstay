@@ -398,7 +398,7 @@ function DatePicker({ label, value, minDate, required, onChange }: DatePickerPro
                 !selected && !disabled && !isToday ? 'text-gray-700' : '',
                 !selected && isToday ? 'text-teal' : '',
               ].filter(Boolean).join(' ')}
-              style={selected ? { background: '#1D9E75' } : {}}>
+              style={selected ? { background: 'var(--color-primary)' } : {}}>
               {parseInt(ds.split('-')[2])}
             </button>
           );
@@ -490,7 +490,7 @@ function AirportInput({ label, value, onChange }: { label: string; value: string
                   <span className="text-sm text-gray-700 flex-1 truncate">
                     {AIRPORT_FULL_NAMES[a.code] ?? a.name}
                   </span>
-                  <span className="text-xs font-bold flex-shrink-0 ml-2" style={{ color: '#1D9E75' }}>{a.code}</span>
+                  <span className="text-xs font-bold flex-shrink-0 ml-2" style={{ color: 'var(--color-primary)' }}>{a.code}</span>
                 </button>
               ))}
             </li>
@@ -581,7 +581,7 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
             <button key={val} type="button" onClick={() => setTripType(val)}
               className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
               style={tripType === val
-                ? { background: '#1D9E75', color: '#fff' }
+                ? { background: 'var(--color-primary)', color: '#fff' }
                 : { color: '#6b7280' }}>
               {label}
             </button>
@@ -604,7 +604,7 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
                 <button key={opt.value} type="button"
                   onClick={() => { setCabinClass(opt.value); setCabinOpen(false); }}
                   className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors hover:bg-gray-50"
-                  style={cabinClass === opt.value ? { fontWeight: 700, color: '#1D9E75' } : { color: '#374151' }}>
+                  style={cabinClass === opt.value ? { fontWeight: 700, color: 'var(--color-primary)' } : { color: '#374151' }}>
                   <span className="text-base">{opt.icon}</span>
                   <span>{opt.label}</span>
                   {cabinClass === opt.value && <span className="ml-auto text-xs">✓</span>}
@@ -648,13 +648,13 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
                       <div className="flex items-center gap-3">
                         <button type="button" onClick={() => row.set(Math.max(row.min, row.val - 1))}
                           className="w-8 h-8 rounded-full flex items-center justify-center text-base font-bold transition-colors"
-                          style={{ color: row.val > row.min ? '#1D9E75' : '#9ca3af', background: row.val > row.min ? '#e6f7f1' : '#f9fafb' }}>
+                          style={{ color: row.val > row.min ? 'var(--color-primary)' : '#9ca3af', background: row.val > row.min ? '#e6f7f1' : '#f9fafb' }}>
                           −
                         </button>
                         <span className="text-base font-bold text-gray-900 w-5 text-center">{row.val}</span>
                         <button type="button" onClick={() => row.set(Math.min(row.max, row.val + 1))}
                           className="w-8 h-8 rounded-full flex items-center justify-center text-base font-bold transition-colors"
-                          style={{ color: row.val < row.max ? '#1D9E75' : '#9ca3af', background: row.val < row.max ? '#e6f7f1' : '#f9fafb' }}>
+                          style={{ color: row.val < row.max ? 'var(--color-primary)' : '#9ca3af', background: row.val < row.max ? '#e6f7f1' : '#f9fafb' }}>
                           +
                         </button>
                       </div>
@@ -665,7 +665,7 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
                   )}
                   <button type="button" onClick={() => setPaxOpen(false)}
                     className="w-full mt-3 py-2.5 rounded-xl text-sm font-bold text-white"
-                    style={{ background: '#1D9E75' }}>
+                    style={{ background: 'var(--color-primary)' }}>
                     Done · {totalPax} passenger{totalPax !== 1 ? 's' : ''}
                   </button>
                 </div>
@@ -688,7 +688,7 @@ export default function FlightSearchBar({ onSearch }: FlightSearchBarProps) {
       <button type="button" onClick={handleSearch}
         disabled={!from || !to || !depart || (tripType === 'round' && !ret)}
         className="w-full py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-        style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+        style={{ background: 'var(--color-primary)' }}>
         Search Flights →
       </button>
     </div>

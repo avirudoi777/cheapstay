@@ -105,7 +105,7 @@ export default async function FlyToPage({ params }: Props) {
           </div>
           <Link href={`/?to=${dest.airportCode}`}
             className="text-sm font-bold text-white px-5 py-2.5 rounded-xl transition-opacity hover:opacity-90 whitespace-nowrap"
-            style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+            style={{ background: 'var(--color-primary)' }}>
             Search flights →
           </Link>
         </div>

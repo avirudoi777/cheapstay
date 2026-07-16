@@ -115,7 +115,7 @@ function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProp
                     !isCi && !isCo && inRange ? 'text-gray-800' : '',
                     !isCi && !isCo && !inRange && !isPast && !isToday ? 'text-gray-700' : '',
                   ].filter(Boolean).join(' ')}
-                  style={(isCi || isCo) ? { background: '#1D9E75' } : {}}>
+                  style={(isCi || isCo) ? { background: 'var(--color-primary)' } : {}}>
                   {parseInt(ds.split('-')[2])}
                 </button>
               </div>
@@ -156,7 +156,7 @@ function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProp
       <div className="flex border-b border-gray-100">
         <button type="button" onClick={() => setPicking('ci')}
           className={`flex-1 px-6 py-4 text-left transition-colors ${picking === 'ci' ? 'border-b-2' : 'hover:bg-gray-50'}`}
-          style={picking === 'ci' ? { borderBottomColor: '#1D9E75' } : {}}>
+          style={picking === 'ci' ? { borderBottomColor: 'var(--color-primary)' } : {}}>
           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Check-in</div>
           <div className={`text-base font-extrabold ${checkin ? 'text-gray-900' : 'text-gray-300'}`}>
             {checkin ? fmtShort(checkin) : 'Select date'}
@@ -167,7 +167,7 @@ function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProp
         </div>
         <button type="button" onClick={() => checkin && setPicking('co')}
           className={`flex-1 px-6 py-4 text-left transition-colors ${picking === 'co' ? 'border-b-2' : 'hover:bg-gray-50'}`}
-          style={picking === 'co' ? { borderBottomColor: '#1D9E75' } : {}}>
+          style={picking === 'co' ? { borderBottomColor: 'var(--color-primary)' } : {}}>
           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
             Check-out
             {nights > 0 && (
@@ -213,7 +213,7 @@ function Calendar({ checkin, checkout, anchor, onSelect, onClose }: CalendarProp
             onClick={() => checkin && checkout && onClose()}
             disabled={!checkin || !checkout}
             className="px-6 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-opacity"
-            style={{ background: '#1D9E75' }}>
+            style={{ background: 'var(--color-primary)' }}>
             Done
           </button>
         </div>

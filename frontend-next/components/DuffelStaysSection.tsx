@@ -170,7 +170,7 @@ function DuffelBookingModal({
                 <div key={room.id}
                   onClick={() => setSelectedRoom(room)}
                   className="border rounded-xl p-4 cursor-pointer transition-all"
-                  style={{ borderColor: selectedRoom.id === room.id ? '#1D9E75' : '#E5E7EB', background: selectedRoom.id === room.id ? '#F0FBF7' : 'white' }}>
+                  style={{ borderColor: selectedRoom.id === room.id ? 'var(--color-primary)' : '#E5E7EB', background: selectedRoom.id === room.id ? '#F0FBF7' : 'white' }}>
                   {room.photos[0] && (
                     <img src={room.photos[0]} alt={room.name} className="w-full h-28 object-cover rounded-lg mb-3" />
                   )}
@@ -192,7 +192,7 @@ function DuffelBookingModal({
               <button onClick={() => { setStep('quote'); getQuote(); }}
                 disabled={loading}
                 className="w-full py-3 rounded-xl font-bold text-white text-sm disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+                style={{ background: 'var(--color-primary)' }}>
                 {loading ? 'Locking rate…' : `Continue · ${totalPrice} total`}
               </button>
             </div>
@@ -259,7 +259,7 @@ function DuffelBookingModal({
                 onClick={() => { setStep('booking'); confirmBooking(); }}
                 disabled={!givenName || !familyName || !email || loading}
                 className="w-full py-3 rounded-xl font-bold text-white text-sm disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+                style={{ background: 'var(--color-primary)' }}>
                 {loading ? 'Booking…' : `Confirm booking · ${fmtPrice(quote.totalAmount, quote.currency)}`}
               </button>
             </div>
@@ -277,7 +277,7 @@ function DuffelBookingModal({
           {step === 'done' && (
             <div className="flex flex-col items-center py-8 gap-4 text-center">
               <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: '#F0FBF7' }}>
-                <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="#1D9E75" strokeWidth={2.5}>
+                <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="var(--color-primary)" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
@@ -287,7 +287,7 @@ function DuffelBookingModal({
                 {orderId && <p className="text-xs text-gray-400 mt-0.5">Order ID: {orderId}</p>}
                 <p className="text-xs text-gray-400 mt-2">Confirmation sent to {email}</p>
               </div>
-              <button onClick={onClose} className="px-6 py-2 rounded-xl font-bold text-white text-sm" style={{ background: '#1D9E75' }}>
+              <button onClick={onClose} className="px-6 py-2 rounded-xl font-bold text-white text-sm" style={{ background: 'var(--color-primary)' }}>
                 Done
               </button>
             </div>
@@ -436,7 +436,7 @@ export default function DuffelStaysSection({ location, checkin, checkout, adults
                     <button
                       onClick={() => setBookingTarget(r)}
                       className="px-3 py-1.5 rounded-xl text-xs font-bold text-white flex-shrink-0"
-                      style={{ background: '#1D9E75' }}>
+                      style={{ background: 'var(--color-primary)' }}>
                       Book
                     </button>
                   </div>

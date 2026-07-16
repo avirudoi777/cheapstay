@@ -43,7 +43,7 @@ function BudgetSlider({ min, max, onMin, onMax }: {
           style={{
             left: `${minPct}%`,
             right: `${100 - maxPct}%`,
-            background: 'linear-gradient(90deg, #00C9B1, #1A73E8)',
+            background: 'var(--color-primary)',
           }} />
         {/* Min thumb input */}
         <input
@@ -241,7 +241,7 @@ export default function FilterSidebar({ filters, onChange, totalResults }: Filte
       {/* Footer */}
       <div className="px-5 py-4 border-t border-gray-100 flex-shrink-0">
         <div className="flex items-center justify-center gap-2 text-sm font-bold text-white py-3 rounded-xl"
-          style={{ background: 'linear-gradient(135deg, #0F1F3D 0%, #1a3a6b 100%)' }}>
+          style={{ background: 'linear-gradient(135deg, var(--color-pro-navy) 0%, #1a3a6b 100%)' }}>
           {totalResults.toLocaleString()} results
           {active > 0 && (
             <span className="bg-teal text-navy text-[10px] font-extrabold px-2 py-0.5 rounded-full">{active} filters</span>

@@ -57,10 +57,10 @@ export default function CarsPage() {
     <main className="min-h-screen bg-gray-50">
 
       {/* Hero */}
-      <section style={{ background: '#0a1628' }} className="py-14 px-4 text-center">
+      <section style={{ background: 'var(--color-pro-navy)' }} className="py-14 px-4 text-center">
         <div className="max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold mb-5"
-            style={{ background: 'rgba(29,158,117,0.15)', color: '#1D9E75', border: '1px solid rgba(29,158,117,0.3)' }}>
+            style={{ background: 'rgba(29,158,117,0.15)', color: 'var(--color-primary)', border: '1px solid rgba(29,158,117,0.3)' }}>
             🚗 Powered by GetRentacar.com
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">
@@ -111,7 +111,7 @@ export default function CarsPage() {
             </div>
             <button type="submit"
               className="w-full py-3.5 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #00C9B1, #1A73E8)' }}>
+              style={{ background: 'var(--color-primary)' }}>
               Search rental cars →
             </button>
           </form>

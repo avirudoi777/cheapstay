@@ -212,7 +212,7 @@ export default function FlightBookingModal({ isOpen, onClose, offer, fromName, t
               {STEPS.slice(0, 2).map((label, i) => (
                 <div key={i} className="flex items-center gap-1">
                   <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${i <= step ? 'text-white' : 'bg-gray-100 text-gray-400'}`}
-                    style={i <= step ? { background: '#1D9E75' } : {}}>
+                    style={i <= step ? { background: 'var(--color-primary)' } : {}}>
                     {i < step ? '✓' : i + 1}
                   </div>
                   <span className={`text-[11px] font-semibold ${i === step ? 'text-gray-800' : 'text-gray-400'}`}>{label}</span>
@@ -387,7 +387,7 @@ export default function FlightBookingModal({ isOpen, onClose, offer, fromName, t
           {step === 0 && (
             <button onClick={() => { if (validateForm()) setStep(1); }}
               className="w-full py-3.5 rounded-2xl text-sm font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+              style={{ background: 'var(--color-primary)' }}>
               Continue to payment →
             </button>
           )}
@@ -397,7 +397,7 @@ export default function FlightBookingModal({ isOpen, onClose, offer, fromName, t
               <button onClick={() => setStep(0)} className="flex-1 py-3 rounded-2xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">← Back</button>
               <button onClick={confirmBooking} disabled={booking}
                 className="flex-[2] py-3 rounded-2xl text-sm font-bold text-white disabled:opacity-60 flex items-center justify-center gap-2"
-                style={{ background: 'linear-gradient(135deg, #1D9E75, #1A73E8)' }}>
+                style={{ background: 'var(--color-primary)' }}>
                 {booking
                   ? <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Processing…</>
                   : `Pay ${fmtPrice(gross, offer.totalCurrency)} →`
@@ -407,7 +407,7 @@ export default function FlightBookingModal({ isOpen, onClose, offer, fromName, t
           )}
 
           {step === 2 && (
-            <button onClick={onClose} className="w-full py-3.5 rounded-2xl text-sm font-bold text-white" style={{ background: '#1D9E75' }}>Done</button>
+            <button onClick={onClose} className="w-full py-3.5 rounded-2xl text-sm font-bold text-white" style={{ background: 'var(--color-primary)' }}>Done</button>
           )}
         </div>
       </div>

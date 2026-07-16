@@ -113,9 +113,9 @@ const POSTS = [
 const FILTERS = ['All posts', 'Booking hacks', 'Hotel reviews', 'Flights', 'Credit cards', 'Destinations', 'Travel hacks'];
 
 const CATEGORY_COLORS: Record<string, string> = {
-  'Booking hack': '#1D9E75',
-  'Booking hacks': '#1D9E75',
-  'Credit cards': '#1A73E8',
+  'Booking hack': 'var(--color-primary)',
+  'Booking hacks': 'var(--color-primary)',
+  'Credit cards': 'var(--color-primary)',
   'Flights': '#7c3aed',
   'Hotel reviews': '#b45309',
   'Countries': '#dc2626',
@@ -129,7 +129,7 @@ export default function BlogPage() {
     <main className="min-h-screen bg-gray-50">
 
       {/* Hero */}
-      <section style={{ background: '#0a1628' }} className="py-14 px-4 text-center">
+      <section style={{ background: 'var(--color-pro-navy)' }} className="py-14 px-4 text-center">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">
             Real tips from a full-time traveler
@@ -141,7 +141,7 @@ export default function BlogPage() {
           {/* Author bar */}
           <div className="mt-6 inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-5 py-3">
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-              style={{ background: '#1D9E75' }}>AV</div>
+              style={{ background: 'var(--color-primary)' }}>AV</div>
             <div className="text-left">
               <div className="text-sm font-bold text-white">Avi — Founder & full-time traveler</div>
               <div className="text-xs text-white/50">50+ countries · 500+ hotels · Saved $40k+ on bookings</div>
@@ -169,7 +169,7 @@ export default function BlogPage() {
               <Image src={featured.img} alt={featured.title} fill className="object-cover" unoptimized />
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
               <span className="absolute top-4 left-4 text-[10px] font-bold px-2.5 py-1 rounded-full text-white"
-                style={{ background: CATEGORY_COLORS[featured.category] ?? '#1D9E75' }}>
+                style={{ background: CATEGORY_COLORS[featured.category] ?? 'var(--color-primary)' }}>
                 {featured.category}
               </span>
             </div>
@@ -227,7 +227,7 @@ export default function BlogPage() {
         </div>
 
         {/* Newsletter */}
-        <div className="rounded-2xl p-8 text-center" style={{ background: '#0a1628' }}>
+        <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--color-pro-navy)' }}>
           <h2 className="text-xl font-extrabold text-white mb-2">Get the weekly travel hack</h2>
           <p className="text-white/60 text-sm mb-6">One email per week. Real tips, no filler. Unsubscribe anytime.</p>
           <NewsletterForm />

@@ -106,15 +106,15 @@ export default function VpnGuidePage() {
     <main className="min-h-screen bg-gray-50">
 
       {/* Hero */}
-      <section style={{ background: '#0a1628' }} className="py-12 px-4 text-center">
+      <section style={{ background: 'var(--color-pro-navy)' }} className="py-12 px-4 text-center">
         <div className="max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-4"
-            style={{ background: 'rgba(29,158,117,0.15)', color: '#1D9E75', border: '1px solid rgba(29,158,117,0.3)' }}>
+            style={{ background: 'rgba(29,158,117,0.15)', color: 'var(--color-primary)', border: '1px solid rgba(29,158,117,0.3)' }}>
             🛡️ Free guide — takes 5 minutes
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">
             Set up your VPN to unlock<br />
-            <span style={{ color: '#1D9E75' }}>Thai IP hotel prices</span>
+            <span style={{ color: 'var(--color-primary)' }}>Thai IP hotel prices</span>
           </h1>
           <p className="text-white/60 text-sm max-w-lg mx-auto">
             Thai IP users see 20–40% lower hotel prices on Agoda and Booking.com worldwide. Follow these 5 steps to access them.
@@ -132,14 +132,14 @@ export default function VpnGuidePage() {
                   className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0 transition-all ${
                     step === s.id ? 'text-white shadow-md' : step > s.id ? 'text-white' : 'bg-gray-100 text-gray-400'
                   }`}
-                  style={step >= s.id ? { background: '#1D9E75' } : {}}>
+                  style={step >= s.id ? { background: 'var(--color-primary)' } : {}}>
                   {step > s.id ? '✓' : s.id}
                 </button>
                 <span className={`text-xs font-semibold hidden sm:block ${step === s.id ? 'text-gray-800' : 'text-gray-400'}`}>
                   {s.title}
                 </span>
                 {i < STEPS.length - 1 && (
-                  <div className="flex-1 h-0.5 rounded-full" style={{ background: step > s.id ? '#1D9E75' : '#e5e7eb' }} />
+                  <div className="flex-1 h-0.5 rounded-full" style={{ background: step > s.id ? 'var(--color-primary)' : '#e5e7eb' }} />
                 )}
               </div>
             ))}
@@ -163,12 +163,12 @@ export default function VpnGuidePage() {
                     selectedVpn === vpn.name ? 'border-teal shadow-md bg-teal/5' : 'border-gray-200 bg-white hover:border-gray-300'
                   }`}>
                   {vpn.featured && (
-                    <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-2 text-white" style={{ background: '#1D9E75' }}>
+                    <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-2 text-white" style={{ background: 'var(--color-primary)' }}>
                       ⭐ Top pick
                     </span>
                   )}
                   <div className="text-lg font-extrabold text-gray-900 mb-0.5">{vpn.name}</div>
-                  <div className="text-sm font-bold mb-3" style={{ color: '#1D9E75' }}>{vpn.price}</div>
+                  <div className="text-sm font-bold mb-3" style={{ color: 'var(--color-primary)' }}>{vpn.price}</div>
                   <ul className="space-y-1.5">
                     {vpn.features.map(f => (
                       <li key={f} className="flex items-center gap-2 text-xs text-gray-600">
@@ -218,7 +218,7 @@ export default function VpnGuidePage() {
 
             <a href={downloadUrl} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-white font-bold text-base transition-opacity hover:opacity-90 mb-6"
-              style={{ background: 'linear-gradient(135deg, #1D9E75, #0f766e)' }}>
+              style={{ background: 'linear-gradient(135deg, var(--color-primary), #0f766e)' }}>
               ⬇️ Download {selectedVpn} for {selectedPlatform}
             </a>
 
@@ -259,7 +259,7 @@ export default function VpnGuidePage() {
               ].map(s => (
                 <div key={s.step} className="flex items-start gap-3 bg-white rounded-xl border border-gray-100 px-4 py-3">
                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mt-0.5"
-                    style={{ background: '#1D9E75' }}>{s.step}</div>
+                    style={{ background: 'var(--color-primary)' }}>{s.step}</div>
                   <p className="text-sm text-gray-700">{s.text}</p>
                 </div>
               ))}
@@ -340,7 +340,7 @@ export default function VpnGuidePage() {
               <h3 className="font-bold text-gray-800 mb-4">Next: search with your Thai IP prices</h3>
               <Link href="/"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-bold transition-opacity hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #1D9E75, #0f766e)' }}>
+                style={{ background: 'linear-gradient(135deg, var(--color-primary), #0f766e)' }}>
                 Search hotels on CheapStay →
               </Link>
             </div>
@@ -366,13 +366,13 @@ export default function VpnGuidePage() {
           {step < 5 ? (
             <button type="button" onClick={next}
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #1D9E75, #0f766e)' }}>
+              style={{ background: 'linear-gradient(135deg, var(--color-primary), #0f766e)' }}>
               Next →
             </button>
           ) : (
             <Link href="/"
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #1D9E75, #0f766e)' }}>
+              style={{ background: 'linear-gradient(135deg, var(--color-primary), #0f766e)' }}>
               Start saving →
             </Link>
           )}

@@ -15,11 +15,11 @@ const PRIORITY: Record<VisaRequirement, number> = {
 };
 
 const CONFIG: Record<VisaRequirement, { border: string; bg: string; icon: string; label: string }> = {
-  visa_free:        { border: '#1D9E75', bg: '#F0FBF7', icon: '✅', label: 'No visa needed' },
-  visa_on_arrival:  { border: '#F59E0B', bg: '#FFFBEB', icon: '🛂', label: 'Visa on arrival' },
-  e_visa:           { border: '#F59E0B', bg: '#FFFBEB', icon: '💻', label: 'e-Visa required' },
-  embassy_visa:     { border: '#F97316', bg: '#FFF7ED', icon: '🏛️', label: 'Embassy visa required' },
-  entry_restricted: { border: '#EF4444', bg: '#FEF2F2', icon: '🚫', label: 'Entry restriction' },
+  visa_free:        { border: 'var(--color-savings-green)', bg: 'rgba(34,197,94,0.08)', icon: '✅', label: 'No visa needed' },
+  visa_on_arrival:  { border: 'var(--color-sky-blue)', bg: 'rgba(56,189,248,0.08)', icon: '🛂', label: 'Visa on arrival' },
+  e_visa:           { border: 'var(--color-sky-blue)', bg: 'rgba(56,189,248,0.08)', icon: '💻', label: 'e-Visa required' },
+  embassy_visa:     { border: 'var(--color-alert-orange)', bg: 'rgba(249,115,22,0.08)', icon: '🏛️', label: 'Embassy visa required' },
+  entry_restricted: { border: 'var(--color-error)', bg: 'rgba(186,26,26,0.08)', icon: '🚫', label: 'Entry restriction' },
 };
 
 const VACCINATION_INFO: Record<string, { label: string; detail: string }> = {
@@ -131,11 +131,11 @@ export default function VisaBanner({ passportCodes, city }: Props) {
                 if (!v) return null;
                 return (
                   <div key={vax} className="flex items-start gap-2 px-3 py-2 rounded-xl"
-                    style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                    style={{ background: 'rgba(186,26,26,0.08)', border: '1px solid rgba(186,26,26,0.2)' }}>
                     <span className="text-sm flex-shrink-0">💉</span>
                     <div>
-                      <p className="text-xs font-bold text-red-700">{v.label} may be required</p>
-                      <p className="text-xs text-red-600 leading-relaxed mt-0.5">{v.detail}</p>
+                      <p className="text-xs font-bold text-error">{v.label} may be required</p>
+                      <p className="text-xs text-error/80 leading-relaxed mt-0.5">{v.detail}</p>
                     </div>
                   </div>
                 );
@@ -148,14 +148,13 @@ export default function VisaBanner({ passportCodes, city }: Props) {
             <div className="mt-2 space-y-1.5">
               {best.info.preEntryForms.map((form: PreEntryForm) => (
                 <div key={form.name} className="flex items-start gap-2 px-3 py-2 rounded-xl"
-                  style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                  style={{ background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)' }}>
                   <span className="text-sm flex-shrink-0">📋</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-blue-700">{form.name} required</p>
-                    <p className="text-xs text-blue-600 mt-0.5">Complete online before departure · {form.deadline}</p>
+                    <p className="text-xs font-bold text-tertiary">{form.name} required</p>
+                    <p className="text-xs text-tertiary/80 mt-0.5">Complete online before departure · {form.deadline}</p>
                     <a href={form.url} target="_blank" rel="noopener noreferrer"
-                      className="text-xs font-semibold underline underline-offset-2 hover:opacity-70 mt-1 inline-block"
-                      style={{ color: '#1D4ED8' }}>
+                      className="text-xs font-semibold underline underline-offset-2 hover:opacity-70 mt-1 inline-block text-tertiary">
                       Fill out form →
                     </a>
                   </div>

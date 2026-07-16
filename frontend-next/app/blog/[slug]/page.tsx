@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import BlogScrollTracker from '@/components/BlogScrollTracker';
+import NewsletterForm from '../NewsletterForm';
 
 const POSTS: Record<string, {
   title: string;
@@ -765,11 +766,13 @@ Sign up in Jakarta (or the cheapest city you're spending time in), use it at hom
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  'Booking hack': '#1D9E75',
-  'Booking hacks': '#1D9E75',
-  'Credit cards': '#1A73E8',
-  'Flights': '#7c3aed',
+  'Booking hack': 'var(--color-primary)',
+  'Booking hacks': 'var(--color-primary)',
+  'Credit cards': '#7c3aed',
+  'Flights': 'var(--color-tertiary)',
   'Hotel reviews': '#b45309',
+  'Destinations': 'var(--color-teal-accent)',
+  'Travel hacks': 'var(--color-secondary)',
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -808,33 +811,40 @@ function renderContent(md: string) {
   const lines = md.split('\n');
   const elements: React.ReactNode[] = [];
   let key = 0;
-  let inList = false;
   let listItems: React.ReactNode[] = [];
+  let firstParagraphDone = false;
 
   function flushList() {
     if (listItems.length) {
       elements.push(<ul key={key++} className="space-y-2 my-3 ml-4">{listItems}</ul>);
       listItems = [];
-      inList = false;
     }
   }
 
   for (const line of lines) {
     if (line.startsWith('## ')) {
       flushList();
-      elements.push(<h2 key={key++} className="text-xl font-extrabold text-gray-900 mt-10 mb-3">{line.slice(3)}</h2>);
+      elements.push(<h2 key={key++} className="font-headline-lg text-headline-lg text-pro-navy mt-10 mb-3">{line.slice(3)}</h2>);
     } else if (line.startsWith('### ')) {
       flushList();
-      elements.push(<h3 key={key++} className="text-base font-bold text-gray-900 mt-6 mb-2">{line.slice(4)}</h3>);
+      elements.push(<h3 key={key++} className="font-headline-md text-headline-md text-pro-navy mt-6 mb-2">{line.slice(4)}</h3>);
     } else if (line.startsWith('- ')) {
-      inList = true;
-      listItems.push(<li key={key++} className="text-gray-600 text-sm leading-relaxed list-disc">{renderInline(line.slice(2))}</li>);
+      listItems.push(<li key={key++} className="text-on-surface-variant text-body-md leading-relaxed list-disc">{renderInline(line.slice(2))}</li>);
     } else if (line.trim() === '') {
       flushList();
       elements.push(<div key={key++} className="h-2" />);
     } else {
       flushList();
-      elements.push(<p key={key++} className="text-gray-600 text-sm leading-relaxed">{renderInline(line)}</p>);
+      const isFirst = !firstParagraphDone;
+      firstParagraphDone = true;
+      elements.push(
+        <p key={key++}
+          className={isFirst
+            ? 'font-body-lg text-body-lg text-on-surface-variant leading-relaxed'
+            : 'text-on-surface-variant text-body-md leading-relaxed'}>
+          {renderInline(line)}
+        </p>
+      );
     }
   }
   flushList();
@@ -845,14 +855,21 @@ function renderInline(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/g);
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} className="font-bold text-gray-900">{part.slice(2, -2)}</strong>;
+      return <strong key={i} className="font-bold text-pro-navy">{part.slice(2, -2)}</strong>;
     }
     const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
     if (linkMatch) {
-      return <a key={i} href={linkMatch[2]} className="text-teal underline" target="_blank" rel="noopener noreferrer">{linkMatch[1]}</a>;
+      return <a key={i} href={linkMatch[2]} className="text-primary underline hover:text-primary/80 transition-colors" target="_blank" rel="noopener noreferrer">{linkMatch[1]}</a>;
     }
     return part;
   });
+}
+
+function getRelatedPosts(slug: string, category: string, count = 3) {
+  const entries = Object.entries(POSTS).filter(([s]) => s !== slug);
+  const sameCategory = entries.filter(([, p]) => p.category === category);
+  const others = entries.filter(([, p]) => p.category !== category);
+  return [...sameCategory, ...others].slice(0, count);
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -860,7 +877,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const post = POSTS[slug];
   if (!post) notFound();
 
-  const catColor = CATEGORY_COLORS[post.category] ?? '#6b7280';
+  const catColor = CATEGORY_COLORS[post.category] ?? 'var(--color-secondary)';
+  const related = getRelatedPosts(slug, post.category);
 
   const articleJsonLd = {
     '@context': 'https://schema.org',
@@ -883,55 +901,129 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   };
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-surface">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
-      <div className="relative w-full h-64 sm:h-80">
-        <Image src={post.img} alt={post.title} fill className="object-cover" unoptimized priority />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/10" />
-        <div className="absolute bottom-6 left-0 right-0 px-4">
-          <div className="max-w-2xl mx-auto">
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full text-white mb-3 inline-block"
+
+      {/* Hero */}
+      <div className="relative w-full h-[60vh] sm:h-[70vh] flex items-end overflow-hidden">
+        <Image src={post.img} alt={post.title} fill className="object-cover brightness-[0.75]" unoptimized priority />
+        <div className="absolute inset-0 bg-gradient-to-t from-pro-navy via-pro-navy/30 to-transparent" />
+        <div className="relative z-10 max-w-container-max mx-auto px-gutter pb-12 sm:pb-16 w-full">
+          <div className="flex flex-wrap gap-2 mb-6">
+            <span className="text-white px-3 py-1 rounded-full text-metadata font-metadata uppercase tracking-wider"
               style={{ background: catColor }}>
               {post.category}
             </span>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-white leading-snug">{post.title}</h1>
+            <span className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-metadata font-metadata">{post.readTime} min read</span>
           </div>
+          <h1 className="font-display-lg text-[32px] sm:text-[48px] text-white max-w-4xl leading-tight mb-8">{post.title}</h1>
+          <a href="/about" className="flex items-center gap-4 w-fit group">
+            <div className="w-12 h-12 rounded-full border-2 border-teal-accent overflow-hidden flex-shrink-0">
+              <Image src="/avi.jpg" alt="Avi — founder of CheapStay" width={48} height={48} className="w-full h-full object-cover" />
+            </div>
+            <div className="text-white">
+              <p className="font-label-bold text-label-bold group-hover:text-sky-blue transition-colors">Avi</p>
+              <p className="text-metadata opacity-80">Full-time traveler &amp; travel hacker</p>
+            </div>
+          </a>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <a href="/about" className="flex items-center gap-4 mb-8 pb-6 border-b border-gray-200 group">
-          <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 shadow-sm ring-2 ring-gray-100 group-hover:ring-teal transition-all">
-            <Image src="/avi.jpg" alt="Avi — founder of CheapStay" width={56} height={56} className="w-full h-full object-cover" />
-          </div>
-          <div>
-            <div className="text-base font-bold text-gray-900 group-hover:text-teal transition-colors">Avi</div>
-            <div className="text-sm text-gray-500 mt-0.5">Full-time traveler · 50+ countries · {post.readTime} min read</div>
-          </div>
-        </a>
-
-        <article className="space-y-1">
+      {/* Article content */}
+      <div className="max-w-container-max mx-auto px-gutter grid grid-cols-1 lg:grid-cols-12 gap-12 py-section-gap">
+        <article className="lg:col-span-8 space-y-1">
           {renderContent(post.content)}
+
+          <BlogScrollTracker title={post.title} slug={slug} />
+
+          {/* Author bio */}
+          <div className="mt-16 p-8 rounded-2xl bg-pro-navy text-white flex flex-col sm:flex-row gap-6 items-center">
+            <div className="w-24 h-24 rounded-full overflow-hidden flex-shrink-0 border-4 border-teal-accent">
+              <Image src="/avi.jpg" alt="Avi" width={96} height={96} className="w-full h-full object-cover" />
+            </div>
+            <div className="text-center sm:text-left">
+              <h4 className="font-headline-md text-headline-md mb-2">Written by Avi</h4>
+              <p className="text-body-md opacity-90 leading-relaxed max-w-xl">
+                Full-time traveler and travel hacker who has explored 50+ countries. Real experience, not theory — every guide comes from time actually spent in the place.
+              </p>
+              <Link href="/about" className="inline-flex items-center gap-1 mt-4 font-label-bold text-sky-blue hover:text-white transition-colors">
+                More about Avi <span className="material-symbols-outlined text-sm">north_east</span>
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-8 pt-6">
+            <Link href="/blog" className="text-sm text-on-surface-variant hover:text-primary transition-colors">← All articles</Link>
+          </div>
         </article>
 
-        <BlogScrollTracker title={post.title} slug={slug} />
+        {/* Sidebar */}
+        <aside className="lg:col-span-4 space-y-8">
+          <div className="lg:sticky lg:top-28 bg-white p-6 rounded-2xl concierge-shadow border border-border-subtle">
+            <div className="bg-primary/5 p-4 rounded-xl mb-6">
+              <h3 className="font-label-bold text-primary mb-2 flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">stars</span>
+                Pro tip
+              </h3>
+              <p className="text-sm text-on-surface-variant leading-tight">
+                Hotel prices from a Thai IP are often 20–40% cheaper — no VPN needed when you search on CheapStay.
+              </p>
+            </div>
+            <h4 className="font-headline-md text-headline-md text-pro-navy mb-3">Find the cheapest stay</h4>
+            <p className="text-sm text-on-surface-variant mb-5">Compare Agoda &amp; Booking.com prices instantly — Thai-market rates, no VPN required.</p>
+            <Link href="/" className="w-full bg-primary text-white font-label-bold py-3.5 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2">
+              Search hotels now
+              <span className="material-symbols-outlined text-lg">arrow_forward</span>
+            </Link>
+            <p className="text-[11px] text-on-surface-variant/60 text-center mt-4">Search 200+ booking sites in seconds.</p>
+          </div>
 
-        <div className="mt-10 p-6 rounded-2xl text-center" style={{ background: '#0a1628' }}>
-          <p className="text-white font-bold mb-1">Find the cheapest hotel price right now</p>
-          <p className="text-white/50 text-xs mb-4">Compare Agoda vs Booking.com — Thai-market prices, no VPN needed</p>
-          <Link href="/" className="inline-block px-6 py-2.5 rounded-xl text-sm font-bold text-white"
-            style={{ background: '#1D9E75' }}>
-            Search hotels →
-          </Link>
-        </div>
-
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <Link href="/blog" className="text-sm text-gray-400 hover:text-gray-700 transition-colors">← All articles</Link>
-        </div>
+          <div className="bg-pro-navy p-8 rounded-2xl text-center">
+            <h4 className="font-headline-md text-headline-md text-white mb-2">Get the hacks.</h4>
+            <p className="text-sm text-white/60 mb-6">Weekly insider tips on how to travel better for less.</p>
+            <NewsletterForm />
+          </div>
+        </aside>
       </div>
+
+      {/* Related articles */}
+      <section className="bg-surface-container-low py-section-gap">
+        <div className="max-w-container-max mx-auto px-gutter">
+          <div className="flex justify-between items-end mb-10">
+            <div>
+              <h2 className="font-headline-lg text-headline-lg text-pro-navy">Read More</h2>
+              <p className="text-on-surface-variant">Continue your travel hacking journey</p>
+            </div>
+            <Link href="/blog" className="text-primary font-label-bold flex items-center gap-1 hover:gap-2 transition-all">
+              View all posts <span className="material-symbols-outlined">arrow_forward</span>
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {related.map(([relSlug, relPost]) => (
+              <Link key={relSlug} href={`/blog/${relSlug}`} className="bg-white rounded-2xl overflow-hidden concierge-shadow hover:shadow-xl transition-all group">
+                <div className="h-48 relative">
+                  <Image src={relPost.img} alt={relPost.title} fill unoptimized className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <div className="absolute top-4 left-4 text-white text-[10px] font-bold px-2 py-1 rounded"
+                    style={{ background: CATEGORY_COLORS[relPost.category] ?? 'var(--color-secondary)' }}>
+                    {relPost.category.toUpperCase()}
+                  </div>
+                </div>
+                <div className="p-6">
+                  <h3 className="font-headline-md text-headline-md mb-2 group-hover:text-primary transition-colors leading-snug">{relPost.title}</h3>
+                  <p className="text-on-surface-variant text-sm mb-4 line-clamp-2">{relPost.excerpt}</p>
+                  <div className="flex items-center gap-2 text-metadata text-on-surface-variant">
+                    <span className="material-symbols-outlined text-sm">schedule</span>
+                    {relPost.readTime} min read
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

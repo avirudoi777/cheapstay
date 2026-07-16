@@ -43,14 +43,14 @@ export default function ConsultPage() {
     <main className="min-h-screen bg-gray-50">
 
       {/* ── Hero ── */}
-      <section style={{ background: '#0a1628' }} className="py-16 px-4 overflow-hidden">
+      <section style={{ background: 'var(--color-pro-navy)' }} className="py-16 px-4 overflow-hidden">
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
 
             {/* Left — copy */}
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-5"
-                style={{ background: 'rgba(29,158,117,0.2)', color: '#1D9E75', border: '1px solid rgba(29,158,117,0.3)' }}>
+                style={{ background: 'rgba(29,158,117,0.2)', color: 'var(--color-primary)', border: '1px solid rgba(29,158,117,0.3)' }}>
                 1-on-1 Travel Consultation
               </div>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight mb-4">
@@ -73,7 +73,7 @@ export default function ConsultPage() {
               <div className="flex flex-col sm:flex-row gap-3 items-start">
                 <ConsultBookButton location="hero"
                   className="px-8 py-3.5 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
-                  style={{ background: '#1D9E75' }}>
+                  style={{ background: 'var(--color-primary)' }}>
                   Book your call — $49 →
                 </ConsultBookButton>
                 <p className="text-xs text-white/40 self-center">Payment collected securely at booking</p>
@@ -100,7 +100,7 @@ export default function ConsultPage() {
                 {/* Floating badge — bottom left */}
                 <div className="absolute -bottom-5 -left-5 bg-white rounded-2xl shadow-xl px-4 py-3 flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-                    style={{ background: '#1D9E75' }}>$</div>
+                    style={{ background: 'var(--color-primary)' }}>$</div>
                   <div>
                     <div className="text-xs font-extrabold text-gray-900">$40k+ saved</div>
                     <div className="text-[10px] text-gray-400">on hotels & flights</div>
@@ -170,7 +170,7 @@ export default function ConsultPage() {
             ].map(step => (
               <div key={step.n} className="flex gap-4 items-start">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-extrabold text-base flex-shrink-0"
-                  style={{ background: '#1D9E75' }}>{step.n}</div>
+                  style={{ background: 'var(--color-primary)' }}>{step.n}</div>
                 <div>
                   <h3 className="font-bold text-gray-900 text-sm mb-1">{step.title}</h3>
                   <p className="text-xs text-gray-500 leading-relaxed">{step.desc}</p>
@@ -210,7 +210,7 @@ export default function ConsultPage() {
       </section>
 
       {/* ── Final CTA ── */}
-      <section className="py-16 px-4" style={{ background: '#0a1628' }}>
+      <section className="py-16 px-4" style={{ background: 'var(--color-pro-navy)' }}>
         <div className="max-w-xl mx-auto text-center">
           <div className="relative w-16 h-16 rounded-2xl overflow-hidden mx-auto mb-5 border-2 border-white/20">
             <Image src="/avi-profile.jpg" alt="Avi" fill className="object-cover object-top" />
@@ -221,7 +221,7 @@ export default function ConsultPage() {
           </p>
           <ConsultBookButton location="cta_bottom"
             className="inline-block px-10 py-4 rounded-xl font-bold text-white text-base transition-opacity hover:opacity-90"
-            style={{ background: '#1D9E75' }}>
+            style={{ background: 'var(--color-primary)' }}>
             Book your 1-hour call — $49 →
           </ConsultBookButton>
           <p className="text-white/30 text-xs mt-4">

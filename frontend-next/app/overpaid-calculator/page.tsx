@@ -22,7 +22,7 @@ export default function OverpaidCalculatorPage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <section style={{ background: '#0a1628' }} className="py-12 px-4 text-center">
+      <section style={{ background: 'var(--color-pro-navy)' }} className="py-12 px-4 text-center">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">How much did you overpay?</h1>
         <p className="text-white/60 text-sm max-w-md mx-auto">
           Enter your last hotel booking and we'll show you what you could have paid with Thai IP pricing and cashback.
@@ -36,10 +36,10 @@ export default function OverpaidCalculatorPage() {
           {[1, 2, 3].map(s => (
             <div key={s} className="flex items-center gap-2 flex-1">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${step >= s ? 'text-white' : 'bg-gray-200 text-gray-400'}`}
-                style={step >= s ? { background: '#1D9E75' } : {}}>
+                style={step >= s ? { background: 'var(--color-primary)' } : {}}>
                 {s}
               </div>
-              {s < 3 && <div className={`h-0.5 flex-1 rounded transition-colors ${step > s ? 'bg-teal' : 'bg-gray-200'}`} style={step > s ? { background: '#1D9E75' } : {}} />}
+              {s < 3 && <div className={`h-0.5 flex-1 rounded transition-colors ${step > s ? 'bg-teal' : 'bg-gray-200'}`} style={step > s ? { background: 'var(--color-primary)' } : {}} />}
             </div>
           ))}
         </div>
@@ -60,7 +60,7 @@ export default function OverpaidCalculatorPage() {
               <button onClick={() => destination.trim() && setStep(2)}
                 disabled={!destination.trim()}
                 className="mt-4 w-full py-3 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-opacity"
-                style={{ background: '#1D9E75' }}>
+                style={{ background: 'var(--color-primary)' }}>
                 Next →
               </button>
             </>
@@ -86,7 +86,7 @@ export default function OverpaidCalculatorPage() {
                 <button onClick={() => parseInt(nights) > 0 && setStep(3)}
                   disabled={!nights || parseInt(nights) < 1}
                   className="flex-1 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-opacity"
-                  style={{ background: '#1D9E75' }}>
+                  style={{ background: 'var(--color-primary)' }}>
                   Next →
                 </button>
               </div>
@@ -116,7 +116,7 @@ export default function OverpaidCalculatorPage() {
                 <button onClick={() => parseFloat(paidPerNight) > 0 && setStep(4)}
                   disabled={!paidPerNight || parseFloat(paidPerNight) < 1}
                   className="flex-1 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-opacity"
-                  style={{ background: '#1D9E75' }}>
+                  style={{ background: 'var(--color-primary)' }}>
                   Calculate →
                 </button>
               </div>
@@ -157,7 +157,7 @@ export default function OverpaidCalculatorPage() {
               <div className="flex flex-col gap-3">
                 <Link href="/vpn-guide"
                   className="w-full py-3 rounded-xl text-sm font-bold text-white text-center transition-opacity"
-                  style={{ background: '#1D9E75' }}>
+                  style={{ background: 'var(--color-primary)' }}>
                   Don't overpay next time — Set up VPN in 5 min →
                 </Link>
                 <Link href="/"

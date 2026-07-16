@@ -167,7 +167,7 @@ function HotelCardInner({ h }: { h: Hotel }) {
               <div>
                 <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Best price / night</p>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-[26px] font-black leading-none" style={{ color: '#0d9488' }}>
+                  <span className="text-[26px] font-black leading-none" style={{ color: 'var(--color-primary)' }}>
                     ${Math.round(bestPrice!)}
                   </span>
                   {h.total_price != null && (
@@ -175,7 +175,7 @@ function HotelCardInner({ h }: { h: Hotel }) {
                   )}
                 </div>
               </div>
-              <span className="text-[10px] font-bold px-2 py-1 rounded-full mb-0.5" style={{ color: '#0d9488', background: 'rgba(13,148,136,0.1)' }}>
+              <span className="text-[10px] font-bold px-2 py-1 rounded-full mb-0.5" style={{ color: 'var(--color-primary)', background: 'rgba(0,106,97,0.1)' }}>
                 via {best === 'agoda' ? 'Agoda' : 'Booking.com'}
               </span>
             </div>
@@ -229,7 +229,7 @@ function HotelCardInner({ h }: { h: Hotel }) {
         {/* Book button */}
         <button onClick={handleBook}
           className="w-full text-sm font-bold text-white rounded-xl py-3 cursor-pointer transition-opacity hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)' }}>
+          style={{ background: 'var(--color-primary)' }}>
           {hasAnyPrice ? `Book on ${best === 'agoda' ? 'Agoda' : 'Booking.com'} →` : 'Check availability →'}
         </button>
 
