@@ -6,6 +6,7 @@ import { getLayoverGuide, parseLayoverMinutes, LAYOVER_GUIDE_THRESHOLD_MIN } fro
 import { flagEmoji, COUNTRIES } from '@/lib/visa-data';
 import PhoneInput from '@/components/PhoneInput';
 import { createClient } from '@/lib/supabase/client';
+import { convertApprox, DISPLAY_CURRENCIES } from '@/lib/currency';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 interface SegmentAmenity { desc: string; cost: string }
@@ -188,6 +189,14 @@ function fmtDate(iso: string) {
 }
 function fmtPrice(amt: number, cur: string) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: cur, maximumFractionDigits: 0 }).format(amt);
+}
+// Cancel-fee currency often differs from the offer's price currency (airline-reported,
+// not converted by Duffel) — show both, clearly marked as approximate.
+function fmtCancelFee(amount: number, feeCurrency: string, priceCurrency: string) {
+  const native = fmtPrice(amount, feeCurrency);
+  if (feeCurrency === priceCurrency) return native;
+  const approx = convertApprox(amount, feeCurrency, priceCurrency);
+  return approx != null ? `${native} (~${fmtPrice(approx, priceCurrency)})` : native;
 }
 function fmtCardNumber(v: string) {
   return v.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
@@ -532,6 +541,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [filterAirlines, setFilterAirlines] = useState<Set<string>>(new Set());
   const [filterBaggage, setFilterBaggage] = useState(false);
   const [showAllAirlines, setShowAllAirlines] = useState(false);
+  const [sortBy, setSortBy] = useState<'recommended' | 'price' | 'duration'>('recommended');
+  // Results-list display currency only — never affects the actual booking/payment currency.
+  const [displayCurrency, setDisplayCurrency] = useState('USD');
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   // ── Sidebar details toggle
   const [sidebarDetailsOpen, setSidebarDetailsOpen] = useState(false);
@@ -587,6 +600,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         else {
           setOffers(json.offers);
           setChipCurrency(json.offers[0]?.totalCurrency ?? 'USD');
+          setDisplayCurrency(json.offers[0]?.totalCurrency ?? 'USD');
           // Round-trip: chip price should match the cheapest DISPLAYED outbound (deduplicated by obKey)
           // to avoid showing a price from a hidden combination the user can't directly select.
           let minRaw: number;
@@ -717,14 +731,24 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   }, [offers]);
 
   const filteredOffers = useMemo(() => {
-    return offers.filter(offer => {
+    const result = offers.filter(offer => {
       const stops = offer.segments.length - 1;
       if (filterStops.size > 0 && !filterStops.has(stops >= 2 ? 2 : stops)) return false;
       if (filterAirlines.size > 0 && !offer.segments.some(s => filterAirlines.has(s.airline))) return false;
       if (filterBaggage && !offer.segments.every(s => (s.baggage?.checkedBags ?? 0) > 0)) return false;
       return true;
     });
-  }, [offers, filterStops, filterAirlines, filterBaggage]);
+    if (sortBy === 'price') {
+      return [...result].sort((a, b) => a.totalAmount - b.totalAmount);
+    }
+    if (sortBy === 'duration') {
+      const durationMs = (o: DuffelOffer) =>
+        new Date(o.segments[o.segments.length - 1].arrAt).getTime() - new Date(o.segments[0].depAt).getTime();
+      return [...result].sort((a, b) => durationMs(a) - durationMs(b));
+    }
+    // 'recommended' — keep the API's existing price-ascending order as-is
+    return result;
+  }, [offers, filterStops, filterAirlines, filterBaggage, sortBy]);
 
   // Round-trip step 1: one entry per unique outbound route (cheapest combo price per outbound)
   const rtStep1Offers = useMemo(() => {
@@ -763,6 +787,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     if (!loaded.length) return null;
     return loaded.reduce((best, cur) => cur[1] < best[1] ? cur : best)[0];
   }, [chipPrices]);
+
+  // Results-list-only display conversion — never used for the actual booking/payment amount.
+  function displayPrice(amount: number, nativeCurrency: string): { text: string; approx: boolean } {
+    if (displayCurrency === nativeCurrency) return { text: fmtPrice(amount, nativeCurrency), approx: false };
+    const converted = convertApprox(amount, nativeCurrency, displayCurrency);
+    if (converted == null) return { text: fmtPrice(amount, nativeCurrency), approx: false };
+    return { text: fmtPrice(converted, displayCurrency), approx: true };
+  }
 
   function startBooking(offer: DuffelOffer) {
     window.history.pushState({ cheapstayBooking: true }, '');
@@ -1582,7 +1614,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         <p className="text-sm font-bold"
                           style={{ color: free ? '#15803D' : fee ? '#92400E' : noRefund ? '#DC2626' : '#475569' }}>
                           {free     ? 'Free cancellation before departure'
-                          : fee     ? `Refundable — ${r!.penaltyCurrency ?? ''} ${r!.penaltyAmount} cancellation fee`
+                          : fee     ? `Refundable — ${fmtCancelFee(parseFloat(r!.penaltyAmount!), r!.penaltyCurrency ?? offer.totalCurrency, offer.totalCurrency)} cancellation fee`
                           : noRefund ? 'Non-refundable fare'
                                      : 'Cancellation policy not provided by airline'}
                         </p>
@@ -2393,13 +2425,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     <div>
                       <p className="font-bold text-gray-600 mb-1.5">📋 Fare conditions</p>
                       {(() => {
-                        const r = (offer as DuffelOffer & { conditions?: { refund_before_departure?: { allowed: boolean; penalty_amount?: string; penalty_currency?: string } } }).conditions?.refund_before_departure;
-                        if (!r) return <p className="text-gray-400">Fare rules not available — check with airline.</p>;
+                        const r = offer.conditions?.refundBeforeDeparture;
+                        if (!r) return <p className="text-on-surface-variant">Fare rules not available — check with airline.</p>;
                         return (
                           <div className="rounded-lg px-3 py-2" style={r.allowed ? { background: '#ECFDF5', color: '#166534' } : { background: '#FEF2F2', color: '#991B1B' }}>
                             {r.allowed
-                              ? r.penalty_amount
-                                ? `Refundable with ${r.penalty_currency ?? ''} ${r.penalty_amount} cancellation fee`
+                              ? r.penaltyAmount
+                                ? `Refundable with ${fmtCancelFee(parseFloat(r.penaltyAmount), r.penaltyCurrency ?? offer.totalCurrency, offer.totalCurrency)} cancellation fee`
                                 : 'Free cancellation before departure'
                               : 'Non-refundable fare — no refund if cancelled'}
                           </div>
@@ -2798,6 +2830,98 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     );
   }
 
+  /* ── Filter panel — shared between the desktop sidebar and the mobile sheet ── */
+  const filterPanel = (
+    <div className="bg-white rounded-xl border border-border-subtle shadow-sm p-4">
+      {/* Recommended */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="font-label-bold text-label-bold text-pro-navy">Recommended</p>
+          {filterBaggage && (
+            <button onClick={() => setFilterBaggage(false)} className="text-[11px] font-bold cursor-pointer text-tertiary">Clear</button>
+          )}
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={filterBaggage} onChange={e => setFilterBaggage(e.target.checked)}
+            className="w-4 h-4 rounded cursor-pointer text-primary focus:ring-primary" />
+          <span className="text-sm text-on-surface-variant">Checked baggage included</span>
+        </label>
+      </div>
+
+      <div className="border-t border-border-subtle pt-4 mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="font-label-bold text-label-bold text-pro-navy">Stops</p>
+          {filterStops.size > 0 && (
+            <button onClick={() => setFilterStops(new Set())} className="text-[11px] font-bold cursor-pointer text-tertiary">Clear</button>
+          )}
+        </div>
+        {[{ label: 'Direct', val: 0 }, { label: '1 Stop', val: 1 }, { label: '2 Stops+', val: 2 }].map(({ label, val }) => (
+          <label key={val} className="flex items-center gap-2 cursor-pointer mb-1.5">
+            <input type="checkbox"
+              checked={filterStops.has(val)}
+              onChange={() => {
+                setFilterStops(prev => {
+                  const next = new Set(prev);
+                  next.has(val) ? next.delete(val) : next.add(val);
+                  return next;
+                });
+              }}
+              className="w-4 h-4 rounded cursor-pointer text-primary focus:ring-primary" />
+            <span className="text-sm text-on-surface-variant">{label}</span>
+          </label>
+        ))}
+      </div>
+
+      {/* Airlines */}
+      <div className="border-t border-border-subtle pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="font-label-bold text-label-bold text-pro-navy">Airlines</p>
+          {filterAirlines.size > 0 && (
+            <button onClick={() => setFilterAirlines(new Set())} className="text-[11px] font-bold cursor-pointer text-tertiary">Clear</button>
+          )}
+        </div>
+        <label className="flex items-center justify-between gap-2 mb-3 cursor-pointer">
+          <span className="text-sm text-on-surface-variant">Select all airlines</span>
+          <div
+            onClick={() => setFilterAirlines(new Set())}
+            className={`w-10 h-5 rounded-full cursor-pointer transition-colors flex items-center px-0.5 ${filterAirlines.size === 0 ? 'bg-outline' : 'bg-primary'}`}>
+            <div className="w-4 h-4 bg-white rounded-full shadow transition-transform"
+              style={{ transform: filterAirlines.size === 0 ? 'translateX(18px)' : 'translateX(0)' }} />
+          </div>
+        </label>
+        {(showAllAirlines ? allAirlines : allAirlines.slice(0, 5)).map(airline => (
+          <label key={airline} className="flex items-center gap-2 cursor-pointer mb-1.5">
+            <input type="checkbox"
+              checked={filterAirlines.has(airline)}
+              onChange={() => {
+                setFilterAirlines(prev => {
+                  const next = new Set(prev);
+                  next.has(airline) ? next.delete(airline) : next.add(airline);
+                  return next;
+                });
+              }}
+              className="w-4 h-4 rounded cursor-pointer text-primary focus:ring-primary" />
+            <span className="text-sm text-on-surface-variant truncate">{airline}</span>
+          </label>
+        ))}
+        {allAirlines.length > 5 && (
+          <button onClick={() => setShowAllAirlines(v => !v)}
+            className="text-[11px] font-bold mt-1 cursor-pointer flex items-center gap-1 text-tertiary">
+            {showAllAirlines ? '↑ Show less' : `↓ Show ${allAirlines.length - 5} more`}
+          </button>
+        )}
+      </div>
+
+      {hasActiveFilters && (
+        <button
+          onClick={() => { setFilterStops(new Set()); setFilterAirlines(new Set()); setFilterBaggage(false); }}
+          className="mt-4 w-full py-2 rounded-xl text-xs font-bold cursor-pointer transition bg-error/10 text-error">
+          Clear all filters
+        </button>
+      )}
+    </div>
+  );
+
   /* ── RESULTS LIST VIEW ───────────────────────────────────────────────────── */
   return (
     <div ref={containerRef} className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 mb-6">
@@ -2808,24 +2932,23 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             <div>
               <div className="flex items-center gap-2 mb-0.5">
                 <button onClick={() => { setRtStep('outbound'); setRtSelectedOutbound(null); }}
-                  className="text-xs font-bold px-2 py-1 rounded-lg transition-colors"
-                  style={{ color: 'var(--color-sky-blue)', background: '#EFF6FF' }}>
+                  className="text-xs font-bold px-2 py-1 rounded-lg transition-colors text-tertiary hover:bg-sky-blue/10">
                   ← Outbound
                 </button>
-                <span className="text-gray-300">›</span>
-                <span className="text-xs font-bold text-gray-800">Select return</span>
+                <span className="text-outline-variant">›</span>
+                <span className="text-xs font-bold text-pro-navy">Select return</span>
               </div>
-              <h2 className="text-xl font-extrabold text-gray-900">
-                Select return to <span style={{ color: 'var(--color-primary)' }}>{fromName}</span>
+              <h2 className="font-headline-md text-headline-md text-pro-navy">
+                Select return to <span className="text-primary">{fromName}</span>
               </h2>
             </div>
           ) : (
             <div>
-              <h2 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
-                <span>{fromName}</span><span className="text-gray-300">→</span><span>{toName}</span>
-                {ret && <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: '#E0F2FE', color: '#0369A1' }}>Round trip</span>}
+              <h2 className="font-headline-md text-headline-md text-pro-navy flex items-center gap-2">
+                <span>{fromName}</span><span className="text-outline-variant">→</span><span>{toName}</span>
+                {ret && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-blue/10 text-tertiary">Round trip</span>}
               </h2>
-              <p className="text-sm text-gray-400 mt-0.5">
+              <p className="text-sm text-on-surface-variant mt-0.5">
                 {departLabel}{ret && ` · Return ${new Date(ret + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
                 {!ret && ' · One way'} · {[
                   adults > 0 && `${adults} adult${adults !== 1 ? 's' : ''}`,
@@ -2837,7 +2960,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           )}
         </div>
         <button onClick={onClear}
-          className="text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 border border-gray-200">
+          className="text-xs font-semibold text-on-surface-variant hover:text-pro-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-surface-container-low border border-border-subtle">
           ✕ New search
         </button>
       </div>
@@ -2863,29 +2986,27 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
               const isBest = iso === bestPriceDate;
               const price = chipPrices[iso];
               const isLoading = (iso === activeDate && loading) || (iso !== activeDate && chipPrices[iso] === undefined && prefetchingDates.current.has(iso));
-              const borderColor = isActive ? 'var(--color-sky-blue)' : isBest ? '#16A34A' : '#E5E7EB';
-              const bgColor = isActive ? '#EEF4FE' : isBest ? '#F0FDF4' : '#FFFFFF';
-              const labelColor = isActive ? 'var(--color-sky-blue)' : isBest ? '#16A34A' : '#374151';
-              const priceColor = isActive ? 'var(--color-sky-blue)' : isBest ? '#15803D' : '#111827';
+              const colorClass = isActive ? 'border-sky-blue bg-sky-blue/10 text-tertiary' : isBest ? 'border-savings-green bg-savings-green/10 text-savings-green' : 'border-border-subtle bg-white text-pro-navy';
+              const shown = price != null ? displayPrice(price, chipCurrency) : null;
               return (
                 <button
                   key={iso}
                   onClick={() => { if (iso !== activeDate) setActiveDate(iso); }}
-                  className="flex-shrink-0 rounded-xl px-3.5 py-2.5 text-left transition-all cursor-pointer"
-                  style={{ border: `${isActive || isBest ? '2px' : '1.5px'} solid ${borderColor}`, background: bgColor, minWidth: 90 }}
+                  className={`flex-shrink-0 rounded-xl px-3.5 py-2.5 text-left transition-all cursor-pointer ${isActive || isBest ? 'border-2' : 'border'} ${colorClass}`}
+                  style={{ minWidth: 90 }}
                 >
                   <div className="flex items-center gap-1">
-                    <p className="text-[11px] font-bold" style={{ color: labelColor }}>{label}</p>
-                    {isBest && !isActive && <span className="text-[9px] font-bold px-1 py-0.5 rounded" style={{ background: '#DCFCE7', color: '#15803D' }}>Best</span>}
+                    <p className="text-[11px] font-bold">{label}</p>
+                    {isBest && !isActive && <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-savings-green/20 text-savings-green">Best</span>}
                   </div>
                   {isLoading ? (
-                    <div className="h-3 w-14 bg-gray-200 rounded animate-pulse mt-1" />
-                  ) : price != null ? (
-                    <p className="text-[12px] font-bold mt-0.5" style={{ color: priceColor }}>
-                      {!isActive && '~'}{price.toLocaleString('en-US', { style: 'currency', currency: chipCurrency, maximumFractionDigits: 0 })}
+                    <div className="h-3 w-14 bg-surface-container rounded animate-pulse mt-1" />
+                  ) : shown != null ? (
+                    <p className="text-[12px] font-bold mt-0.5">
+                      {(!isActive || shown.approx) && '~'}{shown.text}
                     </p>
                   ) : (
-                    <p className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>See prices</p>
+                    <p className="text-[11px] mt-0.5 text-outline">See prices</p>
                   )}
                 </button>
               );
@@ -2897,98 +3018,38 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       <div className="flex gap-5 items-start">
         {/* ── Filter sidebar (desktop only) */}
         {!loading && !searchError && offers.length > 0 && (
-          <div className="hidden lg:block w-56 flex-shrink-0 space-y-5 sticky top-4">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-
-              {/* Recommended */}
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-bold text-gray-900">Recommended</p>
-                  {filterBaggage && (
-                    <button onClick={() => setFilterBaggage(false)} className="text-[11px] font-bold cursor-pointer" style={{ color: 'var(--color-sky-blue)' }}>Clear</button>
-                  )}
-                </div>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={filterBaggage} onChange={e => setFilterBaggage(e.target.checked)}
-                    className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: 'var(--color-primary)' }} />
-                  <span className="text-sm text-gray-700">Checked baggage included</span>
-                </label>
+          <div className="hidden lg:block w-56 flex-shrink-0 space-y-4 sticky top-4">
+            {filterPanel}
+            {/* Promo card */}
+            <div className="bg-pro-navy text-white rounded-xl p-5 relative overflow-hidden">
+              <div className="relative z-10">
+                <h4 className="font-headline-md text-[16px] mb-2">Expert Travel Tip</h4>
+                <p className="text-xs opacity-80 mb-3 leading-relaxed">Book at least 7 days out to get free 24-hour cancellation under US DOT rules — cancel and rebook if the price drops.</p>
+                <a href="/consult" className="flex items-center gap-1.5 text-sky-blue font-label-bold text-xs hover:gap-2.5 transition-all">
+                  Talk to Avi <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                </a>
               </div>
+              <span className="material-symbols-outlined absolute -bottom-4 -right-4 text-[100px] opacity-10">flight_takeoff</span>
+            </div>
+          </div>
+        )}
 
-              <div className="border-t border-gray-100 pt-4 mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-bold text-gray-900">Stops</p>
-                  {filterStops.size > 0 && (
-                    <button onClick={() => setFilterStops(new Set())} className="text-[11px] font-bold cursor-pointer" style={{ color: 'var(--color-sky-blue)' }}>Clear</button>
-                  )}
-                </div>
-                {[{ label: 'Direct', val: 0 }, { label: '1 Stop', val: 1 }, { label: '2 Stops+', val: 2 }].map(({ label, val }) => (
-                  <label key={val} className="flex items-center gap-2 cursor-pointer mb-1.5">
-                    <input type="checkbox"
-                      checked={filterStops.has(val)}
-                      onChange={() => {
-                        setFilterStops(prev => {
-                          const next = new Set(prev);
-                          next.has(val) ? next.delete(val) : next.add(val);
-                          return next;
-                        });
-                      }}
-                      className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: 'var(--color-primary)' }} />
-                    <span className="text-sm text-gray-700">{label}</span>
-                  </label>
-                ))}
-              </div>
-
-              {/* Airlines */}
-              <div className="border-t border-gray-100 pt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-bold text-gray-900">Airlines</p>
-                  {filterAirlines.size > 0 && (
-                    <button onClick={() => setFilterAirlines(new Set())} className="text-[11px] font-bold cursor-pointer" style={{ color: 'var(--color-sky-blue)' }}>Clear</button>
-                  )}
-                </div>
-                <label className="flex items-center justify-between gap-2 mb-3 cursor-pointer">
-                  <span className="text-sm text-gray-600">Select all airlines</span>
-                  <div
-                    onClick={() => setFilterAirlines(new Set())}
-                    className="w-10 h-5 rounded-full cursor-pointer transition-colors flex items-center px-0.5"
-                    style={{ background: filterAirlines.size === 0 ? '#6B7280' : 'var(--color-primary)' }}>
-                    <div className="w-4 h-4 bg-white rounded-full shadow transition-transform"
-                      style={{ transform: filterAirlines.size === 0 ? 'translateX(18px)' : 'translateX(0)' }} />
-                  </div>
-                </label>
-                {(showAllAirlines ? allAirlines : allAirlines.slice(0, 5)).map(airline => (
-                  <label key={airline} className="flex items-center gap-2 cursor-pointer mb-1.5">
-                    <input type="checkbox"
-                      checked={filterAirlines.has(airline)}
-                      onChange={() => {
-                        setFilterAirlines(prev => {
-                          const next = new Set(prev);
-                          next.has(airline) ? next.delete(airline) : next.add(airline);
-                          return next;
-                        });
-                      }}
-                      className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: 'var(--color-primary)' }} />
-                    <span className="text-sm text-gray-700 truncate">{airline}</span>
-                  </label>
-                ))}
-                {allAirlines.length > 5 && (
-                  <button onClick={() => setShowAllAirlines(v => !v)}
-                    className="text-[11px] font-bold mt-1 cursor-pointer flex items-center gap-1"
-                    style={{ color: 'var(--color-sky-blue)' }}>
-                    {showAllAirlines ? '↑ Show less' : `↓ Show ${allAirlines.length - 5} more`}
-                  </button>
-                )}
-              </div>
-
-              {hasActiveFilters && (
-                <button
-                  onClick={() => { setFilterStops(new Set()); setFilterAirlines(new Set()); setFilterBaggage(false); }}
-                  className="mt-4 w-full py-2 rounded-xl text-xs font-bold cursor-pointer transition"
-                  style={{ background: '#FEF2F2', color: '#DC2626' }}>
-                  Clear all filters
+        {/* ── Mobile filter sheet ── */}
+        {mobileFiltersOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setMobileFiltersOpen(false)} />
+            <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-surface-container-low p-4 pb-8">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-headline-md text-[16px] text-pro-navy">Filters</p>
+                <button onClick={() => setMobileFiltersOpen(false)} className="text-on-surface-variant p-1">
+                  <span className="material-symbols-outlined">close</span>
                 </button>
-              )}
+              </div>
+              {filterPanel}
+              <button onClick={() => setMobileFiltersOpen(false)}
+                className="w-full mt-4 py-3 rounded-lg font-label-bold text-sm text-white bg-primary">
+                Show {(ret ? rtStep1Offers : filteredOffers).length} flights
+              </button>
             </div>
           </div>
         )}
@@ -2999,8 +3060,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       {/* Loading */}
       {loading && (
         <div className="space-y-3">
-          <p className="text-xs text-gray-400 flex items-center gap-2">
-            <svg className="animate-spin w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} fill="none" viewBox="0 0 24 24">
+          <p className="text-xs text-on-surface-variant flex items-center gap-2">
+            <svg className="animate-spin w-3.5 h-3.5 text-primary" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
             </svg>
@@ -3012,10 +3073,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
       {/* Error */}
       {!loading && searchError && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+        <div className="bg-white rounded-xl border border-border-subtle p-8 text-center">
           <p className="text-2xl mb-2">✈️</p>
-          <p className="font-bold text-gray-700 mb-1">No flights found</p>
-          <p className="text-sm text-gray-400">{searchError}</p>
+          <p className="font-bold text-pro-navy mb-1">No flights found</p>
+          <p className="text-sm text-on-surface-variant">{searchError}</p>
         </div>
       )}
 
@@ -3023,25 +3084,25 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       {!loading && !searchError && ret && rtStep === 'return' && rtSelectedOutbound && (
         <div className="space-y-3">
           {/* Pinned outbound summary */}
-          <div className="rounded-2xl px-4 py-3 flex items-center justify-between" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+          <div className="rounded-xl px-4 py-3 flex items-center justify-between bg-sky-blue/10 border border-sky-blue/20">
             <div>
-              <p className="text-[10px] font-bold tracking-wider uppercase mb-0.5" style={{ color: '#3B82F6' }}>Outbound selected</p>
-              <p className="text-sm font-bold text-gray-800">
+              <p className="text-[10px] font-bold tracking-wider uppercase mb-0.5 text-tertiary">Outbound selected</p>
+              <p className="text-sm font-bold text-pro-navy">
                 {rtSelectedOutbound.segments[0].depCode} → {rtSelectedOutbound.segments[rtSelectedOutbound.segments.length - 1].arrCode}
-                <span className="ml-2 font-normal text-gray-400 text-xs">
+                <span className="ml-2 font-normal text-on-surface-variant text-xs">
                   {fmtTime(rtSelectedOutbound.segments[0].depAt)} · {rtSelectedOutbound.totalDuration} · {rtSelectedOutbound.segments.length > 1 ? `${rtSelectedOutbound.segments.length - 1} stop` : 'Direct'}
                 </span>
               </p>
-              <p className="text-[10px] text-gray-400">{rtSelectedOutbound.segments[0].airline}</p>
+              <p className="text-[10px] text-on-surface-variant">{rtSelectedOutbound.segments[0].airline}</p>
             </div>
             <div className="text-right ml-3 flex-shrink-0">
-              <p className="text-sm font-extrabold text-gray-800">{fmtPrice(rtStep2Data.basePrice, rtSelectedOutbound.totalCurrency)}</p>
+              <p className="text-sm font-extrabold text-pro-navy">{fmtPrice(rtStep2Data.basePrice, rtSelectedOutbound.totalCurrency)}</p>
               <button onClick={() => { setRtStep('outbound'); setRtSelectedOutbound(null); }}
-                className="text-xs font-bold mt-0.5" style={{ color: 'var(--color-sky-blue)' }}>Change</button>
+                className="text-xs font-bold mt-0.5 text-tertiary">Change</button>
             </div>
           </div>
 
-          <p className="text-xs font-semibold text-gray-400">
+          <p className="text-xs font-semibold text-on-surface-variant">
             {rtStep2Data.offers.length} return option{rtStep2Data.offers.length !== 1 ? 's' : ''} · showing additional cost
           </p>
 
@@ -3051,20 +3112,21 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             const retLast = retSegs[retSegs.length - 1] ?? retOffer.segments[retOffer.segments.length - 1];
             const retSlice = retOffer.slices?.[1];
             const delta = retOffer.totalAmount - rtStep2Data.basePrice;
+            const deltaShown = displayPrice(delta, retOffer.totalCurrency);
             const depDate2 = new Date(retFirst.depAt);
             const arrDate2 = new Date(retLast.arrAt);
             const daysDiff2 = Math.floor((arrDate2.getTime() - depDate2.getTime()) / 86400000);
             const uniqueAirlinesRet = [...new Map(retSegs.map(s => [s.airlineCode, s.airline])).entries()];
 
             return (
-              <div key={retOffer.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                <div className="px-5 pt-4 pb-3 flex items-center justify-between" style={{ borderBottom: '1px solid #F8FAFC' }}>
+              <div key={retOffer.id} className="bg-white rounded-xl border border-border-subtle shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-surface-container-low">
                   <div className="flex items-center gap-2.5">
                     <AirlineLogo code={retFirst.airlineCode} name={retFirst.airline} />
                     <div>
-                      <p className="text-sm font-bold text-gray-800">{retFirst.airline}</p>
+                      <p className="text-sm font-bold text-pro-navy">{retFirst.airline}</p>
                       {uniqueAirlinesRet.length > 1 && (
-                        <p className="text-[11px] text-gray-400">
+                        <p className="text-[11px] text-on-surface-variant">
                           + {uniqueAirlinesRet.filter(([code]) => code !== retFirst.airlineCode).map(([, name]) => name).join(', ')}
                         </p>
                       )}
@@ -3073,57 +3135,55 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 </div>
                 <div className="px-5 py-3 flex items-center gap-4">
                   <div className="flex-shrink-0">
-                    <p className="text-2xl font-extrabold text-gray-900 tabular-nums leading-tight">{fmtTime(retFirst.depAt)}</p>
-                    <p className="text-sm font-bold text-gray-600">{retFirst.depCode}</p>
-                    <p className="text-[11px] text-gray-400">{fmtDate(retFirst.depAt)}</p>
+                    <p className="text-2xl font-extrabold text-pro-navy tabular-nums leading-tight">{fmtTime(retFirst.depAt)}</p>
+                    <p className="text-sm font-bold text-on-surface-variant">{retFirst.depCode}</p>
+                    <p className="text-[11px] text-on-surface-variant">{fmtDate(retFirst.depAt)}</p>
                   </div>
                   <div className="flex-1 text-center">
-                    <p className="text-[10px] font-semibold text-gray-400 mb-1">{retSlice?.duration ?? ''}</p>
+                    <p className="text-[10px] font-semibold text-on-surface-variant mb-1">{retSlice?.duration ?? ''}</p>
                     <div className="flex items-center gap-1">
-                      <div className="flex-1 h-px" style={{ background: '#CBD5E1' }} />
+                      <div className="flex-1 h-px bg-border-subtle" />
                       {(retSlice?.stops ?? retSegs.length - 1) > 0 && (
                         <>
-                          <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#94A3B8' }} />
-                          <div className="flex-1 h-px" style={{ background: '#CBD5E1' }} />
+                          <div className="w-1.5 h-1.5 rounded-full bg-outline" />
+                          <div className="flex-1 h-px bg-border-subtle" />
                         </>
                       )}
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1">
+                    <p className="text-[10px] text-on-surface-variant mt-1">
                       {retSlice ? (retSlice.stops === 0 ? 'Direct' : `${retSlice.stops} stop${retSlice.stops > 1 ? 's' : ''}`) : (retSegs.length > 1 ? `${retSegs.length - 1} stop` : 'Direct')}
                     </p>
                   </div>
                   <div className="flex-shrink-0 text-right">
-                    <p className="text-2xl font-extrabold text-gray-900 tabular-nums leading-tight">
+                    <p className="text-2xl font-extrabold text-pro-navy tabular-nums leading-tight">
                       {fmtTime(retLast.arrAt)}
-                      {daysDiff2 > 0 && <sup className="text-sm font-extrabold" style={{ color: '#EF4444', verticalAlign: 'super', fontSize: '0.55em' }}>+{daysDiff2}</sup>}
+                      {daysDiff2 > 0 && <sup className="text-sm font-extrabold text-error" style={{ verticalAlign: 'super', fontSize: '0.55em' }}>+{daysDiff2}</sup>}
                     </p>
-                    <p className="text-sm font-bold text-gray-600">{retLast.arrCode}</p>
-                    <p className="text-[11px] text-gray-400">{fmtDate(retLast.arrAt)}</p>
+                    <p className="text-sm font-bold text-on-surface-variant">{retLast.arrCode}</p>
+                    <p className="text-[11px] text-on-surface-variant">{fmtDate(retLast.arrAt)}</p>
                   </div>
-                  <div className="w-px h-14 flex-shrink-0 hidden sm:block" style={{ background: '#E2E8F0' }} />
-                  <div className="hidden sm:flex flex-col items-end flex-shrink-0">
-                    <p className="text-[10px] font-semibold uppercase text-gray-400 tracking-wide">{retOffer.totalCurrency}</p>
-                    <p className="text-2xl font-extrabold tabular-nums leading-tight" style={{ color: delta === 0 ? 'var(--color-primary)' : 'var(--color-sky-blue)' }}>
-                      {delta === 0 ? '+$0' : `+${Math.round(delta).toLocaleString()}`}
+                  <div className="w-px h-14 flex-shrink-0 hidden sm:block bg-border-subtle" />
+                  <div className={`hidden sm:flex flex-col items-end flex-shrink-0 ${delta === 0 ? 'text-primary' : 'text-tertiary'}`}>
+                    <p className="text-[10px] font-semibold uppercase text-on-surface-variant tracking-wide">{deltaShown.approx ? displayCurrency : retOffer.totalCurrency}</p>
+                    <p className="text-2xl font-extrabold tabular-nums leading-tight">
+                      {delta === 0 ? '+$0' : `+${deltaShown.approx ? '~' : ''}${deltaShown.text}`}
                     </p>
-                    <p className="text-[10px] text-gray-400 mb-2">extra</p>
+                    <p className="text-[10px] text-on-surface-variant mb-2">extra</p>
                     <button onClick={() => startBooking(retOffer)}
-                      className="px-5 py-2 rounded-xl text-sm font-bold text-white whitespace-nowrap hover:opacity-90 transition-opacity"
-                      style={{ background: 'var(--color-primary)' }}>
+                      className="px-5 py-2 rounded-xl text-sm font-bold text-white whitespace-nowrap hover:opacity-90 transition-opacity bg-primary">
                       Select →
                     </button>
                   </div>
                 </div>
-                <div className="sm:hidden px-5 pb-3 flex items-center justify-between border-t border-gray-50 pt-3">
-                  <div>
-                    <p className="text-xl font-extrabold tabular-nums" style={{ color: delta === 0 ? 'var(--color-primary)' : 'var(--color-sky-blue)' }}>
-                      {delta === 0 ? '+$0' : `+${fmtPrice(delta, retOffer.totalCurrency)}`}
+                <div className="sm:hidden px-5 pb-3 flex items-center justify-between border-t border-surface-container-low pt-3">
+                  <div className={delta === 0 ? 'text-primary' : 'text-tertiary'}>
+                    <p className="text-xl font-extrabold tabular-nums">
+                      {delta === 0 ? '+$0' : `+${deltaShown.approx ? '~' : ''}${deltaShown.text}`}
                     </p>
-                    <p className="text-[10px] text-gray-400">extra</p>
+                    <p className="text-[10px] text-on-surface-variant">extra</p>
                   </div>
                   <button onClick={() => startBooking(retOffer)}
-                    className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
-                    style={{ background: 'var(--color-primary)' }}>
+                    className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-primary">
                     Select →
                   </button>
                 </div>
@@ -3136,13 +3196,31 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       {/* Flight cards — step 1 (outbound) for round trips, or all flights for one-way */}
       {!loading && !searchError && !(ret && rtStep === 'return') && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-gray-400">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-xs font-semibold text-on-surface-variant">
               {ret
                 ? `${rtStep1Offers.length} outbound option${rtStep1Offers.length !== 1 ? 's' : ''} · select to see return flights`
                 : `${hasActiveFilters ? `${filteredOffers.length} of ${offers.length}` : offers.length} flight${offers.length !== 1 ? 's' : ''} · prices include all fees`
               }
             </p>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-on-surface-variant">Currency:</span>
+                <select value={displayCurrency} onChange={e => setDisplayCurrency(e.target.value)}
+                  className="bg-transparent border-none font-label-bold text-xs text-pro-navy focus:ring-0 cursor-pointer py-0 pr-6">
+                  {DISPLAY_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-on-surface-variant">Sort by:</span>
+                <select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}
+                  className="bg-transparent border-none font-label-bold text-xs text-pro-navy focus:ring-0 cursor-pointer py-0 pr-6">
+                  <option value="recommended">Recommended</option>
+                  <option value="price">Price (lowest)</option>
+                  <option value="duration">Duration (shortest)</option>
+                </select>
+              </div>
+            </div>
           </div>
           {/* LCC disclaimer — shown for routes where AirAsia/Lion Air are common */}
           {(() => {
@@ -3151,10 +3229,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             if (!isLccRoute) return null;
             const lccUrl = `https://www.airasia.com/flights/search?origin=${fromCode}&destination=${toCode}`;
             return (
-              <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs text-amber-800 bg-amber-50 border border-amber-200">
-                <svg className="w-4 h-4 flex-shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs text-alert-orange bg-alert-orange/5 border border-alert-orange/20">
+                <span className="material-symbols-outlined text-[18px] flex-shrink-0">info</span>
                 <span>
                   Low-cost carriers (AirAsia, Lion Air, VietJet) aren&apos;t available here — they don&apos;t distribute through our booking system.{' '}
                   <a href={lccUrl} target="_blank" rel="noopener noreferrer"
@@ -3166,16 +3242,17 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             );
           })()}
           {(ret ? rtStep1Offers : filteredOffers).length === 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center">
-              <p className="text-sm font-bold text-gray-600">No flights match your filters</p>
+            <div className="bg-white rounded-xl border border-border-subtle p-6 text-center">
+              <p className="text-sm font-bold text-on-surface-variant">No flights match your filters</p>
               <button onClick={() => { setFilterStops(new Set()); setFilterAirlines(new Set()); setFilterBaggage(false); }}
-                className="mt-2 text-xs font-bold cursor-pointer" style={{ color: 'var(--color-sky-blue)' }}>
+                className="mt-2 text-xs font-bold cursor-pointer text-tertiary">
                 Clear all filters
               </button>
             </div>
           )}
           {(ret ? rtStep1Offers : filteredOffers).map(offer => {
             const gross = calcGross(offer.totalAmount);
+            const grossShown = displayPrice(gross, offer.totalCurrency);
             const isExpanded = expanded === offer.id;
             const stops = offer.segments.length - 1;
             const firstSeg = offer.segments[0];
@@ -3186,104 +3263,106 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             const uniqueAirlines = [...new Map(offer.segments.map(s => [s.airlineCode, s.airline])).entries()];
             const marketingAirline = firstSeg;
 
+            // Track whatever currency the price above is currently shown in, so the two numbers stay comparable.
+            const priceRefCurrency = grossShown.approx ? displayCurrency : offer.totalCurrency;
+            const cancelFeeBlock = (className: string) => (() => {
+              const r = offer.conditions?.refundBeforeDeparture;
+              if (!r) return null;
+              if (r.allowed && !r.penaltyAmount) return <p className={`${className} text-savings-green`}>✓ Free cancellation</p>;
+              if (r.allowed && r.penaltyAmount) {
+                const feeCur = r.penaltyCurrency ?? offer.totalCurrency;
+                return (
+                  <p className={`${className} text-alert-orange`}
+                    title={feeCur !== priceRefCurrency ? "Approximate — exchange rate updated periodically, you'll be charged in the fee's native currency" : undefined}>
+                    Cancel fee: {fmtCancelFee(parseFloat(r.penaltyAmount), feeCur, priceRefCurrency)}
+                  </p>
+                );
+              }
+              return <p className={`${className} text-on-surface-variant`}>Non-refundable</p>;
+            })();
+
             return (
-              <div key={offer.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+              <div key={offer.id} className="bg-white rounded-xl border border-border-subtle shadow-sm overflow-hidden hover:shadow-md transition-shadow">
 
                 {/* ── Top bar: airline + cabin ── */}
-                <div className="px-5 pt-4 pb-3 flex items-center justify-between" style={{ borderBottom: '1px solid #F8FAFC' }}>
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-surface-container-low">
                   <div className="flex items-center gap-2.5">
                     <AirlineLogo code={marketingAirline.airlineCode} name={marketingAirline.airline} />
                     <div>
-                      <p className="text-sm font-bold text-gray-800">{marketingAirline.airline}</p>
+                      <p className="text-sm font-bold text-pro-navy">{marketingAirline.airline}</p>
                       {uniqueAirlines.length > 1 && (
-                        <p className="text-[11px] text-gray-400">
+                        <p className="text-[11px] text-on-surface-variant">
                           operated by {uniqueAirlines.filter(([code]) => code !== marketingAirline.airlineCode).map(([, name]) => name).join(', ')}
                         </p>
                       )}
                     </div>
                   </div>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>{fmtCabin(firstSeg.cabinClass ?? 'economy')}</span>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant">{fmtCabin(firstSeg.cabinClass ?? 'economy')}</span>
                 </div>
 
                 {/* ── Main row: times + price ── */}
                 <div className="px-5 py-4 flex items-center gap-3 sm:gap-5">
                   {/* Departure */}
                   <div className="flex-shrink-0">
-                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 tabular-nums leading-tight">{fmtTime(firstSeg.depAt)}</p>
-                    <p className="text-sm font-bold text-gray-600 mt-0.5">{firstSeg.depCode}</p>
-                    <p className="text-[11px] text-gray-400">{fmtDate(firstSeg.depAt)}</p>
+                    <p className="text-2xl sm:text-3xl font-extrabold text-pro-navy tabular-nums leading-tight">{fmtTime(firstSeg.depAt)}</p>
+                    <p className="text-sm font-bold text-on-surface-variant mt-0.5">{firstSeg.depCode}</p>
+                    <p className="text-[11px] text-on-surface-variant">{fmtDate(firstSeg.depAt)}</p>
                   </div>
 
                   {/* Center: duration + stops */}
                   <div className="flex-1 flex flex-col items-center gap-1.5 min-w-0 px-1">
-                    <p className="text-xs font-semibold text-gray-400">{offer.totalDuration}</p>
+                    <p className="text-xs font-semibold text-on-surface-variant">{offer.totalDuration}</p>
                     <div className="flex items-center w-full gap-1.5">
-                      <div className="h-px flex-1" style={{ background: '#CBD5E1' }} />
+                      <div className="h-px flex-1 bg-border-subtle" />
                       {stops === 0
-                        ? <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
-                            style={{ background: '#ECFDF5', color: '#15803D' }}>Direct</span>
+                        ? <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 bg-savings-green/10 text-savings-green">Direct</span>
                         : <button onClick={() => setExpanded(isExpanded ? null : offer.id)}
-                            className="text-[11px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 flex items-center gap-1"
-                            style={{ background: '#FEF9C3', color: '#92400E' }}>
-                            {stops} stop{stops > 1 ? 's' : ''} <span>{isExpanded ? '▲' : '▼'}</span>
+                            className="text-[11px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 flex items-center gap-1 bg-alert-orange/10 text-alert-orange">
+                            {stops} stop{stops > 1 ? 's' : ''} <span className="material-symbols-outlined text-[14px]">{isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</span>
                           </button>
                       }
-                      <div className="h-px flex-1" style={{ background: '#CBD5E1' }} />
+                      <div className="h-px flex-1 bg-border-subtle" />
                     </div>
-                    <p className="text-[10px] text-gray-400">{offer.segments[0].airline}</p>
+                    <p className="text-[10px] text-on-surface-variant">{offer.segments[0].airline}</p>
                   </div>
 
                   {/* Arrival */}
                   <div className="flex-shrink-0 text-right">
-                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 tabular-nums leading-tight">
+                    <p className="text-2xl sm:text-3xl font-extrabold text-pro-navy tabular-nums leading-tight">
                       {fmtTime(lastSeg.arrAt)}
-                      {daysDiff > 0 && <sup className="text-sm font-extrabold" style={{ color: '#EF4444', verticalAlign: 'super', fontSize: '0.55em' }}>+{daysDiff}</sup>}
+                      {daysDiff > 0 && <sup className="text-sm font-extrabold text-error" style={{ verticalAlign: 'super', fontSize: '0.55em' }}>+{daysDiff}</sup>}
                     </p>
-                    <p className="text-sm font-bold text-gray-600 mt-0.5">{lastSeg.arrCode}</p>
-                    <p className="text-[11px] text-gray-400">{fmtDate(lastSeg.arrAt)}</p>
+                    <p className="text-sm font-bold text-on-surface-variant mt-0.5">{lastSeg.arrCode}</p>
+                    <p className="text-[11px] text-on-surface-variant">{fmtDate(lastSeg.arrAt)}</p>
                   </div>
 
                   {/* Divider */}
-                  <div className="hidden sm:block w-px h-14 flex-shrink-0" style={{ background: '#E2E8F0' }} />
+                  <div className="hidden sm:block w-px h-14 flex-shrink-0 bg-border-subtle" />
 
                   {/* Price + Book */}
                   <div className="hidden sm:flex flex-col items-end flex-shrink-0">
-                    <p className="text-[10px] font-semibold uppercase text-gray-400 tracking-wide">{offer.totalCurrency}</p>
-                    <p className="text-3xl font-extrabold tabular-nums leading-tight" style={{ color: '#DC2626' }}>
-                      {Math.round(gross).toLocaleString()}
+                    <p className="text-[10px] font-semibold uppercase text-on-surface-variant tracking-wide">{grossShown.approx ? displayCurrency : offer.totalCurrency}</p>
+                    <p className="text-3xl font-extrabold tabular-nums leading-tight text-error">
+                      {grossShown.approx && '~'}{grossShown.text.replace(/^[^\d]*/, '')}
                     </p>
-                    <p className="text-[10px] text-gray-400 mb-1.5">all fees included</p>
-                    {(() => {
-                      const r = offer.conditions?.refundBeforeDeparture;
-                      if (!r) return null;
-                      if (r.allowed && !r.penaltyAmount) return <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--color-primary)' }}>✓ Free cancellation</p>;
-                      if (r.allowed && r.penaltyAmount) return <p className="text-[10px] font-bold mb-2" style={{ color: '#B45309' }}>Cancel fee: {fmtPrice(parseFloat(r.penaltyAmount), r.penaltyCurrency ?? offer.totalCurrency)}</p>;
-                      return <p className="text-[10px] font-bold mb-2" style={{ color: '#94A3B8' }}>Non-refundable</p>;
-                    })()}
+                    <p className="text-[10px] text-on-surface-variant mb-1.5">all fees included</p>
+                    {cancelFeeBlock('text-[10px] font-bold mb-2')}
                     <button onClick={() => ret ? selectOutboundFlight(offer) : startBooking(offer)}
-                      className="px-5 py-2 rounded-xl text-sm font-bold text-white whitespace-nowrap hover:opacity-90 transition-opacity"
-                      style={{ background: 'var(--color-primary)' }}>
+                      className="px-5 py-2 rounded-xl text-sm font-bold text-white whitespace-nowrap hover:opacity-90 transition-opacity bg-primary">
                       {ret ? 'Select →' : 'Book →'}
                     </button>
                   </div>
                 </div>
 
                 {/* Mobile: price + book row */}
-                <div className="sm:hidden px-5 pb-4 flex items-center justify-between border-t border-gray-50 pt-3">
+                <div className="sm:hidden px-5 pb-4 flex items-center justify-between border-t border-surface-container-low pt-3">
                   <div>
-                    <p className="text-2xl font-extrabold tabular-nums" style={{ color: '#DC2626' }}>{fmtPrice(gross, offer.totalCurrency)}</p>
-                    <p className="text-[10px] text-gray-400">all fees included</p>
-                    {(() => {
-                      const r = offer.conditions?.refundBeforeDeparture;
-                      if (!r) return null;
-                      if (r.allowed && !r.penaltyAmount) return <p className="text-[10px] font-bold mt-0.5" style={{ color: 'var(--color-primary)' }}>✓ Free cancellation</p>;
-                      if (r.allowed && r.penaltyAmount) return <p className="text-[10px] font-bold mt-0.5" style={{ color: '#B45309' }}>Cancel fee: {fmtPrice(parseFloat(r.penaltyAmount), r.penaltyCurrency ?? offer.totalCurrency)}</p>;
-                      return <p className="text-[10px] font-bold mt-0.5" style={{ color: '#94A3B8' }}>Non-refundable</p>;
-                    })()}
+                    <p className="text-2xl font-extrabold tabular-nums text-error">{grossShown.approx && '~'}{grossShown.text}</p>
+                    <p className="text-[10px] text-on-surface-variant">all fees included</p>
+                    {cancelFeeBlock('text-[10px] font-bold mt-0.5')}
                   </div>
                   <button onClick={() => ret ? selectOutboundFlight(offer) : startBooking(offer)}
-                    className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
-                    style={{ background: 'var(--color-primary)' }}>
+                    className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-primary">
                     {ret ? 'Select →' : 'Book →'}
                   </button>
                 </div>
@@ -3291,8 +3370,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 {/* Expand/collapse button for direct flights */}
                 {stops === 0 && (
                   <button onClick={() => setExpanded(isExpanded ? null : offer.id)}
-                    className="w-full py-2 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                    style={{ borderTop: '1px solid #F8FAFC' }}>
+                    className="w-full py-2 text-xs font-semibold text-on-surface-variant hover:text-pro-navy transition-colors cursor-pointer border-t border-surface-container-low">
                     {isExpanded ? '▲ Hide itinerary' : '▼ Show itinerary'}
                   </button>
                 )}
@@ -3318,22 +3396,22 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             <div className="flex-1 pb-3">
                               {/* Departure node */}
                               <div className="flex items-baseline gap-2.5 mb-1">
-                                <p className="text-2xl font-extrabold text-gray-900 tabular-nums leading-none">{fmtTime(seg.depAt)}</p>
-                                <p className="text-sm text-gray-400">{depDay}</p>
+                                <p className="text-2xl font-extrabold text-pro-navy tabular-nums leading-none">{fmtTime(seg.depAt)}</p>
+                                <p className="text-sm text-on-surface-variant">{depDay}</p>
                               </div>
-                              <p className="text-base font-bold text-gray-800 mb-0.5">{seg.depCity} <span className="text-gray-400 font-semibold">({seg.depCode})</span></p>
+                              <p className="text-base font-bold text-pro-navy mb-0.5">{seg.depCity} <span className="text-on-surface-variant font-semibold">({seg.depCode})</span></p>
 
                               {/* Flight details */}
                               <div className="my-4 pl-4 py-3 rounded-xl" style={{ borderLeft: '3px solid #E2E8F0', background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                                 <div className="flex items-center gap-2.5 mb-1.5">
                                   <AirlineLogo code={seg.airlineCode} name={seg.airline} />
-                                  <span className="text-sm font-bold text-gray-800">{seg.airline}</span>
+                                  <span className="text-sm font-bold text-pro-navy">{seg.airline}</span>
                                 </div>
-                                <p className="text-xs text-gray-500 leading-relaxed">
+                                <p className="text-xs text-on-surface-variant leading-relaxed">
                                   {fmtCabin(seg.cabinClass ?? 'economy')} · {seg.flightNumber}{seg.aircraft ? ` · ${seg.aircraft}` : ''} · {seg.duration}
                                 </p>
                                 {seg.baggage && (seg.baggage.checkedBags > 0 || seg.baggage.carryOn > 0) && (
-                                  <p className="text-xs text-gray-500 mt-1">
+                                  <p className="text-xs text-on-surface-variant mt-1">
                                     {seg.baggage.carryOn > 0 && `🎒 Carry-on included`}
                                     {seg.baggage.carryOn > 0 && seg.baggage.checkedBags > 0 && ' · '}
                                     {seg.baggage.checkedBags > 0 && `🧳 ${seg.baggage.checkedBags} checked bag${seg.baggage.checkedBags > 1 ? 's' : ''} included`}
@@ -3387,10 +3465,10 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
                               {/* Arrival node */}
                               <div className="flex items-baseline gap-2.5 mb-1">
-                                <p className="text-2xl font-extrabold text-gray-900 tabular-nums leading-none">{fmtTime(seg.arrAt)}</p>
-                                <p className="text-sm text-gray-400">{arrDay}</p>
+                                <p className="text-2xl font-extrabold text-pro-navy tabular-nums leading-none">{fmtTime(seg.arrAt)}</p>
+                                <p className="text-sm text-on-surface-variant">{arrDay}</p>
                               </div>
-                              <p className="text-base font-bold text-gray-800">{seg.arrCity} <span className="text-gray-400 font-semibold">({seg.arrCode})</span></p>
+                              <p className="text-base font-bold text-pro-navy">{seg.arrCity} <span className="text-on-surface-variant font-semibold">({seg.arrCode})</span></p>
                             </div>
                           </div>
 
@@ -3411,9 +3489,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                   </div>
                                   {guide && (
                                     <div className="rounded-xl p-3 space-y-2" style={{ background: 'white', border: '1px solid #E2E8F0' }}>
-                                      <p className="text-xs font-bold text-gray-700">{guide.flag} {guide.city} — quick tips</p>
+                                      <p className="text-xs font-bold text-pro-navy">{guide.flag} {guide.city} — quick tips</p>
                                       {guide.tips.slice(0, 2).map((tip, ti) => (
-                                        <p key={ti} className="text-[11px] text-gray-500">
+                                        <p key={ti} className="text-[11px] text-on-surface-variant">
                                           {tip.icon} <span className="font-semibold">{tip.title}</span> — {tip.desc.slice(0, 80)}
                                         </p>
                                       ))}
@@ -3454,7 +3532,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       });
 
                     return (
-                      <div className="mt-4 rounded-2xl overflow-hidden" style={{ border: '1px solid #1E3A5F' }}>
+                      <div className="mt-4 rounded-2xl overflow-hidden border border-pro-navy">
                         {/* Header */}
                         <div className="relative overflow-hidden" style={{ minHeight: 90 }}>
                           {/* City image backdrop (first airport with image) */}
@@ -3528,11 +3606,11 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                     <span className="text-lg">{guide!.flag}</span>
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2">
-                                        <p className="text-sm font-bold text-gray-900">{code}</p>
+                                        <p className="text-sm font-bold text-pro-navy">{code}</p>
                                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
                                           style={{ background: roleColor.bg, color: roleColor.text }}>{role}</span>
                                       </div>
-                                      <p className="text-[10px] text-gray-400">{guide!.airport}</p>
+                                      <p className="text-[10px] text-on-surface-variant">{guide!.airport}</p>
                                     </div>
                                   </div>
                                 )}
@@ -3542,7 +3620,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                   {lounges.map((l, li) => (
                                     <div key={li} className="flex items-start justify-between gap-3 py-2 px-3 rounded-lg" style={{ background: '#F8FAFC', border: '1px solid #EEF2F7' }}>
                                       <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold text-gray-900 truncate">{l.name}</p>
+                                        <p className="text-sm font-bold text-pro-navy truncate">{l.name}</p>
                                         <div className="flex flex-wrap gap-1 mt-1">
                                           {l.payAtDoor && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF9C3', color: '#92400E' }}>💳 Walk-in</span>}
                                           {l.is24h && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#EFF6FF', color: '#1D4ED8' }}>🕐 24h</span>}
@@ -3553,7 +3631,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                       {l.price && (
                                         <div className="text-right flex-shrink-0">
                                           <span className="text-base font-extrabold" style={{ color: 'var(--color-primary)' }}>{l.price}</span>
-                                          <p className="text-[9px] text-gray-400">per person</p>
+                                          <p className="text-[9px] text-on-surface-variant">per person</p>
                                         </div>
                                       )}
                                     </div>
@@ -3562,7 +3640,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                 {/* Layover tips — only for stopovers */}
                                 {isLayover && guide!.tips.length > 0 && (
                                   <div className="px-3 pb-3" style={{ borderTop: '1px solid #EEF2F7' }}>
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide pt-2.5 mb-2">
+                                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide pt-2.5 mb-2">
                                       🗺️ How to spend your time in {guide!.city}
                                     </p>
                                     <div className="space-y-1.5">
@@ -3570,8 +3648,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                         <div key={ti} className="flex items-start gap-2 px-2.5 py-2 rounded-lg" style={{ background: '#F0FDF4', border: '1px solid #D1FAE5' }}>
                                           <span className="text-sm flex-shrink-0 mt-0.5">{tip.icon}</span>
                                           <div>
-                                            <p className="text-[11px] font-bold text-gray-800">{tip.title}</p>
-                                            <p className="text-[10px] text-gray-500 leading-relaxed mt-0.5">{tip.desc}</p>
+                                            <p className="text-[11px] font-bold text-pro-navy">{tip.title}</p>
+                                            <p className="text-[10px] text-on-surface-variant leading-relaxed mt-0.5">{tip.desc}</p>
                                           </div>
                                         </div>
                                       ))}
@@ -3594,6 +3672,15 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
       )}
         </div>{/* end main results column */}
       </div>{/* end flex wrapper */}
+
+      {/* Mobile filter entry point — sidebar is desktop-only, so this is the only way to reach filters on small screens */}
+      {!loading && !searchError && offers.length > 0 && (
+        <button onClick={() => setMobileFiltersOpen(true)}
+          className="fixed bottom-6 right-6 lg:hidden bg-pro-navy text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform">
+          <span className="material-symbols-outlined">filter_list</span>
+          {hasActiveFilters && <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-alert-orange border-2 border-pro-navy" />}
+        </button>
+      )}
     </div>
   );
 }
