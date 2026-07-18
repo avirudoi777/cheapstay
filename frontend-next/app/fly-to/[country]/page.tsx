@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { buildPageMetadata } from '@/lib/metadata';
 import { FLY_TO } from '@/lib/fly-to-data';
+import { FLY_TO_HOTEL_MAP } from '@/lib/fly-to-hotel-map';
 
 export const revalidate = 86400;
 
@@ -42,6 +43,8 @@ export default async function FlyToPage({ params }: Props) {
   const verifiedDate = dest.last_verified
     ? new Date(dest.last_verified).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : null;
+
+  const hotelMatch = FLY_TO_HOTEL_MAP[country];
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -109,6 +112,21 @@ export default async function FlyToPage({ params }: Props) {
             Search flights →
           </Link>
         </div>
+
+        {/* Search hotels CTA — only when a matching /hotels/[city] page exists */}
+        {hotelMatch && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex-1">
+              <p className="font-bold text-navy text-sm">Cheap hotels in {hotelMatch.cityName}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Real prices, sorted by best value</p>
+            </div>
+            <Link href={`/hotels/${hotelMatch.citySlug}`}
+              className="text-sm font-bold text-white px-5 py-2.5 rounded-xl transition-opacity hover:opacity-90 whitespace-nowrap"
+              style={{ background: 'var(--color-tertiary)' }}>
+              View hotels →
+            </Link>
+          </div>
+        )}
 
         {/* Entry requirements */}
         <section className="bg-white rounded-2xl border border-gray-100 p-6">

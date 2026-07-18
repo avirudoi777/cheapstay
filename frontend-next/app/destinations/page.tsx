@@ -14,7 +14,10 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://www.cheapstay.co/destinations' },
 };
 
-const DESTINATIONS = [
+const DESTINATIONS: {
+  city: string; country: string; flag: string; avg_price?: number; saving?: number;
+  desc: string; img: string; slug: string; tags: string[];
+}[] = [
   {
     city: 'Bangkok',
     country: 'Thailand',
@@ -23,7 +26,7 @@ const DESTINATIONS = [
     saving: 38,
     desc: 'Asia\'s best value capital. World-class hotels for a fraction of Western prices.',
     img: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=600&h=400&fit=crop&auto=format',
-    search: 'Bangkok',
+    slug: 'bangkok',
     tags: ['Best for Thai IP', 'Budget-friendly', 'Street food'],
   },
   {
@@ -34,7 +37,7 @@ const DESTINATIONS = [
     saving: 31,
     desc: 'Villas with private pools at resort prices. Ubud and Seminyak are the sweet spots.',
     img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&h=400&fit=crop&auto=format',
-    search: 'Bali',
+    slug: 'bali',
     tags: ['Private villas', 'Digital nomad', 'Nature'],
   },
   {
@@ -45,7 +48,7 @@ const DESTINATIONS = [
     saving: 22,
     desc: 'Surprisingly affordable. Dormy Inn chain is the best value per night in Asia.',
     img: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&h=400&fit=crop&auto=format',
-    search: 'Tokyo',
+    slug: 'tokyo',
     tags: ['Business hotels', 'Onsen included', 'Great transit'],
   },
   {
@@ -56,7 +59,7 @@ const DESTINATIONS = [
     saving: 19,
     desc: 'Pricier than the rest of Asia but Thai IP still cuts 15–20% off OTA rates.',
     img: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=600&h=400&fit=crop&auto=format',
-    search: 'Singapore',
+    slug: 'singapore',
     tags: ['Luxury value', 'Short stays', 'Layover hub'],
   },
   {
@@ -67,7 +70,7 @@ const DESTINATIONS = [
     saving: 35,
     desc: 'The digital nomad capital of Southeast Asia. Incredible value, slow pace.',
     img: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&h=400&fit=crop&auto=format',
-    search: 'Chiang Mai',
+    slug: 'chiang-mai',
     tags: ['Nomad hotspot', 'Monthly stays', 'Mountains'],
   },
   {
@@ -78,7 +81,7 @@ const DESTINATIONS = [
     saving: 33,
     desc: 'Beach resorts at Thai IP prices. Patong for nightlife, Kata for families.',
     img: 'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=600&h=400&fit=crop&auto=format',
-    search: 'Phuket',
+    slug: 'phuket',
     tags: ['Beaches', 'Resorts', 'Family-friendly'],
   },
   {
@@ -89,7 +92,7 @@ const DESTINATIONS = [
     saving: 27,
     desc: 'KL has some of the best luxury-for-less hotels in Southeast Asia.',
     img: 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=600&h=400&fit=crop&auto=format',
-    search: 'Kuala Lumpur',
+    slug: 'kuala-lumpur',
     tags: ['City breaks', 'Luxury value', 'Food scene'],
   },
   {
@@ -100,8 +103,44 @@ const DESTINATIONS = [
     saving: 29,
     desc: 'Vietnam\'s most dynamic city with boutique hotels at backpacker prices.',
     img: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=600&h=400&fit=crop&auto=format',
-    search: 'Ho Chi Minh City',
+    slug: 'ho-chi-minh-city',
     tags: ['Boutique hotels', 'Street food', 'History'],
+  },
+  {
+    city: 'Dubai',
+    country: 'UAE',
+    flag: '🇦🇪',
+    desc: 'Skyline views and beach resorts — check real prices before you assume it\'s out of budget.',
+    img: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=600&h=400&fit=crop&auto=format',
+    slug: 'dubai',
+    tags: ['Beach resorts', 'Layover hub', 'Skyline views'],
+  },
+  {
+    city: 'Delhi',
+    country: 'India',
+    flag: '🇮🇳',
+    desc: 'Gateway to North India, from heritage hotels to modern business stays.',
+    img: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=600&h=400&fit=crop&auto=format',
+    slug: 'delhi',
+    tags: ['Heritage hotels', 'City breaks', 'Great value'],
+  },
+  {
+    city: 'Seoul',
+    country: 'South Korea',
+    flag: '🇰🇷',
+    desc: 'K-culture, shopping and food — hotels in Myeongdong and Hongdae put you in the middle of it.',
+    img: 'https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=600&h=400&fit=crop&auto=format',
+    slug: 'seoul',
+    tags: ['City breaks', 'Shopping', 'Food scene'],
+  },
+  {
+    city: 'Jakarta',
+    country: 'Indonesia',
+    flag: '🇮🇩',
+    desc: 'Indonesia\'s underrated capital — real city energy at a fraction of Bali\'s tourist prices.',
+    img: 'https://images.unsplash.com/photo-1555899434-94d1368aa7af?w=600&h=400&fit=crop&auto=format',
+    slug: 'jakarta',
+    tags: ['Underrated', 'Budget-friendly', 'City breaks'],
   },
 ];
 
@@ -144,7 +183,7 @@ export default function DestinationsPage() {
         {/* Destinations grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mb-12">
           {DESTINATIONS.map(dest => (
-            <Link key={dest.city} href={`/?destination=${encodeURIComponent(dest.search)}`}
+            <Link key={dest.slug} href={`/hotels/${dest.slug}`}
               className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-md transition-shadow flex flex-col group">
               <div className="relative aspect-[4/3]">
                 <Image src={dest.img} alt={`Cheap hotels in ${dest.city}`} fill className="object-cover group-hover:scale-105 transition-transform duration-300" unoptimized />
@@ -153,9 +192,11 @@ export default function DestinationsPage() {
                   <p className="text-white font-extrabold text-base leading-none">{dest.flag} {dest.city}</p>
                   <p className="text-white/70 text-xs">{dest.country}</p>
                 </div>
-                <div className="absolute top-3 right-3 bg-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  Save {dest.saving}%
-                </div>
+                {dest.saving != null && (
+                  <div className="absolute top-3 right-3 bg-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    Save {dest.saving}%
+                  </div>
+                )}
               </div>
               <div className="p-4 flex flex-col flex-1">
                 <p className="text-xs text-gray-500 mb-3 leading-relaxed flex-1">{dest.desc}</p>
@@ -165,12 +206,14 @@ export default function DestinationsPage() {
                   ))}
                 </div>
                 <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                  <div>
-                    <span className="text-xs text-gray-400">From </span>
-                    <span className="text-base font-extrabold text-gray-900">${dest.avg_price}</span>
-                    <span className="text-xs text-gray-400">/night</span>
-                  </div>
-                  <span className="text-xs font-bold text-teal group-hover:underline">Search →</span>
+                  {dest.avg_price != null ? (
+                    <div>
+                      <span className="text-xs text-gray-400">From </span>
+                      <span className="text-base font-extrabold text-gray-900">${dest.avg_price}</span>
+                      <span className="text-xs text-gray-400">/night</span>
+                    </div>
+                  ) : <span />}
+                  <span className="text-xs font-bold text-teal group-hover:underline">View hotels →</span>
                 </div>
               </div>
             </Link>

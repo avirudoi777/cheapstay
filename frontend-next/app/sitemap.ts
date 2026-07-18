@@ -19,6 +19,7 @@ const BLOG_SLUGS = [
 const CITY_SLUGS = [
   'bangkok', 'bali', 'tokyo', 'singapore',
   'chiang-mai', 'phuket', 'kuala-lumpur', 'ho-chi-minh-city',
+  'dubai', 'delhi', 'seoul', 'jakarta',
 ];
 
 // Destination requirements pages (fly-to)
