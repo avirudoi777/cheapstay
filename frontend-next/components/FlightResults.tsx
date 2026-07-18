@@ -87,14 +87,14 @@ interface SeatCabin { cabinClass: string; cabinClassName?: string; rows: SeatRow
 interface SeatMap { segmentId: string; cabins: SeatCabin[] }
 
 const SEAT_COLORS = {
-  free:     { bg: '#E6F7F1', text: 'var(--color-primary)', border: '#A7F3D0' },
-  paid:     { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' },
-  sel:      { bg: '#2563EB', border: '#1D4ED8' }, // single blue for selected — always distinct
+  free:     { bg: 'rgba(34,197,94,0.1)', text: 'var(--color-savings-green)', border: 'rgba(34,197,94,0.35)' },
+  paid:     { bg: 'rgba(249,115,22,0.1)', text: 'var(--color-alert-orange)', border: 'rgba(249,115,22,0.35)' },
+  sel:      { bg: 'var(--color-primary)', border: 'var(--color-primary)' }, // primary teal for selected — always distinct
   taken:    { bg: '#F3F4F6', text: '#D1D5DB', border: '#E5E7EB' },
   legend: {
-    free:     { bg: '#6EE7B7', border: '#34D399' },
-    paid:     { bg: '#FDE68A', border: '#D97706' },
-    selected: { bg: '#2563EB', border: '#1D4ED8' }, // matches sel above
+    free:     { bg: 'rgba(34,197,94,0.4)', border: 'var(--color-savings-green)' },
+    paid:     { bg: 'rgba(249,115,22,0.4)', border: 'var(--color-alert-orange)' },
+    selected: { bg: 'var(--color-primary)', border: 'var(--color-primary)' }, // matches sel above
     taken:    { bg: '#D1D5DB', border: '#9CA3AF' },
   },
 } as const;
@@ -395,13 +395,13 @@ const ISSUER_STYLE: Record<string, { bg: string; color: string }> = {
 };
 
 /* ─── Input helpers ──────────────────────────────────────────────────────── */
-const inputCls = 'w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-400 transition bg-white';
+const inputCls = 'w-full h-12 px-3.5 text-sm rounded-lg border border-border-subtle focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition bg-white';
 const selectCls = inputCls + ' appearance-none';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+      <label className="block font-label-bold text-label-bold text-pro-navy mb-2">{label}</label>
       {children}
     </div>
   );
@@ -1224,29 +1224,28 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
     const otherServices = offer.availableServices.filter(s => s.type !== 'baggage' && s.type !== 'seat');
 
     return (
-      <div ref={containerRef} className="mt-4 mb-12" style={{ background: '#F8FAFC', minHeight: '100vh' }}>
+      <div ref={containerRef} className="mt-4 mb-12 bg-surface-container-low" style={{ minHeight: '100vh' }}>
         {/* Countdown banner */}
         {(offerRefreshing || booking) ? (
-          <div className="w-full py-2.5 px-4 flex items-center justify-center gap-3 text-sm font-semibold" style={{ background: '#EFF6FF', borderBottom: '1px solid #BFDBFE' }}>
-            <svg className="animate-spin h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-            <span style={{ color: '#1D4ED8' }}>{offerRefreshing ? 'Getting latest price…' : 'Processing payment…'}</span>
+          <div className="w-full py-2.5 px-4 flex items-center justify-center gap-3 text-sm font-semibold bg-sky-blue/10 border-b border-sky-blue/30">
+            <svg className="animate-spin h-4 w-4 text-tertiary" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+            <span className="text-tertiary">{offerRefreshing ? 'Getting latest price…' : 'Processing payment…'}</span>
           </div>
         ) : secsLeft !== null && (
-          <div className="w-full py-2.5 px-4 flex items-center justify-center gap-3 text-sm font-semibold"
-            style={{ background: isExpired ? '#FFFBEB' : isExpiringSoon ? '#FFFBEB' : '#FFF7ED', borderBottom: `1px solid ${isExpired ? '#FCD34D' : isExpiringSoon ? '#FCD34D' : '#FED7AA'}` }}>
-            <span>🕐</span>
-            <span style={{ color: isExpired ? '#92400E' : isExpiringSoon ? '#92400E' : '#C2410C' }}>
+          <div className={`w-full py-2.5 px-4 flex items-center justify-center gap-3 text-sm font-semibold ${isExpired || isExpiringSoon ? 'bg-alert-orange/10 border-b border-alert-orange/30' : 'bg-alert-orange/5 border-b border-alert-orange/20'}`}>
+            <span className="material-symbols-outlined text-[18px] text-alert-orange">schedule</span>
+            <span className="text-alert-orange">
               {isExpired ? 'Price may have updated — click Pay to confirm latest price' : 'Offer locked — seats may sell out!'}
             </span>
-            {!isExpired && <span className="font-mono font-extrabold text-base tabular-nums" style={{ color: isExpiringSoon ? '#DC2626' : '#EA580C' }}>{countdownStr}</span>}
+            {!isExpired && <span className={`font-mono font-extrabold text-base tabular-nums ${isExpiringSoon ? 'text-error' : 'text-alert-orange'}`}>{countdownStr}</span>}
           </div>
         )}
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-5">
           {/* Back link */}
           <button onClick={() => window.history.back()}
-            className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors mb-5 cursor-pointer">
-            ← Back to results
+            className="flex items-center gap-1.5 text-sm font-semibold text-on-surface-variant hover:text-pro-navy transition-colors mb-5 cursor-pointer">
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span> Back to results
           </button>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -1255,52 +1254,62 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
               {/* Contact details — passenger step only */}
               {bookStep === 'passenger' && savedProfile && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-3">For all bookings</p>
-                  <p className="text-lg font-extrabold text-gray-900 mb-0.5">Contact details</p>
-                  <p className="text-sm text-gray-500 mb-4">This is where your confirmation will be sent</p>
-                  <div className="flex items-center justify-between p-4 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                    <div>
-                      <p className="font-semibold text-gray-900">{savedProfile.givenName} {savedProfile.familyName}</p>
-                      <p className="text-sm text-gray-500 mt-0.5">{savedProfile.email}{savedProfile.phone ? ` · ${savedProfile.phone}` : ''}</p>
+                <div className="bg-white rounded-xl pro-shadow border border-border-subtle p-5">
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="material-symbols-outlined text-primary">contact_mail</span>
+                    <p className="font-headline-md text-[18px] text-pro-navy">Contact details</p>
+                  </div>
+                  <p className="text-sm text-on-surface-variant mb-4">This is where your confirmation will be sent.</p>
+                  <div className="flex items-center justify-between gap-4 p-4 bg-surface-container-low rounded-lg border border-dashed border-outline-variant">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="material-symbols-outlined text-primary text-[20px]">person</span>
+                      </div>
+                      <div>
+                        <p className="font-bold text-pro-navy">{savedProfile.givenName} {savedProfile.familyName}</p>
+                        <p className="text-sm text-on-surface-variant mt-0.5">{savedProfile.email}{savedProfile.phone ? ` · ${savedProfile.phone}` : ''}</p>
+                      </div>
                     </div>
-                    <a href="/account" target="_blank" className="text-xs font-bold flex items-center gap-1" style={{ color: 'var(--color-sky-blue)' }}>
-                      ✏️ Edit
+                    <a href="/account" target="_blank" className="flex items-center gap-1 text-xs font-bold text-primary hover:underline flex-shrink-0">
+                      <span className="material-symbols-outlined text-[16px]">edit</span> Edit
                     </a>
                   </div>
                 </div>
               )}
 
               {/* Passenger forms — passenger step only */}
-              {bookStep === 'passenger' && <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">✈️ Flight(s)</p>
+              {bookStep === 'passenger' && <div className="bg-white rounded-xl pro-shadow border border-border-subtle p-5">
+                <div className="flex items-center gap-3 mb-1">
+                  <span className="material-symbols-outlined text-primary">flight_takeoff</span>
+                  <p className="font-headline-md text-[18px] text-pro-navy">Flight(s)</p>
+                </div>
                 {forms.map((paxForm, idx) => {
                   const paxErrors = formErrors[idx] ?? {};
                   const destCountry = AIRPORT_COUNTRY[toCode.toUpperCase()] ?? '';
                   const paxType = offer.passengers?.[idx]?.type ?? 'adult';
                   const isInfant = paxType === 'infant_without_seat';
                   const isChild = paxType === 'child';
-                  const paxTypeLabel = isInfant ? '👶 Infant (under 2)' : isChild ? '🧒 Child (2–11)' : '🧑 Adult (12+)';
+                  const paxTypeLabel = isInfant ? 'Infant (under 2)' : isChild ? 'Child (2–11)' : 'Adult (12+)';
+                  const paxTypeClass = isInfant ? 'bg-alert-orange/10 text-alert-orange' : isChild ? 'bg-sky-blue/10 text-tertiary' : 'bg-primary/10 text-primary';
                   return (
-                    <div key={idx} className={idx > 0 ? 'border-t border-gray-100 pt-5 mt-5' : ''}>
+                    <div key={idx} className={idx > 0 ? 'border-t border-surface-container-low pt-5 mt-5' : 'mt-4'}>
                       <div className="flex items-center gap-2 mb-0.5">
-                        <p className="text-lg font-extrabold text-gray-900">Passenger {idx + 1}</p>
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                          style={{ background: isInfant ? '#FEF3C7' : isChild ? '#EFF6FF' : '#F0FDF4', color: isInfant ? '#92400E' : isChild ? '#1D4ED8' : '#15803D' }}>
+                        <p className="font-headline-md text-[18px] text-pro-navy">Passenger {idx + 1}</p>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${paxTypeClass}`}>
                           {paxTypeLabel}
                         </span>
                       </div>
                       {isInfant && (
-                        <div className="flex items-start gap-2 rounded-xl p-3 mb-3" style={{ background: '#FEF9C3', border: '1px solid #FDE68A' }}>
-                          <span className="text-base">👶</span>
+                        <div className="flex items-start gap-2 rounded-lg p-3 mb-3 bg-alert-orange/5 border border-alert-orange/20">
+                          <span className="material-symbols-outlined text-alert-orange text-[18px] flex-shrink-0">child_care</span>
                           <div>
-                            <p className="text-xs font-bold text-amber-800">Infant travels on an adult&apos;s lap</p>
-                            <p className="text-[11px] text-amber-700">No separate seat is included. Infant must be under 2 years old for the entire journey. A birth certificate may be required at check-in.</p>
+                            <p className="text-xs font-bold text-pro-navy">Infant travels on an adult&apos;s lap</p>
+                            <p className="text-[11px] text-on-surface-variant">No separate seat is included. Infant must be under 2 years old for the entire journey. A birth certificate may be required at check-in.</p>
                           </div>
                         </div>
                       )}
-                      <p className="text-sm text-gray-500 mb-1">Passenger details must match your passport or photo ID</p>
-                      <p className="text-xs font-semibold mb-4" style={{ color: '#DC2626' }}>*Required field</p>
+                      <p className="text-sm text-on-surface-variant mb-1">Passenger details must match your passport or photo ID</p>
+                      <p className="text-xs font-semibold mb-4 text-error">*Required field</p>
 
                       {/* Saved passenger select */}
                       {savedProfile && (savedProfile.passports.length > 0 || savedProfile.givenName) && (() => {
@@ -1312,7 +1321,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         if (profileTakenByOther) return null; // only "new passenger" option shown below
                         return (
                           <div className="mb-4">
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">Select passenger</label>
+                            <label className="block font-label-bold text-label-bold text-pro-navy mb-2">Select passenger</label>
                             <select
                               value={selectedPassportIds[idx] ?? ''}
                               onChange={e => {
@@ -1336,7 +1345,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       {/* Fill from saved companion (passenger 2+) */}
                       {idx > 0 && savedProfile?.companions && savedProfile.companions.length > 0 && (
                         <div className="mb-4">
-                          <label className="block text-xs font-semibold text-gray-600 mb-1">Fill from saved traveler</label>
+                          <label className="block font-label-bold text-label-bold text-pro-navy mb-2">Fill from saved traveler</label>
                           <div className="flex gap-2 flex-wrap">
                             {savedProfile.companions.map(c => (
                               <button key={c.id} type="button"
@@ -1354,8 +1363,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                     updatePassenger(idx, 'passportCountry', best.country || '');
                                   }
                                 }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition hover:opacity-80"
-                                style={{ background: '#F0FDF4', border: '1px solid #86EFAC', color: '#15803D' }}>
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border border-savings-green/30 bg-savings-green/10 text-savings-green transition hover:opacity-80">
                                 <span>{(c.givenName[0] || '?').toUpperCase()}</span>
                                 {c.givenName} {c.familyName}
                               </button>
@@ -1366,14 +1374,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
                       {/* Gender */}
                       <div className="mb-4">
-                        <label className="block text-xs font-semibold text-gray-600 mb-2">Gender *</label>
-                        <div className="flex items-center gap-4">
+                        <label className="block font-label-bold text-label-bold text-pro-navy mb-2">Gender *</label>
+                        <div className="flex items-center gap-6">
                           {[['m', 'Male'], ['f', 'Female']] .map(([val, label]) => (
                             <label key={val} className="flex items-center gap-2 cursor-pointer">
                               <input type="radio" name={`gender-${idx}`} value={val} checked={paxForm.gender === val}
                                 onChange={() => updatePassenger(idx, 'gender', val)}
-                                className="w-4 h-4 accent-teal-600" />
-                              <span className="text-sm font-medium text-gray-700">{label}</span>
+                                className="w-4 h-4 text-primary focus:ring-primary" />
+                              <span className="text-sm text-on-surface">{label}</span>
                             </label>
                           ))}
                         </div>
@@ -1384,12 +1392,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           <input
                             data-error={paxErrors.givenName ? 'true' : undefined}
                             value={paxForm.givenName} onChange={e => updatePassenger(idx, 'givenName', e.target.value)} placeholder="As on passport"
-                            className={inputCls + (paxErrors.givenName ? ' border-red-400' : '')} />
-                          {paxErrors.givenName && <p className="text-xs text-red-500 mt-0.5">{paxErrors.givenName}</p>}
+                            className={inputCls + (paxErrors.givenName ? ' border-error' : '')} />
+                          {paxErrors.givenName && <p className="text-xs text-error mt-0.5">{paxErrors.givenName}</p>}
                         </Field>
                         <Field label="Last name *">
                           <input value={paxForm.familyName} onChange={e => updatePassenger(idx, 'familyName', e.target.value)} placeholder="As on passport" className={inputCls} />
-                          {paxErrors.familyName && <p className="text-xs text-red-500 mt-0.5">{paxErrors.familyName}</p>}
+                          {paxErrors.familyName && <p className="text-xs text-error mt-0.5">{paxErrors.familyName}</p>}
                         </Field>
                       </div>
 
@@ -1407,8 +1415,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             <DatePicker value={paxForm.bornOn} onChange={v => updatePassenger(idx, 'bornOn', v)}
                               max={new Date().toISOString().slice(0,10)}
                               placeholder="Date of birth"
-                              className={inputCls + (paxErrors.bornOn ? ' border-red-400' : '')} />
-                            {paxErrors.bornOn && <p className="text-xs text-red-500 mt-0.5">{paxErrors.bornOn}</p>}
+                              className={inputCls + (paxErrors.bornOn ? ' border-error' : '')} />
+                            {paxErrors.bornOn && <p className="text-xs text-error mt-0.5">{paxErrors.bornOn}</p>}
                           </Field>
                         </div>
                       </div>
@@ -1428,7 +1436,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                               </option>
                             ))}
                           </select>
-                          {paxErrors.passportCountry && <p className="text-xs text-red-500 mt-0.5">{paxErrors.passportCountry}</p>}
+                          {paxErrors.passportCountry && <p className="text-xs text-error mt-0.5">{paxErrors.passportCountry}</p>}
                         </Field>
                       </div>
 
@@ -1436,14 +1444,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         <Field label="Passport number *">
                           <input value={paxForm.passportNumber} onChange={e => updatePassenger(idx, 'passportNumber', e.target.value.toUpperCase())}
                             placeholder="AB1234567" className={inputCls} style={{ textTransform: 'uppercase' }} />
-                          {paxErrors.passportNumber && <p className="text-xs text-red-500 mt-0.5">{paxErrors.passportNumber}</p>}
+                          {paxErrors.passportNumber && <p className="text-xs text-error mt-0.5">{paxErrors.passportNumber}</p>}
                         </Field>
                         <Field label="Passport expiry *">
                           <DatePicker value={paxForm.passportExpiry} onChange={v => updatePassenger(idx, 'passportExpiry', v)}
                             min={new Date().toISOString().slice(0,10)}
                             placeholder="Expiry date"
-                            className={inputCls + (paxErrors.passportExpiry ? ' border-red-400' : '')} />
-                          {paxErrors.passportExpiry && <p className="text-xs text-red-500 mt-0.5">{paxErrors.passportExpiry}</p>}
+                            className={inputCls + (paxErrors.passportExpiry ? ' border-error' : '')} />
+                          {paxErrors.passportExpiry && <p className="text-xs text-error mt-0.5">{paxErrors.passportExpiry}</p>}
                         </Field>
                       </div>
 
@@ -1451,18 +1459,18 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         <>
                           <Field label="Email *">
                             <input type="email" value={paxForm.email} onChange={e => updatePassenger(idx, 'email', e.target.value)} placeholder="Confirmation sent here" className={inputCls} />
-                            {paxErrors.email && <p className="text-xs text-red-500 mt-0.5">{paxErrors.email}</p>}
+                            {paxErrors.email && <p className="text-xs text-error mt-0.5">{paxErrors.email}</p>}
                           </Field>
                           <div className="mt-3">
                             <Field label="Phone (with country code) *">
                               <PhoneInput value={paxForm.phoneNumber} onChange={v => updatePassenger(idx, 'phoneNumber', v)} required />
-                              {paxErrors.phoneNumber && <p className="text-xs text-red-500 mt-0.5">{paxErrors.phoneNumber}</p>}
+                              {paxErrors.phoneNumber && <p className="text-xs text-error mt-0.5">{paxErrors.phoneNumber}</p>}
                             </Field>
                           </div>
                         </>
                       ) : (
-                        <p className="text-[11px] text-gray-400 mt-1">
-                          📧 Confirmation will be sent to {forms[0].email || 'lead passenger email'}
+                        <p className="text-[11px] text-on-surface-variant mt-1">
+                          Confirmation will be sent to {forms[0].email || 'lead passenger email'}
                         </p>
                       )}
                     </div>
@@ -1470,13 +1478,21 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 })}
 
                 {/* Save checkbox */}
-                <div className="border-t border-gray-100 mt-5 pt-4 flex items-start gap-3">
+                <div className="border-t border-surface-container-low mt-5 pt-4 flex items-start gap-3">
                   <input type="checkbox" id="savePassenger" checked={savePassenger} onChange={e => setSavePassenger(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded accent-teal-600 cursor-pointer flex-shrink-0" />
-                  <label htmlFor="savePassenger" className="text-xs text-gray-600 cursor-pointer">
+                    className="mt-0.5 w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer flex-shrink-0" />
+                  <label htmlFor="savePassenger" className="text-xs text-on-surface-variant cursor-pointer">
                     Save/update passenger info for future bookings.{' '}
-                    <a href="/account" target="_blank" className="font-semibold underline" style={{ color: 'var(--color-sky-blue)' }}>See Privacy Policy</a>.
+                    <a href="/account" target="_blank" className="font-semibold underline text-tertiary">See Privacy Policy</a>.
                   </label>
+                </div>
+
+                <div className="mt-6 p-4 bg-sky-blue/10 border-l-4 border-sky-blue rounded-r-lg flex gap-3">
+                  <span className="material-symbols-outlined text-tertiary flex-shrink-0">lightbulb</span>
+                  <div>
+                    <p className="font-label-bold text-label-bold text-pro-navy">Pro Tip</p>
+                    <p className="text-sm text-on-surface-variant mt-1">Make sure your name matches your passport exactly, including middle names — airlines are strict about this on international routes.</p>
+                  </div>
                 </div>
               </div>}
 
@@ -1528,66 +1544,69 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
               {/* Baggage included — always visible on passenger step */}
               {bookStep === 'passenger' && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                  <p className="text-sm font-extrabold text-gray-900 mb-3">🧳 What&apos;s included in this fare</p>
+                <div className="bg-white rounded-xl pro-shadow border border-border-subtle p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="material-symbols-outlined text-primary">inventory_2</span>
+                    <p className="font-headline-md text-[18px] text-pro-navy">What&apos;s included in this fare</p>
+                  </div>
                   <div className="space-y-3">
                     {offer.segments.map((seg, i) => {
                       const b = seg.baggage;
                       return (
-                        <div key={i} className={i > 0 ? 'border-t border-gray-100 pt-3' : ''}>
+                        <div key={i} className={i > 0 ? 'border-t border-surface-container-low pt-3' : ''}>
                           {offer.segments.length > 1 && (
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">
+                            <p className="text-metadata text-on-surface-variant uppercase tracking-wider mb-1.5">
                               {seg.depCode} → {seg.arrCode} · {seg.airline}
                             </p>
                           )}
-                          <div className="flex items-center gap-5 flex-wrap">
-                            <div className="flex items-center gap-1.5 text-xs">
-                              <span className={b && b.carryOn > 0 ? 'text-emerald-500 font-bold text-sm' : 'text-gray-300 text-sm'}>
-                                {b && b.carryOn > 0 ? '✓' : '✗'}
-                              </span>
-                              <span className={b && b.carryOn > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${b && b.carryOn > 0 ? 'bg-savings-green/10 text-savings-green' : 'bg-surface-container-low text-on-surface-variant'}`}>
+                              <span className="material-symbols-outlined text-[16px]">{b && b.carryOn > 0 ? 'check_circle' : 'info'}</span>
+                              <span className="font-label-bold text-[12px]">
                                 {b && b.carryOn > 0 ? `${b.carryOn} carry-on` : 'No carry-on'}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1.5 text-xs">
-                              <span className={b && b.checkedBags > 0 ? 'text-emerald-500 font-bold text-sm' : 'text-gray-300 text-sm'}>
-                                {b && b.checkedBags > 0 ? '✓' : '✗'}
-                              </span>
-                              <span className={b && b.checkedBags > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}>
+                            <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${b && b.checkedBags > 0 ? 'bg-savings-green/10 text-savings-green' : 'bg-surface-container-low text-on-surface-variant'}`}>
+                              <span className="material-symbols-outlined text-[16px]">{b && b.checkedBags > 0 ? 'check_circle' : 'info'}</span>
+                              <span className="font-label-bold text-[12px]">
                                 {b && b.checkedBags > 0 ? `${b.checkedBags} checked bag${b.checkedBags > 1 ? 's' : ''}` : 'No checked bag'}
                               </span>
-                              {(!b || b.checkedBags === 0) && (() => {
-                                const hasBagSvc = baggageServices.some(s => s.segmentIds.includes(seg.segmentId ?? ''));
-                                return hasBagSvc ? (
-                                  <button
-                                    onClick={() => {
-                                      const el = document.getElementById('extras-section');
-                                      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                    }}
-                                    className="text-[10px] font-bold px-2 py-0.5 rounded-full cursor-pointer"
-                                    style={{ background: '#E6F7F1', color: 'var(--color-primary)' }}>
-                                    + Add below
-                                  </button>
-                                ) : (
-                                  <span className="text-[10px] text-gray-400">— add at check-in or via airline</span>
-                                );
-                              })()}
                             </div>
+                            {(!b || b.checkedBags === 0) && (() => {
+                              const hasBagSvc = baggageServices.some(s => s.segmentIds.includes(seg.segmentId ?? ''));
+                              return hasBagSvc ? (
+                                <button
+                                  onClick={() => {
+                                    const el = document.getElementById('extras-section');
+                                    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  }}
+                                  className="text-[11px] font-bold px-2.5 py-1 rounded-full cursor-pointer bg-primary/10 text-primary">
+                                  + Add below
+                                </button>
+                              ) : (
+                                <span className="text-[11px] text-on-surface-variant">— add at check-in or via airline</span>
+                              );
+                            })()}
                           </div>
                         </div>
                       );
                     })}
                   </div>
                   {offer.segments.some(s => !s.baggage?.checkedBags) && baggageServices.length === 0 && (
-                    <div className="mt-3 rounded-xl px-3 py-2.5" style={{ background: '#FFFBEB', border: '1px solid #FCD34D' }}>
-                      <p className="text-xs font-bold text-amber-800">🧳 Need to add checked baggage?</p>
-                      <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
-                        This airline doesn&apos;t sell extra bags through our platform. Add them on the airline&apos;s website after booking — always much cheaper than paying at the airport desk.
+                    <div className="mt-4 p-4 bg-alert-orange/5 border border-alert-orange/20 rounded-lg flex gap-3">
+                      <span className="material-symbols-outlined text-alert-orange flex-shrink-0">warning</span>
+                      <p className="text-sm text-on-surface-variant">
+                        <span className="font-bold text-pro-navy">Need checked baggage?</span> This airline doesn&apos;t sell extra bags through our platform — add it on the airline&apos;s website after booking, usually cheaper than paying at the airport desk.
                       </p>
                     </div>
                   )}
                   {offer.segments.some(s => !s.baggage?.checkedBags) && baggageServices.length > 0 && (
-                    <p className="text-[10px] text-amber-600 mt-2.5">💡 Adding baggage online is cheaper than at the airport.</p>
+                    <div className="mt-4 p-4 bg-alert-orange/5 border border-alert-orange/20 rounded-lg flex gap-3">
+                      <span className="material-symbols-outlined text-alert-orange flex-shrink-0">warning</span>
+                      <p className="text-sm text-on-surface-variant">
+                        <span className="font-bold text-pro-navy">Need checked baggage?</span> Adding it below is usually cheaper than paying at the airport desk.
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
@@ -1599,26 +1618,25 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 const fee     = r?.allowed && r.penaltyAmount;
                 const noRefund = r && !r.allowed;
                 const unknown  = !r;
+                const stateClass = free ? 'bg-savings-green/5 border-savings-green/30' : fee ? 'bg-alert-orange/5 border-alert-orange/30' : noRefund ? 'bg-error/5 border-error/30' : 'bg-surface-container-low border-border-subtle';
+                const textClass = free ? 'text-savings-green' : fee ? 'text-alert-orange' : noRefund ? 'text-error' : 'text-on-surface-variant';
+                const icon = free ? 'check_circle' : fee ? 'warning' : noRefund ? 'cancel' : 'info';
                 return (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                    <p className="text-sm font-extrabold text-gray-900 mb-3">🔄 Cancellation policy</p>
-                    <div className="flex items-start gap-3 p-3 rounded-xl"
-                      style={free    ? { background: '#ECFDF5', border: '1px solid #BBF7D0' }
-                           : fee     ? { background: '#FFFBEB', border: '1px solid #FCD34D' }
-                           : noRefund ? { background: '#FEF2F2', border: '1px solid #FECACA' }
-                                      : { background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                      <span className="text-xl flex-shrink-0">
-                        {free ? '✅' : fee ? '⚠️' : noRefund ? '❌' : 'ℹ️'}
-                      </span>
+                  <div className="bg-white rounded-xl pro-shadow border border-border-subtle p-5">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="material-symbols-outlined text-primary">verified_user</span>
+                      <p className="font-headline-md text-[18px] text-pro-navy">Cancellation policy</p>
+                    </div>
+                    <div className={`flex items-start gap-3 p-4 rounded-lg border ${stateClass}`}>
+                      <span className={`material-symbols-outlined flex-shrink-0 ${textClass}`}>{icon}</span>
                       <div>
-                        <p className="text-sm font-bold"
-                          style={{ color: free ? '#15803D' : fee ? '#92400E' : noRefund ? '#DC2626' : '#475569' }}>
+                        <p className={`text-sm font-bold ${textClass}`}>
                           {free     ? 'Free cancellation before departure'
                           : fee     ? `Refundable — ${fmtCancelFee(parseFloat(r!.penaltyAmount!), r!.penaltyCurrency ?? offer.totalCurrency, offer.totalCurrency)} cancellation fee`
                           : noRefund ? 'Non-refundable fare'
                                      : 'Cancellation policy not provided by airline'}
                         </p>
-                        <p className="text-[11px] mt-0.5 text-gray-500">
+                        <p className="text-[11px] mt-0.5 text-on-surface-variant">
                           {free     ? 'You can cancel this booking and receive a full refund before departure.'
                           : fee     ? 'A cancellation fee applies if you cancel before departure.'
                           : noRefund ? 'This ticket cannot be cancelled or refunded. Consider travel insurance.'
@@ -1635,67 +1653,70 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 <div className="space-y-4">
                   {/* Passenger summaries */}
                   {forms.map((paxForm, idx) => (
-                    <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <div key={idx} className="bg-white rounded-xl pro-shadow border border-border-subtle p-5">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Passenger {idx + 1}</p>
-                          <p className="font-bold text-gray-900">{cap(paxForm.title)} {cap(paxForm.givenName)} {cap(paxForm.familyName)}</p>
-                          {idx === 0 && <p className="text-xs text-gray-500 mt-0.5">{paxForm.email} · {paxForm.phoneNumber}</p>}
-                          <p className="text-xs text-gray-400 mt-0.5">Passport {paxForm.passportNumber} · {flagEmoji(paxForm.passportCountry)} {paxForm.passportCountry} · Expires {paxForm.passportExpiry}</p>
+                          <p className="text-metadata text-on-surface-variant uppercase tracking-wider mb-1">Passenger {idx + 1}</p>
+                          <p className="font-bold text-pro-navy">{cap(paxForm.title)} {cap(paxForm.givenName)} {cap(paxForm.familyName)}</p>
+                          {idx === 0 && <p className="text-xs text-on-surface-variant mt-0.5">{paxForm.email} · {paxForm.phoneNumber}</p>}
+                          <p className="text-xs text-on-surface-variant mt-0.5">Passport {paxForm.passportNumber} · {flagEmoji(paxForm.passportCountry)} {paxForm.passportCountry} · Expires {paxForm.passportExpiry}</p>
                         </div>
-                        <button onClick={() => setBookStep('passenger')} className="text-xs font-bold underline flex-shrink-0" style={{ color: 'var(--color-primary)' }}>Edit</button>
+                        <button onClick={() => setBookStep('passenger')} className="text-xs font-bold underline flex-shrink-0 text-primary">Edit</button>
                       </div>
                     </div>
                   ))}
 
                   {/* Test mode banner — replaces card form */}
                   {duffelTestMode && (
-                    <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: '#EFF6FF', border: '1.5px solid #BFDBFE' }}>
-                      <span className="text-xl flex-shrink-0">🧪</span>
+                    <div className="rounded-xl p-4 flex items-start gap-3 bg-sky-blue/10 border border-sky-blue/30">
+                      <span className="material-symbols-outlined text-tertiary flex-shrink-0">science</span>
                       <div>
-                        <p className="text-sm font-bold text-blue-800">Test mode — no real payment needed</p>
-                        <p className="text-xs text-blue-600 mt-0.5 leading-relaxed">Duffel test balance is unlimited. Click Pay to complete a real test booking with a real confirmation number — no card required.</p>
+                        <p className="text-sm font-bold text-pro-navy">Test mode — no real payment needed</p>
+                        <p className="text-xs text-tertiary mt-0.5 leading-relaxed">Duffel test balance is unlimited. Click Pay to complete a real test booking with a real confirmation number — no card required.</p>
                       </div>
                     </div>
                   )}
 
                   {/* Card form — live mode only */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4" style={{ display: duffelTestMode ? 'none' : undefined }}>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Payment card</p>
+                  <div className="bg-white rounded-xl pro-shadow border border-border-subtle p-5 space-y-4" style={{ display: duffelTestMode ? 'none' : undefined }}>
+                    <p className="font-label-bold text-label-bold text-pro-navy">Payment card</p>
                     <Field label="Name on card">
                       <input value={cardForm.name} onChange={e => updateCard('name', e.target.value)} placeholder="John Smith" className={inputCls} />
-                      {cardErrors.name && <p className="text-xs text-red-500 mt-0.5">{cardErrors.name}</p>}
+                      {cardErrors.name && <p className="text-xs text-error mt-0.5">{cardErrors.name}</p>}
                     </Field>
                     <Field label="Card number">
                       <input value={cardForm.number} onChange={e => updateCard('number', fmtCardNumber(e.target.value))}
                         placeholder="1234 5678 9012 3456" maxLength={19} className={inputCls + ' font-mono tracking-wider'} />
-                      {cardErrors.number && <p className="text-xs text-red-500 mt-0.5">{cardErrors.number}</p>}
+                      {cardErrors.number && <p className="text-xs text-error mt-0.5">{cardErrors.number}</p>}
                     </Field>
                     <div className="grid grid-cols-2 gap-3">
                       <Field label="Expiry (MM/YY)">
                         <input value={cardForm.expiry} onChange={e => updateCard('expiry', fmtExpiry(e.target.value))}
                           placeholder="06/28" maxLength={5} className={inputCls + ' font-mono'} />
-                        {cardErrors.expiry && <p className="text-xs text-red-500 mt-0.5">{cardErrors.expiry}</p>}
+                        {cardErrors.expiry && <p className="text-xs text-error mt-0.5">{cardErrors.expiry}</p>}
                       </Field>
                       <Field label="CVV">
                         <input value={cardForm.cvc} onChange={e => updateCard('cvc', e.target.value.replace(/\D/g, '').slice(0, 4))}
                           placeholder="123" maxLength={4} className={inputCls + ' font-mono'} type="password" />
-                        {cardErrors.cvc && <p className="text-xs text-red-500 mt-0.5">{cardErrors.cvc}</p>}
+                        {cardErrors.cvc && <p className="text-xs text-error mt-0.5">{cardErrors.cvc}</p>}
                       </Field>
                     </div>
-                    <p className="text-[10px] text-gray-400">🔒 Card processed securely by Duffel Payments. We never store your card details.</p>
+                    <p className="text-[10px] text-on-surface-variant flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[13px]">lock</span>
+                      Card processed securely by Duffel Payments. We never store your card details.
+                    </p>
                   </div>
 
                   {bookingError && (
-                    <div className="rounded-xl px-4 py-3 text-sm text-red-700 font-semibold flex flex-col gap-2" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+                    <div className="rounded-lg px-4 py-3 text-sm text-error font-semibold flex flex-col gap-2 bg-error/5 border border-error/20">
                       <div className="flex items-center gap-2">
-                        <span>⚠️</span>
+                        <span className="material-symbols-outlined text-[18px]">warning</span>
                         <span>{bookingError.replace('__retryable__', '')}</span>
                       </div>
                       {bookingError.includes('no longer available') && (
                         <button
                           onClick={() => { setSelectedOffer(null); setBookingError(''); }}
-                          className="self-start text-xs font-bold underline text-red-700 hover:text-red-900"
+                          className="self-start text-xs font-bold underline text-error"
                         >
                           ← Search again
                         </button>
@@ -1703,7 +1724,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                       {bookingError.startsWith('__retryable__') && (
                         <button
                           onClick={() => { setBookingError(''); confirmBooking(); }}
-                          className="self-start text-xs font-bold underline text-red-700 hover:text-red-900"
+                          className="self-start text-xs font-bold underline text-error"
                         >
                           ↻ Try again
                         </button>
@@ -1713,15 +1734,16 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
                   <div className="flex gap-3">
                     <button onClick={() => setBookStep('passenger')}
-                      className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">
+                      className="flex-1 h-14 rounded-xl text-sm font-bold text-pro-navy bg-white border border-border-subtle hover:bg-surface-container-low transition">
                       ← Back
                     </button>
                     <button onClick={confirmBooking} disabled={booking}
-                      className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white disabled:opacity-60 flex items-center justify-center gap-2"
-                      style={{ background: holdMode ? 'linear-gradient(135deg, var(--color-sky-blue), #6366F1)' : 'linear-gradient(135deg, var(--color-primary), var(--color-sky-blue))' }}>
+                      className={`flex-[2] h-14 rounded-xl font-headline-md text-[16px] text-white disabled:opacity-60 flex items-center justify-center gap-2 hover:scale-[0.98] transition-all shadow-lg ${holdMode ? 'bg-tertiary' : 'bg-teal-accent shadow-teal-accent/20'}`}>
                       {booking
                         ? <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Processing…</>
-                        : holdMode ? '⏳ Hold seat (pay later) →' : `Pay ${fmtPrice(gross, offer.totalCurrency)} →`
+                        : holdMode
+                          ? <>Hold seat (pay later) <span className="material-symbols-outlined">arrow_forward</span></>
+                          : <>Pay {fmtPrice(gross, offer.totalCurrency)} <span className="material-symbols-outlined">arrow_forward</span></>
                       }
                     </button>
                   </div>
@@ -1730,14 +1752,17 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
               {/* Extras — baggage (only when airline offers paid bags) */}
               {bookStep === 'passenger' && offer.availableServices.length > 0 && (
-                <div id="extras-section" className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div id="extras-section" className="bg-white rounded-xl pro-shadow border border-border-subtle p-5">
                   <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="text-base font-extrabold text-gray-900">Add extras (optional)</p>
-                      <p className="text-xs text-gray-400 mt-0.5">Extra baggage</p>
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-primary">luggage</span>
+                      <div>
+                        <p className="font-headline-md text-[16px] text-pro-navy">Add extras (optional)</p>
+                        <p className="text-xs text-on-surface-variant mt-0.5">Extra baggage</p>
+                      </div>
                     </div>
                     {extrasTotal > 0 && (
-                      <span className="text-sm font-bold px-3 py-1 rounded-full" style={{ background: '#E6F7F1', color: 'var(--color-primary)' }}>
+                      <span className="text-sm font-bold px-3 py-1 rounded-full bg-primary/10 text-primary">
                         +{fmtPrice(extrasTotal, offer.totalCurrency)}
                       </span>
                     )}
@@ -1745,24 +1770,22 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
                   {baggageServices.length > 0 && (
                     <div className="mb-4">
-                      <p className="text-sm font-bold text-gray-700 mb-3">🧳 Extra baggage</p>
+                      <p className="font-label-bold text-label-bold text-pro-navy mb-3">Extra baggage</p>
                       <div className="space-y-2">
                         {baggageServices.map(svc => {
                           const qty = getQty(svc.id);
                           return (
-                            <div key={svc.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                            <div key={svc.id} className="flex items-center justify-between p-3.5 rounded-lg bg-surface-container-low border border-border-subtle">
                               <div className="flex-1 min-w-0 mr-3">
-                                <p className="text-sm font-bold text-gray-800">{svc.metadata?.maximumWeightKg ? `${svc.metadata.maximumWeightKg}kg bag` : 'Checked bag'}</p>
-                                <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-primary)' }}>+{fmtPrice(svc.totalAmount, svc.totalCurrency)}</p>
+                                <p className="text-sm font-bold text-pro-navy">{svc.metadata?.maximumWeightKg ? `${svc.metadata.maximumWeightKg}kg bag` : 'Checked bag'}</p>
+                                <p className="text-sm font-bold mt-0.5 text-primary">+{fmtPrice(svc.totalAmount, svc.totalCurrency)}</p>
                               </div>
                               <div className="flex items-center gap-2">
                                 <button onClick={() => setQty(svc.id, Math.max(0, qty - 1))}
-                                  className="w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center transition-colors"
-                                  style={{ background: qty > 0 ? '#E6F7F1' : '#F3F4F6', color: qty > 0 ? 'var(--color-primary)' : '#9CA3AF' }}>−</button>
+                                  className={`w-8 h-8 rounded-full text-sm font-bold flex items-center justify-center transition-colors ${qty > 0 ? 'bg-primary/10 text-primary' : 'bg-surface-container text-outline'}`}>−</button>
                                 <span className="w-4 text-center text-sm font-bold tabular-nums">{qty}</span>
                                 <button onClick={() => setQty(svc.id, qty + 1)}
-                                  className="w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center transition-colors"
-                                  style={{ background: '#E6F7F1', color: 'var(--color-primary)' }}>+</button>
+                                  className="w-8 h-8 rounded-full text-sm font-bold flex items-center justify-center transition-colors bg-primary/10 text-primary">+</button>
                               </div>
                             </div>
                           );
@@ -1776,11 +1799,14 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
 
               {/* Seat selection — always shown on passenger step */}
               {bookStep === 'passenger' && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="bg-white rounded-xl pro-shadow border border-border-subtle p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-base font-extrabold text-gray-900">💺 Seat selection</p>
-                      <p className="text-xs text-gray-400 mt-0.5">Optional — choose your seat before booking</p>
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-primary">airline_seat_recline_extra</span>
+                      <div>
+                        <p className="font-headline-md text-[16px] text-pro-navy">Seat selection</p>
+                        <p className="text-xs text-on-surface-variant mt-0.5">Optional — choose your seat before booking</p>
+                      </div>
                     </div>
                     {Object.keys(seatSelections).length > 0 && (() => {
                       const selectedCount = Object.values(seatSelections).filter(Boolean).length;
@@ -1790,15 +1816,15 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         ? `${selectedCount / paxCount} of ${legCount} legs seated`
                         : `${selectedCount} seat${selectedCount > 1 ? 's' : ''} selected`;
                       return (
-                        <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#E6F7F1', color: 'var(--color-primary)' }}>
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-primary/10 text-primary flex-shrink-0">
                           {label}
                         </span>
                       );
                     })()}
                   </div>
                   {seatMapsLoading && (
-                    <div className="flex items-center gap-3 py-6 text-gray-500 text-sm">
-                      <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-3 py-6 text-on-surface-variant text-sm">
+                      <svg className="animate-spin h-5 w-5 text-tertiary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
@@ -1815,18 +1841,18 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           const sm = smBySegId.get(seg.segmentId ?? '');
                           const flightHeader = showNums ? (
                             <div className="flex items-center gap-2 mb-3">
-                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: '#0F172A', color: 'white' }}>Flight {segIdx + 1}</span>
-                              <p className="text-sm font-bold text-gray-800">{seg.depCode} → {seg.arrCode}</p>
-                              <span className="text-xs text-gray-400">{fmtCabin(seg.cabinClass)}</span>
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-pro-navy text-white">Flight {segIdx + 1}</span>
+                              <p className="text-sm font-bold text-pro-navy">{seg.depCode} → {seg.arrCode}</p>
+                              <span className="text-xs text-on-surface-variant">{fmtCabin(seg.cabinClass)}</span>
                             </div>
                           ) : (
-                            <p className="text-xs font-bold text-gray-500 mb-3">{seg.depCode} → {seg.arrCode} · {fmtCabin(seg.cabinClass)}</p>
+                            <p className="text-xs font-bold text-on-surface-variant mb-3">{seg.depCode} → {seg.arrCode} · {fmtCabin(seg.cabinClass)}</p>
                           );
                           if (!sm) {
                             return (
-                              <div key={seg.segmentId ?? segIdx} className="rounded-2xl border border-dashed border-gray-200 p-5" style={{ background: '#F8FAFC' }}>
+                              <div key={seg.segmentId ?? segIdx} className="rounded-xl border border-dashed border-border-subtle p-5 bg-surface-container-low">
                                 {flightHeader}
-                                <p className="text-xs text-gray-400">Seat selection not available — choose your seat during online check-in.</p>
+                                <p className="text-xs text-on-surface-variant">Seat selection not available — choose your seat during online check-in.</p>
                               </div>
                             );
                           }
@@ -1837,17 +1863,17 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             <div key={sm.segmentId}>
                               {showNums ? (
                                 <div className="flex items-center gap-2 mb-3">
-                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: '#0F172A', color: 'white' }}>Flight {segIdx + 1}</span>
-                                  <p className="text-sm font-bold text-gray-800">{seg.depCode} → {seg.arrCode}</p>
-                                  <span className="text-xs text-gray-400">{cabinLabel}</span>
+                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-pro-navy text-white">Flight {segIdx + 1}</span>
+                                  <p className="text-sm font-bold text-pro-navy">{seg.depCode} → {seg.arrCode}</p>
+                                  <span className="text-xs text-on-surface-variant">{cabinLabel}</span>
                                 </div>
                               ) : (
-                                <p className="text-xs font-bold text-gray-500 mb-3">{seg.depCode} → {seg.arrCode} · {cabinLabel}</p>
+                                <p className="text-xs font-bold text-on-surface-variant mb-3">{seg.depCode} → {seg.arrCode} · {cabinLabel}</p>
                               )}
                               {offer.passengerIds.map((paxId, pi) => (
                                 <div key={paxId} className="mb-4">
                                   {offer.passengerIds.length > 1 && (
-                                    <p className="text-xs font-semibold text-gray-400 mb-2">Passenger {pi + 1}</p>
+                                    <p className="text-xs font-semibold text-on-surface-variant mb-2">Passenger {pi + 1}</p>
                                   )}
                                   <div className="overflow-x-auto">
                                     <div className="inline-block">
@@ -1858,8 +1884,8 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                               {si > 0 && <div className="w-5" />}
                                               {sec.elements.map((el, ei) => {
                                                 if (el.type === 'lavatory') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-sm" style={{ background: '#E0F2FE', border: '1px solid #BAE6FD' }} title="Restroom">🚽</div>;
-                                                if (el.type === 'galley') return <div key={ei} className="w-8 h-8 rounded flex flex-col items-center justify-center" style={{ background: '#F1F5F9', border: '1px solid #E2E8F0' }} title="Crew area"><span className="text-[7px] font-bold text-gray-400 uppercase leading-none">CREW</span></div>;
-                                                if (el.type === 'stairs') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-xs text-gray-400" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }} title="Stairs">↕</div>;
+                                                if (el.type === 'galley') return <div key={ei} className="w-8 h-8 rounded flex flex-col items-center justify-center" style={{ background: '#F1F5F9', border: '1px solid #E2E8F0' }} title="Crew area"><span className="text-[7px] font-bold text-on-surface-variant uppercase leading-none">CREW</span></div>;
+                                                if (el.type === 'stairs') return <div key={ei} className="w-8 h-8 rounded flex items-center justify-center text-xs text-on-surface-variant" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }} title="Stairs">↕</div>;
                                                 if (el.type !== 'seat') return <div key={ei} className="w-8 h-8" />;
                                                 const paxSvc = el.available_services?.find(a => a.passenger_id === paxId);
                                                 const available = !!paxSvc;
@@ -1899,7 +1925,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         });
                       })()}
                       {seatMaps!.length > 0 && (
-                        <div className="flex gap-3 text-xs text-gray-400 flex-wrap">
+                        <div className="flex gap-3 text-xs text-on-surface-variant flex-wrap">
                           <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.free.bg, border: `1px solid ${SEAT_COLORS.legend.free.border}` }} /> Free</span>
                           <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.paid.bg, border: `1px solid ${SEAT_COLORS.legend.paid.border}` }} /> Paid</span>
                           <span className="flex items-center gap-1"><span className="w-4 h-4 rounded inline-block" style={{ background: SEAT_COLORS.legend.selected.bg, border: `1px solid ${SEAT_COLORS.legend.selected.border}` }} /> Selected</span>
@@ -1934,7 +1960,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   });
 
                 return (
-                  <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #1E3A5F' }}>
+                  <div className="rounded-2xl overflow-hidden border border-pro-navy">
                     {/* Header */}
                     <div className="relative overflow-hidden" style={{ minHeight: 80 }}>
                       {(() => {
@@ -1949,16 +1975,19 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           />
                         );
                       })()}
-                      <div className="relative px-5 pt-4 pb-4" style={{ background: 'linear-gradient(135deg, rgba(15,41,66,0.97) 0%, rgba(26,60,94,0.93) 100%)' }}>
+                      <div className="relative px-5 pt-4 pb-4 bg-gradient-to-br from-pro-navy to-[#1a3c5e]">
                         <div className="flex items-start justify-between">
                           <div>
-                            <p className="text-sm font-extrabold text-white">🛋️ Airport Lounges on your route</p>
-                            <p className="text-[11px] mt-0.5" style={{ color: '#93C5FD' }}>
+                            <p className="text-sm font-extrabold text-white flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-teal-accent text-[18px]">weekend</span>
+                              Airport Lounges on your route
+                            </p>
+                            <p className="text-[11px] mt-0.5 text-sky-blue/80">
                               Rest, eat and freshen up at your airports — no Priority Pass needed
                             </p>
                           </div>
-                          <span className="text-[9px] font-bold px-2 py-1 rounded-full flex-shrink-0 ml-3"
-                            style={{ background: '#1D4ED8', color: '#BFDBFE', border: '1px solid #2563EB' }}>
+                          <span className="text-[9px] font-bold px-2 py-1 rounded-full flex-shrink-0 ml-3 bg-teal-accent/20 text-teal-accent border border-teal-accent/30 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[12px]">verified_user</span>
                             ONLY ON CHEAPSTAY
                           </span>
                         </div>
@@ -1966,15 +1995,20 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     </div>
 
                     {/* Per-airport cards */}
-                    <div className="p-4 space-y-4" style={{ background: '#F8FAFC' }}>
+                    <div className="p-4 space-y-4 bg-surface-container-low">
                       {airports.map(({ code, guide }) => {
                         const isLayover = offer.segments.slice(0, -1).some(s => s.arrCode === code);
                         const isArrival = offer.segments[offer.segments.length - 1].arrCode === code;
                         const role = isArrival ? 'Arrival' : isLayover ? 'Layover' : 'Departure';
-                        const roleColor = isLayover ? { bg: '#FEF9C3', text: '#92400E' } : isArrival ? { bg: '#EFF6FF', text: '#1D4ED8' } : { bg: '#ECFDF5', text: '#15803D' };
+                        const roleClass = isLayover ? 'bg-alert-orange/10 text-alert-orange' : isArrival ? 'bg-sky-blue/10 text-tertiary' : 'bg-savings-green/10 text-savings-green';
                         const lounges = parseLounges(guide!.lounges!);
+                        const amenities = (l: ReturnType<typeof parseLounges>[number]) => [
+                          l.is24h && { icon: 'schedule', label: '24 Hours' },
+                          l.hasShower && { icon: 'shower', label: 'Shower' },
+                          l.includesFood && { icon: 'restaurant', label: 'Food' },
+                        ].filter((a): a is { icon: string; label: string } => !!a);
                         return (
-                          <div key={code} className="bg-white rounded-xl overflow-hidden" style={{ border: '1px solid #E2E8F0', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+                          <div key={code} className="bg-white rounded-xl overflow-hidden border border-border-subtle premium-shadow">
                             {guide!.cityImage ? (
                               <div className="relative h-24 overflow-hidden">
                                 <img
@@ -1989,37 +2023,51 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                     <p className="text-base font-extrabold text-white leading-none">{guide!.city}</p>
                                     <p className="text-[10px] text-white/60">{code} · {role}</p>
                                   </div>
-                                  <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: roleColor.bg, color: roleColor.text }}>{role}</span>
+                                  <span className={`ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${roleClass}`}>{role}</span>
                                 </div>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: '1px solid #F1F5F9' }}>
+                              <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-container-low">
                                 <span className="text-xl">{guide!.flag}</span>
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2">
-                                    <p className="text-sm font-bold text-gray-900">{guide!.city} <span className="text-gray-400 font-normal text-xs">({code})</span></p>
-                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: roleColor.bg, color: roleColor.text }}>{role}</span>
+                                    <p className="text-sm font-bold text-pro-navy">{guide!.city} <span className="text-on-surface-variant font-normal text-xs">({code})</span></p>
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${roleClass}`}>{role}</span>
                                   </div>
-                                  <p className="text-[10px] text-gray-400 truncate">{guide!.airport}</p>
+                                  <p className="text-[10px] text-on-surface-variant truncate">{guide!.airport}</p>
                                 </div>
                               </div>
                             )}
-                            <div className="p-3 space-y-2">
+                            <div className="p-3 space-y-2.5">
                               {lounges.map((l, li) => (
-                                <div key={li} className="flex items-start justify-between gap-3 py-2 px-3 rounded-lg" style={{ background: '#F8FAFC', border: '1px solid #EEF2F7' }}>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900">{l.name}</p>
-                                    <div className="flex flex-wrap gap-1 mt-1.5">
-                                      {l.payAtDoor && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF9C3', color: '#92400E' }}>💳 Walk-in</span>}
-                                      {l.is24h && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#EFF6FF', color: '#1D4ED8' }}>🕐 24h</span>}
-                                      {l.hasShower && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#F0F9FF', color: '#0369A1' }}>🚿 Shower</span>}
-                                      {l.includesFood && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#FFF7ED', color: '#C2410C' }}>🍽️ Food</span>}
-                                    </div>
+                                <div key={li} className="bg-white rounded-lg border border-border-subtle p-3.5">
+                                  <div className="flex justify-between items-start mb-2.5 gap-2">
+                                    <p className="text-sm font-bold text-pro-navy leading-snug">{l.name}</p>
+                                    <span className="material-symbols-outlined text-teal-accent flex-shrink-0 text-[20px]"
+                                      style={{ fontVariationSettings: "'FILL' 1" }}>
+                                      {/executive|first|business|premium/i.test(l.name) ? 'workspace_premium' : 'group'}
+                                    </span>
                                   </div>
-                                  {l.price && (
-                                    <div className="text-right flex-shrink-0">
-                                      <span className="text-lg font-extrabold" style={{ color: 'var(--color-primary)' }}>{l.price}</span>
-                                      <p className="text-[9px] text-gray-400 leading-none mt-0.5">per person</p>
+                                  {amenities(l).length > 0 && (
+                                    <div className="flex gap-4 mb-2.5">
+                                      {amenities(l).map(a => (
+                                        <div key={a.icon} className="flex flex-col items-center">
+                                          <span className="material-symbols-outlined text-secondary text-xl">{a.icon}</span>
+                                          <span className="text-[9px] font-bold text-outline uppercase mt-0.5">{a.label}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {(l.payAtDoor || l.price) && (
+                                    <div className="flex items-center justify-between pt-2.5 border-t border-surface-container-low">
+                                      {l.payAtDoor
+                                        ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-savings-green/10 text-savings-green uppercase">Walk-in ready</span>
+                                        : <span />}
+                                      {l.price && (
+                                        <span className="text-base font-extrabold text-primary">
+                                          {l.price} <span className="text-[9px] font-normal text-on-surface-variant">/person</span>
+                                        </span>
+                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -2027,20 +2075,23 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             </div>
                             {/* Layover tips — only for stopovers, not departure airport */}
                             {isLayover && guide!.tips.length > 0 && (
-                              <div className="px-3 pb-3" style={{ borderTop: '1px solid #EEF2F7' }}>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide pt-2.5 mb-2">
-                                  🗺️ How to spend your time in {guide!.city}
-                                </p>
-                                <div className="space-y-1.5">
-                                  {guide!.tips.slice(0, 3).map((tip, ti) => (
-                                    <div key={ti} className="flex items-start gap-2 px-2.5 py-2 rounded-lg" style={{ background: '#F0FDF4', border: '1px solid #D1FAE5' }}>
-                                      <span className="text-sm flex-shrink-0 mt-0.5">{tip.icon}</span>
-                                      <div>
-                                        <p className="text-[11px] font-bold text-gray-800">{tip.title}</p>
-                                        <p className="text-[10px] text-gray-500 leading-relaxed mt-0.5">{tip.desc}</p>
+                              <div className="px-3 pb-3">
+                                <div className="bg-surface-container-low border-l-4 border-teal-accent rounded-r-lg p-3">
+                                  <p className="text-[10px] font-bold text-pro-navy uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-teal-accent text-[14px]">explore</span>
+                                    How to spend your time in {guide!.city}
+                                  </p>
+                                  <div className="space-y-2">
+                                    {guide!.tips.slice(0, 3).map((tip, ti) => (
+                                      <div key={ti} className="flex items-start gap-2">
+                                        <span className="text-sm flex-shrink-0 mt-0.5">{tip.icon}</span>
+                                        <div>
+                                          <p className="text-[11px] font-bold text-pro-navy">{tip.title}</p>
+                                          <p className="text-[10px] text-on-surface-variant leading-relaxed mt-0.5">{tip.desc}</p>
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    ))}
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -2068,13 +2119,13 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 return (
                   <div className="space-y-2">
                     {hasAnyError && (
-                      <div className="rounded-xl px-4 py-3 flex items-start gap-2" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-                        <span className="text-red-500 mt-0.5 flex-shrink-0">⚠️</span>
+                      <div className="rounded-xl px-4 py-3 flex items-start gap-2 bg-error/5 border border-error/20">
+                        <span className="material-symbols-outlined text-error mt-0.5 flex-shrink-0 text-[18px]">warning</span>
                         <div>
-                          <p className="text-xs font-bold text-red-700">Please fill in all required fields</p>
+                          <p className="text-xs font-bold text-error">Please fill in all required fields</p>
                           <ul className="mt-1 space-y-0.5">
                             {missingFields.map((f, i) => (
-                              <li key={i} className="text-[11px] text-red-600">• {f}</li>
+                              <li key={i} className="text-[11px] text-error/80">• {f}</li>
                             ))}
                           </ul>
                         </div>
@@ -2091,9 +2142,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           }, 50);
                         }
                       }}
-                      className="w-full py-4 rounded-2xl text-sm font-bold text-white transition"
-                      style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-sky-blue))', opacity: 1 }}>
-                      Continue to payment →
+                      className="w-full h-14 rounded-xl font-headline-md text-white transition bg-teal-accent hover:brightness-95 flex items-center justify-center gap-2">
+                      Continue to payment
+                      <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
                     </button>
                     {offer.paymentRequirements && !offer.paymentRequirements.requiresInstantPayment && (
                       <button
@@ -2103,9 +2154,9 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                           setBookStep('payment');
                         }}
                         title={offer.paymentRequirements.paymentRequiredBy ? `Pay by ${new Date(offer.paymentRequirements.paymentRequiredBy).toLocaleDateString()}` : undefined}
-                        className="w-full py-3 rounded-2xl text-sm font-bold border-2 transition"
-                        style={{ borderColor: 'var(--color-sky-blue)', color: 'var(--color-sky-blue)', background: 'white' }}>
-                        ⏳ Hold seat — pay later{offer.paymentRequirements.paymentRequiredBy ? ` (by ${new Date(offer.paymentRequirements.paymentRequiredBy).toLocaleDateString()})` : ''}
+                        className="w-full h-12 rounded-xl text-sm font-bold border-2 border-tertiary text-tertiary bg-white transition hover:bg-tertiary/5 flex items-center justify-center gap-2">
+                        <span className="material-symbols-outlined text-[18px]">schedule</span>
+                        Hold seat — pay later{offer.paymentRequirements.paymentRequiredBy ? ` (by ${new Date(offer.paymentRequirements.paymentRequiredBy).toLocaleDateString()})` : ''}
                       </button>
                     )}
                   </div>
@@ -2199,7 +2250,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                               );
                               if (!sm) {
                                 return (
-                                  <div key={seg.segmentId ?? segIdx} className="rounded-2xl border border-dashed border-gray-200 p-5" style={{ background: '#F8FAFC' }}>
+                                  <div key={seg.segmentId ?? segIdx} className="rounded-xl border border-dashed border-border-subtle p-5 bg-surface-container-low">
                                     {flightHeader}
                                     <p className="text-xs text-gray-400">Seat selection not available — choose your seat during online check-in.</p>
                                   </div>
@@ -2350,48 +2401,57 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             {/* ── RIGHT COLUMN: summary + conditions ───────────────────── */}
             <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-4">
               {/* Flight card */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <p className="text-sm font-extrabold text-gray-900 mb-0.5">{fromCode} to {toCode}</p>
-                <p className="text-xs text-gray-400 mb-3">✈️ FLIGHT · {[
+              <div className="bg-white rounded-2xl border border-border-subtle pro-shadow p-5">
+                <p className="font-headline-md text-headline-md text-pro-navy mb-0.5 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-primary text-[20px]">flight_takeoff</span>
+                  {fromCode} to {toCode}
+                </p>
+                <p className="text-xs text-on-surface-variant mb-4 ml-[26px]">{[
                   offer.passengers.filter(p => p.type === 'adult').length > 0 && `${offer.passengers.filter(p => p.type === 'adult').length} adult${offer.passengers.filter(p => p.type === 'adult').length > 1 ? 's' : ''}`,
                   offer.passengers.filter(p => p.type === 'child').length > 0 && `${offer.passengers.filter(p => p.type === 'child').length} child${offer.passengers.filter(p => p.type === 'child').length > 1 ? 'ren' : ''}`,
                   offer.passengers.filter(p => p.type === 'infant_without_seat').length > 0 && `${offer.passengers.filter(p => p.type === 'infant_without_seat').length} infant${offer.passengers.filter(p => p.type === 'infant_without_seat').length > 1 ? 's' : ''}`,
                 ].filter(Boolean).join(' · ')}</p>
-                <div className="space-y-3 mb-3">
+                <div className="space-y-4 mb-4">
                   {(offer.allSegments ?? offer.segments).map((seg, i) => {
                     const allSegsDisplay = offer.allSegments ?? offer.segments;
+                    const isLast = i === allSegsDisplay.length - 1;
                     return (
-                    <div key={i}>
-                      <p className="text-[10px] font-semibold text-gray-400 mb-1">
+                    <div key={i} className="relative pl-9">
+                      {!isLast && (
+                        <span className="absolute left-[13px] top-6 bottom-[-16px] w-px bg-border-subtle" aria-hidden />
+                      )}
+                      <span className="absolute left-0 top-0.5 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-primary text-[16px]">flight</span>
+                      </span>
+                      <p className="text-[10px] font-semibold text-on-surface-variant mb-1">
                         {i === 0
                           ? `Depart · ${new Date(seg.depAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}`
                           : seg.sliceIndex !== undefined && seg.sliceIndex !== (allSegsDisplay[i - 1]?.sliceIndex ?? 0)
-                          ? `↙ Return · ${new Date(seg.depAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}`
+                          ? `Return · ${new Date(seg.depAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}`
                           : 'Connection'}
                       </p>
                       <div className="flex items-center gap-2">
                         <AirlineLogo code={seg.airlineCode} name={seg.airline} />
-                        <span className="hidden" aria-hidden />
                         <div className="flex-1">
-                          <p className="text-sm font-extrabold text-gray-900">
+                          <p className="text-sm font-extrabold text-pro-navy">
                             {seg.depCode} {fmtTime(seg.depAt)} → {seg.arrCode} {fmtTime(seg.arrAt)}
                           </p>
-                          <p className="text-[10px] text-gray-400">{seg.airline} · {seg.flightNumber}{seg.aircraft ? ` · ${seg.aircraft}` : ''}</p>
+                          <p className="text-[10px] text-on-surface-variant">{seg.airline} · {seg.flightNumber}{seg.aircraft ? ` · ${seg.aircraft}` : ''}</p>
                           {seg.amenities && (
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {seg.amenities.food && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: seg.amenities.food.cost === 'free' ? '#ECFDF5' : '#F1F5F9', color: seg.amenities.food.cost === 'free' ? '#15803D' : '#64748B' }}>🍽️ {seg.amenities.food.cost === 'free' ? 'Meal free' : 'Meal paid'}</span>}
-                              {seg.amenities.drink && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: seg.amenities.drink.cost === 'free' ? '#ECFDF5' : '#F1F5F9', color: seg.amenities.drink.cost === 'free' ? '#15803D' : '#64748B' }}>🍸 {seg.amenities.drink.cost === 'free' ? 'Drinks free' : 'Drinks paid'}</span>}
-                              {seg.amenities.entertainment && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: seg.amenities.entertainment.cost === 'free' ? '#ECFDF5' : '#F1F5F9', color: seg.amenities.entertainment.cost === 'free' ? '#15803D' : '#64748B' }}>🎬 {seg.amenities.entertainment.cost === 'free' ? 'Entertainment free' : 'Entertainment paid'}</span>}
-                              {seg.amenities.wifi && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: seg.amenities.wifi.cost === 'free' ? '#ECFDF5' : '#F1F5F9', color: seg.amenities.wifi.cost === 'free' ? '#15803D' : '#64748B' }}>📶 {seg.amenities.wifi.cost === 'free' ? 'WiFi free' : 'WiFi paid'}</span>}
-                              {seg.amenities.power && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>🔌 Power</span>}
-                              {seg.amenities.seat?.type && seg.amenities.seat.type !== 'standard' && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#F1F5F9', color: '#64748B' }}>💺 {seg.amenities.seat.type.replace(/_/g, ' ')}{seg.amenities.seat.pitch ? ` ${seg.amenities.seat.pitch}"` : ''}</span>}
+                              {seg.amenities.food && <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${seg.amenities.food.cost === 'free' ? 'bg-savings-green/10 text-savings-green' : 'bg-surface-container-low text-on-surface-variant'}`}>🍽️ {seg.amenities.food.cost === 'free' ? 'Meal free' : 'Meal paid'}</span>}
+                              {seg.amenities.drink && <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${seg.amenities.drink.cost === 'free' ? 'bg-savings-green/10 text-savings-green' : 'bg-surface-container-low text-on-surface-variant'}`}>🍸 {seg.amenities.drink.cost === 'free' ? 'Drinks free' : 'Drinks paid'}</span>}
+                              {seg.amenities.entertainment && <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${seg.amenities.entertainment.cost === 'free' ? 'bg-savings-green/10 text-savings-green' : 'bg-surface-container-low text-on-surface-variant'}`}>🎬 {seg.amenities.entertainment.cost === 'free' ? 'Entertainment free' : 'Entertainment paid'}</span>}
+                              {seg.amenities.wifi && <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${seg.amenities.wifi.cost === 'free' ? 'bg-savings-green/10 text-savings-green' : 'bg-surface-container-low text-on-surface-variant'}`}>📶 {seg.amenities.wifi.cost === 'free' ? 'WiFi free' : 'WiFi paid'}</span>}
+                              {seg.amenities.power && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-surface-container-low text-on-surface-variant">🔌 Power</span>}
+                              {seg.amenities.seat?.type && seg.amenities.seat.type !== 'standard' && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-surface-container-low text-on-surface-variant">💺 {seg.amenities.seat.type.replace(/_/g, ' ')}{seg.amenities.seat.pitch ? ` ${seg.amenities.seat.pitch}"` : ''}</span>}
                             </div>
                           )}
                         </div>
                       </div>
                       {seg.layoverAfter && (
-                        <div className="mt-2 ml-10">
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md" style={{ background: '#FEF9C3', color: '#92400E' }}>
+                        <div className="mt-2">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-alert-orange/10 text-alert-orange">
                             Layover {allSegsDisplay[i + 1]?.depCode} · {seg.layoverAfter}
                           </span>
                         </div>
@@ -2401,20 +2461,23 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                   })}
                 </div>
                 <button onClick={() => setSidebarDetailsOpen(o => !o)}
-                  className="text-xs font-semibold flex items-center gap-1 cursor-pointer w-full py-2 px-3 rounded-xl border transition-colors"
-                  style={{ color: 'var(--color-sky-blue)', borderColor: '#BFDBFE', background: sidebarDetailsOpen ? '#EFF6FF' : '#F8FAFF' }}>
-                  {sidebarDetailsOpen ? '▲' : '▼'} {sidebarDetailsOpen ? 'Hide' : 'View'} flight details &amp; policies
+                  className={`text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer w-full py-2 px-3 rounded-xl border transition-colors ${sidebarDetailsOpen ? 'bg-sky-blue/10 border-sky-blue/30' : 'bg-sky-blue/5 border-sky-blue/20'} text-tertiary`}>
+                  <span className="material-symbols-outlined text-[16px]">{sidebarDetailsOpen ? 'expand_less' : 'expand_more'}</span>
+                  <span>{sidebarDetailsOpen ? 'Hide' : 'View'} flight details &amp; policies</span>
                 </button>
 
                 {sidebarDetailsOpen && (
                   <div className="mt-3 space-y-3 text-xs">
                     {/* Per-segment baggage */}
                     <div>
-                      <p className="font-bold text-gray-600 mb-1.5">🧳 Baggage allowance</p>
+                      <p className="font-bold text-pro-navy mb-1.5 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px] text-secondary">luggage</span>
+                        Baggage allowance
+                      </p>
                       {offer.segments.map((seg, i) => (
-                        <div key={i} className="flex justify-between py-1.5 border-b border-gray-100 last:border-0">
-                          <span className="text-gray-500">{seg.depCode} → {seg.arrCode} <span className="text-gray-400">({seg.airline})</span></span>
-                          <span className="font-semibold text-gray-700">
+                        <div key={i} className="flex justify-between py-1.5 border-b border-border-subtle last:border-0">
+                          <span className="text-on-surface-variant">{seg.depCode} → {seg.arrCode} <span className="text-outline">({seg.airline})</span></span>
+                          <span className="font-semibold text-pro-navy">
                             {seg.baggage?.carryOn ? `1 carry-on` : 'No carry-on'}
                             {seg.baggage?.checkedBags ? ` + ${seg.baggage.checkedBags} checked` : ''}
                           </span>
@@ -2423,12 +2486,15 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     </div>
                     {/* Fare conditions */}
                     <div>
-                      <p className="font-bold text-gray-600 mb-1.5">📋 Fare conditions</p>
+                      <p className="font-bold text-pro-navy mb-1.5 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px] text-secondary">gavel</span>
+                        Fare conditions
+                      </p>
                       {(() => {
                         const r = offer.conditions?.refundBeforeDeparture;
                         if (!r) return <p className="text-on-surface-variant">Fare rules not available — check with airline.</p>;
                         return (
-                          <div className="rounded-lg px-3 py-2" style={r.allowed ? { background: '#ECFDF5', color: '#166534' } : { background: '#FEF2F2', color: '#991B1B' }}>
+                          <div className={`rounded-lg px-3 py-2 ${r.allowed ? 'bg-savings-green/10 text-savings-green' : 'bg-error/5 text-error'}`}>
                             {r.allowed
                               ? r.penaltyAmount
                                 ? `Refundable with ${fmtCancelFee(parseFloat(r.penaltyAmount), r.penaltyCurrency ?? offer.totalCurrency, offer.totalCurrency)} cancellation fee`
@@ -2438,24 +2504,27 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         );
                       })()}
                     </div>
-                    <p className="text-gray-400 leading-relaxed">Name changes are not permitted after booking. Ensure all passenger names match travel documents exactly.</p>
+                    <p className="text-outline leading-relaxed">Name changes are not permitted after booking. Ensure all passenger names match travel documents exactly.</p>
                   </div>
                 )}
               </div>
 
               {/* Price breakdown */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <p className="text-sm font-extrabold text-gray-900 mb-3">Price breakdown</p>
-                <div className="space-y-2 text-sm text-gray-600">
+              <div className="bg-white rounded-2xl border border-border-subtle pro-shadow p-5">
+                <p className="font-headline-md text-headline-md text-pro-navy mb-3 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-primary text-[20px]">receipt_long</span>
+                  Price breakdown
+                </p>
+                <div className="space-y-2 text-sm text-on-surface-variant">
                   <div className="flex justify-between">
                     <span>{offer.passengers.length === 1 ? 'Fare' : `Fare (${offer.passengers.length} passengers)`}</span>
-                    <span className="font-semibold">{fmtPrice(offer.totalAmount, offer.totalCurrency)}</span>
+                    <span className="font-semibold text-pro-navy">{fmtPrice(offer.totalAmount, offer.totalCurrency)}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-gray-400">
+                  <div className="flex justify-between text-xs text-outline">
                     <span>Base fare</span>
                     <span>{fmtPrice(offer.totalAmount - (offer.totalAmount * 0.2), offer.totalCurrency)}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-gray-400">
+                  <div className="flex justify-between text-xs text-outline">
                     <span>Taxes and fees</span>
                     <span>{fmtPrice(offer.totalAmount * 0.2, offer.totalCurrency)}</span>
                   </div>
@@ -2466,24 +2535,27 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     );
                     const extrasLabel = hasSeats && hasBags ? 'Seat & baggage' : hasSeats ? 'Seat selection' : 'Baggage';
                     return (
-                      <div className="flex justify-between text-xs font-semibold" style={{ color: 'var(--color-primary)' }}>
-                        <span>💺 {extrasLabel}</span>
+                      <div className="flex justify-between text-xs font-semibold text-primary">
+                        <span className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[13px]">airline_seat_recline_extra</span>
+                          {extrasLabel}
+                        </span>
                         <span>+{fmtPrice(extrasTotal, offer.totalCurrency)}</span>
                       </div>
                     );
                   })()}
-                  <div className="flex justify-between text-xs text-gray-500">
+                  <div className="flex justify-between text-xs text-on-surface-variant">
                     <span>Service fee</span>
                     <span>{fmtPrice(SERVICE_FEE, offer.totalCurrency)}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-gray-400">
+                  <div className="flex justify-between text-xs text-outline">
                     <span>Processing (2.9%)</span>
                     <span>{fmtPrice(processingFee, offer.totalCurrency)}</span>
                   </div>
                 </div>
-                <div className="border-t border-gray-100 mt-3 pt-3 flex justify-between items-center">
-                  <span className="font-bold text-gray-900">Total</span>
-                  <span className="text-xl font-extrabold" style={{ color: '#DC2626' }}>{fmtPrice(gross, offer.totalCurrency)}</span>
+                <div className="border-t border-border-subtle mt-3 pt-3 flex justify-between items-center">
+                  <span className="font-bold text-pro-navy">Total</span>
+                  <span className="text-xl font-extrabold text-primary">{fmtPrice(gross, offer.totalCurrency)}</span>
                 </div>
               </div>
 
@@ -2493,13 +2565,16 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 const cards = getCardOffers(airlineCodes);
                 const estPoints = Math.round(gross * 3); // 3x on travel for Chase/Amex
                 return (
-                  <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #C7D2FE', background: 'linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%)' }}>
+                  <div className="rounded-2xl overflow-hidden border border-tertiary/20 bg-gradient-to-br from-sky-blue/10 to-primary/5">
                     <div className="px-4 pt-4 pb-2">
                       <div className="flex items-start justify-between gap-2 mb-0.5">
-                        <p className="text-sm font-extrabold" style={{ color: '#1E40AF' }}>✨ Earn miles on this booking</p>
-                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#DBEAFE', color: '#1D4ED8' }}>SAVE MORE</span>
+                        <p className="text-sm font-extrabold text-tertiary flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                          Earn miles on this booking
+                        </p>
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 bg-tertiary/10 text-tertiary">SAVE MORE</span>
                       </div>
-                      <p className="text-[11px]" style={{ color: '#3730A3' }}>
+                      <p className="text-[11px] text-secondary">
                         {offer.totalCurrency === 'USD'
                           ? `Pay $${Math.round(gross).toLocaleString()} and earn ~${estPoints.toLocaleString()} points — worth ~$${Math.round(estPoints * 0.015).toLocaleString()} in future travel`
                           : `The right card earns miles on every dollar spent`}
@@ -2510,8 +2585,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         const issuerStyle = ISSUER_STYLE[card.issuer] ?? { bg: '#F1F5F9', color: '#475569' };
                         return (
                           <a key={i} href={card.url} target="_blank" rel="noopener noreferrer sponsored"
-                            className="flex items-start gap-3 bg-white rounded-xl px-3 py-3 shadow-sm transition hover:shadow-md"
-                            style={{ border: '1px solid #E0E7FF' }}>
+                            className="flex items-start gap-3 bg-white rounded-xl px-3 py-3 border border-border-subtle transition hover:shadow-md">
                             {/* Card art — real image or CSS gradient card */}
                             <div className="flex-shrink-0 rounded-lg overflow-hidden shadow-md"
                               style={{ width: 72, height: 46 }}>
@@ -2545,22 +2619,25 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <p className="text-[11px] font-extrabold text-gray-900 leading-snug">{card.name}</p>
+                                <p className="text-[11px] font-extrabold text-pro-navy leading-snug">{card.name}</p>
                                 {card.highlight && (
                                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: issuerStyle.bg, color: issuerStyle.color }}>
                                     {card.highlight}
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">{card.headline}</p>
-                              <p className="text-[10px] font-semibold mt-1" style={{ color: '#15803D' }}>🎁 {card.bonus}</p>
+                              <p className="text-[10px] text-on-surface-variant mt-0.5 leading-snug">{card.headline}</p>
+                              <p className="text-[10px] font-semibold mt-1 text-savings-green flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[12px]">card_giftcard</span>
+                                {card.bonus}
+                              </p>
                             </div>
-                            <span className="text-xs font-bold flex-shrink-0 mt-1" style={{ color: '#1D4ED8' }}>Apply →</span>
+                            <span className="text-xs font-bold flex-shrink-0 mt-1 text-tertiary">Apply →</span>
                           </a>
                         );
                       })}
                     </div>
-                    <p className="text-[9px] text-center pb-2" style={{ color: '#94A3B8' }}>
+                    <p className="text-[9px] text-center pb-2 text-outline">
                       Affiliate links — we may earn a commission at no cost to you
                     </p>
                   </div>
@@ -2568,9 +2645,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
               })()}
 
               {/* Booking conditions */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <p className="text-sm font-extrabold text-gray-900 mb-3">Booking conditions</p>
-                <div className="space-y-2.5 text-xs text-gray-500">
+              <div className="bg-white rounded-2xl border border-border-subtle pro-shadow p-5">
+                <p className="font-headline-md text-headline-md text-pro-navy mb-3 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-primary text-[20px]">policy</span>
+                  Booking conditions
+                </p>
+                <div className="space-y-2.5 text-xs text-on-surface-variant">
                   {[
                     'Passenger(s) are responsible for ensuring that all necessary travel documents are valid and available upon travel.',
                     'Please ensure that your contact information in your booking is correct. We cannot be held responsible for issues related to inaccurate contact details.',
@@ -2580,7 +2660,7 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                     'By completing this booking you agree to our Terms of Service and the airline\'s conditions of carriage.',
                   ].map((cond, i) => (
                     <p key={i} className="flex gap-2">
-                      <span className="text-gray-300 flex-shrink-0">•</span>
+                      <span className="text-outline flex-shrink-0">•</span>
                       <span>{cond}</span>
                     </p>
                   ))}
