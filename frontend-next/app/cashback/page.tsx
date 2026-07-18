@@ -9,9 +9,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Hotel Cashback Guide — Stack Portals, Cards & Thai Prices',
     description: 'Get 3–8% cashback on every hotel booking. Stack Rakuten or TopCashback with Thai IP pricing for maximum savings.',
-    url: 'https://cheapstay.co/cashback',
+    url: 'https://www.cheapstay.co/cashback',
   },
-  alternates: { canonical: 'https://cheapstay.co/cashback' },
+  alternates: { canonical: 'https://www.cheapstay.co/cashback' },
 };
 
 const PORTALS = [

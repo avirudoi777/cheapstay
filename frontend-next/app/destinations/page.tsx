@@ -9,9 +9,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Popular Hotel Destinations — Compare Prices & Save',
     description: 'Find the cheapest hotel prices in Bangkok, Bali, Tokyo, Singapore and more. Agoda vs Booking.com comparison.',
-    url: 'https://cheapstay.co/destinations',
+    url: 'https://www.cheapstay.co/destinations',
   },
-  alternates: { canonical: 'https://cheapstay.co/destinations' },
+  alternates: { canonical: 'https://www.cheapstay.co/destinations' },
 };
 
 const DESTINATIONS = [

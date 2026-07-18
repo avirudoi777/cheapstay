@@ -9,9 +9,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Book a 1-Hour Travel Call with Avi',
     description: '50+ countries, 500+ hotels, $40k+ saved on bookings. Personalised route planning, hotel picks, and booking hacks.',
-    url: 'https://cheapstay.co/consult',
+    url: 'https://www.cheapstay.co/consult',
   },
-  alternates: { canonical: 'https://cheapstay.co/consult' },
+  alternates: { canonical: 'https://www.cheapstay.co/consult' },
 };
 
 const TRAVEL_PHOTOS = [
