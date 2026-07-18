@@ -108,6 +108,14 @@ body {
   line-height: 1;
   -webkit-font-smoothing: antialiased;
 }
+.premium-shadow {
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.premium-shadow:hover {
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
+}
 
 @media print {
   .no-print { display: none !important; }

@@ -3548,16 +3548,19 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                               />
                             );
                           })()}
-                          <div className="relative px-4 pt-4 pb-3" style={{ background: 'linear-gradient(135deg, rgba(15,41,66,0.96) 0%, rgba(26,60,94,0.92) 100%)' }}>
+                          <div className="relative px-4 pt-4 pb-3 bg-gradient-to-br from-pro-navy to-[#1a3c5e]">
                             <div className="flex items-start justify-between">
                               <div>
-                                <p className="text-sm font-extrabold text-white">🛋️ Airport Lounges on this route</p>
-                                <p className="text-[11px] mt-0.5" style={{ color: '#93C5FD' }}>
+                                <p className="text-sm font-extrabold text-white flex items-center gap-1.5">
+                                  <span className="material-symbols-outlined text-teal-accent text-[18px]">weekend</span>
+                                  Airport Lounges on this route
+                                </p>
+                                <p className="text-[11px] mt-0.5 text-sky-blue/80">
                                   Rest, eat and freshen up at your airports — no Priority Pass needed
                                 </p>
                               </div>
-                              <span className="text-[9px] font-bold px-2 py-1 rounded-full flex-shrink-0 ml-2"
-                                style={{ background: '#1D4ED8', color: '#BFDBFE', border: '1px solid #2563EB' }}>
+                              <span className="text-[9px] font-bold px-2 py-1 rounded-full flex-shrink-0 ml-2 bg-teal-accent/20 text-teal-accent border border-teal-accent/30 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[12px]">verified_user</span>
                                 ONLY ON CHEAPSTAY
                               </span>
                             </div>
@@ -3565,20 +3568,26 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                         </div>
 
                         {/* Per-airport lounge cards */}
-                        <div className="p-3 space-y-3" style={{ background: '#F8FAFC' }}>
+                        <div className="p-3 space-y-3 bg-surface-container-low">
                           {airports.map(({ code, guide }, ai) => {
                             const isLayover = offer.segments.slice(0, -1).some(s => s.arrCode === code);
                             const isArrival = offer.segments[offer.segments.length - 1].arrCode === code;
                             const role = isArrival ? 'Arrival' : isLayover ? 'Layover' : 'Departure';
-                            const roleColor = isLayover
-                              ? { bg: '#FEF9C3', text: '#92400E' }
+                            const roleClass = isLayover
+                              ? 'bg-alert-orange/10 text-alert-orange'
                               : isArrival
-                              ? { bg: '#EFF6FF', text: '#1D4ED8' }
-                              : { bg: '#ECFDF5', text: '#15803D' };
+                              ? 'bg-sky-blue/10 text-tertiary'
+                              : 'bg-savings-green/10 text-savings-green';
                             const lounges = parseLoungesInline(guide!.lounges!);
 
+                            const amenities = (l: ReturnType<typeof parseLoungesInline>[number]) => [
+                              l.is24h && { icon: 'schedule', label: '24 Hours' },
+                              l.hasShower && { icon: 'shower', label: 'Shower' },
+                              l.includesFood && { icon: 'restaurant', label: 'Food' },
+                            ].filter((a): a is { icon: string; label: string } => !!a);
+
                             return (
-                              <div key={code} className="bg-white rounded-xl overflow-hidden" style={{ border: '1px solid #E2E8F0', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+                              <div key={code} className="bg-white rounded-xl overflow-hidden border border-border-subtle premium-shadow">
                                 {/* Airport row with optional city image strip */}
                                 {guide!.cityImage && (
                                   <div className="relative h-20 overflow-hidden">
@@ -3594,44 +3603,56 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                         <p className="text-sm font-extrabold text-white leading-none">{guide!.city}</p>
                                         <p className="text-[10px] text-white/70">{code} · {guide!.airport}</p>
                                       </div>
-                                      <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                                        style={{ background: roleColor.bg, color: roleColor.text }}>
+                                      <span className={`ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${roleClass}`}>
                                         {role}
                                       </span>
                                     </div>
                                   </div>
                                 )}
                                 {!guide!.cityImage && (
-                                  <div className="flex items-center gap-2 px-3 py-2.5" style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                  <div className="flex items-center gap-2 px-3 py-2.5 border-b border-surface-container-low">
                                     <span className="text-lg">{guide!.flag}</span>
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2">
                                         <p className="text-sm font-bold text-pro-navy">{code}</p>
-                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                                          style={{ background: roleColor.bg, color: roleColor.text }}>{role}</span>
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${roleClass}`}>{role}</span>
                                       </div>
                                       <p className="text-[10px] text-on-surface-variant">{guide!.airport}</p>
                                     </div>
                                   </div>
                                 )}
 
-                                {/* Lounge list */}
-                                <div className="p-3 space-y-2">
+                                {/* Lounge cards */}
+                                <div className="p-3 space-y-2.5">
                                   {lounges.map((l, li) => (
-                                    <div key={li} className="flex items-start justify-between gap-3 py-2 px-3 rounded-lg" style={{ background: '#F8FAFC', border: '1px solid #EEF2F7' }}>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold text-pro-navy truncate">{l.name}</p>
-                                        <div className="flex flex-wrap gap-1 mt-1">
-                                          {l.payAtDoor && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF9C3', color: '#92400E' }}>💳 Walk-in</span>}
-                                          {l.is24h && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#EFF6FF', color: '#1D4ED8' }}>🕐 24h</span>}
-                                          {l.hasShower && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#F0F9FF', color: '#0369A1' }}>🚿 Shower</span>}
-                                          {l.includesFood && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#FFF7ED', color: '#C2410C' }}>🍽️ Food</span>}
-                                        </div>
+                                    <div key={li} className="bg-white rounded-lg border border-border-subtle p-3.5">
+                                      <div className="flex justify-between items-start mb-2.5 gap-2">
+                                        <p className="text-sm font-bold text-pro-navy leading-snug">{l.name}</p>
+                                        <span className="material-symbols-outlined text-teal-accent flex-shrink-0 text-[20px]"
+                                          style={{ fontVariationSettings: "'FILL' 1" }}>
+                                          {/executive|first|business|premium/i.test(l.name) ? 'workspace_premium' : 'group'}
+                                        </span>
                                       </div>
-                                      {l.price && (
-                                        <div className="text-right flex-shrink-0">
-                                          <span className="text-base font-extrabold" style={{ color: 'var(--color-primary)' }}>{l.price}</span>
-                                          <p className="text-[9px] text-on-surface-variant">per person</p>
+                                      {amenities(l).length > 0 && (
+                                        <div className="flex gap-4 mb-2.5">
+                                          {amenities(l).map(a => (
+                                            <div key={a.icon} className="flex flex-col items-center">
+                                              <span className="material-symbols-outlined text-secondary text-xl">{a.icon}</span>
+                                              <span className="text-[9px] font-bold text-outline uppercase mt-0.5">{a.label}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                      {(l.payAtDoor || l.price) && (
+                                        <div className="flex items-center justify-between pt-2.5 border-t border-surface-container-low">
+                                          {l.payAtDoor
+                                            ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-savings-green/10 text-savings-green uppercase">Walk-in ready</span>
+                                            : <span />}
+                                          {l.price && (
+                                            <span className="text-base font-extrabold text-primary">
+                                              {l.price} <span className="text-[9px] font-normal text-on-surface-variant">/person</span>
+                                            </span>
+                                          )}
                                         </div>
                                       )}
                                     </div>
@@ -3639,20 +3660,23 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                                 </div>
                                 {/* Layover tips — only for stopovers */}
                                 {isLayover && guide!.tips.length > 0 && (
-                                  <div className="px-3 pb-3" style={{ borderTop: '1px solid #EEF2F7' }}>
-                                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide pt-2.5 mb-2">
-                                      🗺️ How to spend your time in {guide!.city}
-                                    </p>
-                                    <div className="space-y-1.5">
-                                      {guide!.tips.slice(0, 3).map((tip, ti) => (
-                                        <div key={ti} className="flex items-start gap-2 px-2.5 py-2 rounded-lg" style={{ background: '#F0FDF4', border: '1px solid #D1FAE5' }}>
-                                          <span className="text-sm flex-shrink-0 mt-0.5">{tip.icon}</span>
-                                          <div>
-                                            <p className="text-[11px] font-bold text-pro-navy">{tip.title}</p>
-                                            <p className="text-[10px] text-on-surface-variant leading-relaxed mt-0.5">{tip.desc}</p>
+                                  <div className="px-3 pb-3">
+                                    <div className="bg-surface-container-low border-l-4 border-teal-accent rounded-r-lg p-3">
+                                      <p className="text-[10px] font-bold text-pro-navy uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                                        <span className="material-symbols-outlined text-teal-accent text-[14px]">explore</span>
+                                        How to spend your time in {guide!.city}
+                                      </p>
+                                      <div className="space-y-2">
+                                        {guide!.tips.slice(0, 3).map((tip, ti) => (
+                                          <div key={ti} className="flex items-start gap-2">
+                                            <span className="text-sm flex-shrink-0 mt-0.5">{tip.icon}</span>
+                                            <div>
+                                              <p className="text-[11px] font-bold text-pro-navy">{tip.title}</p>
+                                              <p className="text-[10px] text-on-surface-variant leading-relaxed mt-0.5">{tip.desc}</p>
+                                            </div>
                                           </div>
-                                        </div>
-                                      ))}
+                                        ))}
+                                      </div>
                                     </div>
                                   </div>
                                 )}
