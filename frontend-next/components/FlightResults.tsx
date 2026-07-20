@@ -2729,10 +2729,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
         : 'linear-gradient(160deg, #0f0d00 0%, #1f1800 50%, var(--color-pro-navy) 100%)'
       : 'linear-gradient(160deg, var(--color-pro-navy) 0%, #0f2e4a 60%, #0d3d2e 100%)';
 
-    return (
-      <div ref={confirmationRef} className="max-w-lg mx-auto px-4 sm:px-6 mt-8 mb-16">
+    const hotelSearchUrl = `/?destination=${encodeURIComponent(toName)}`;
 
-        {/* Boarding-pass card */}
+    return (
+      <div ref={confirmationRef} className="max-w-xl mx-auto px-4 sm:px-6 mt-8 mb-16">
+
+        {/* Ticket card */}
         <div className="rounded-3xl overflow-hidden shadow-2xl" style={{ background: bgGradient }}>
 
           {/* Top section — route + status icon */}
@@ -2744,16 +2746,16 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 border: `${isBusinessOrFirst ? '2px' : '1.5px'} solid rgba(${accentRgb},${isBusinessOrFirst ? '0.6' : '0.4'})`,
                 boxShadow: isBusinessOrFirst ? `0 0 32px rgba(${accentRgb},0.25)` : 'none',
               }}>
-              <span style={{ fontSize: isBusinessOrFirst ? 28 : 22 }}>
-                {isHeld ? '⏳' : isBusinessOrFirst ? '✦' : '✓'}
+              <span className="material-symbols-outlined" style={{ fontSize: isBusinessOrFirst ? 32 : 26, color: accentHex, fontVariationSettings: "'FILL' 1, 'wght' 600" }}>
+                {isHeld ? 'schedule' : isBusinessOrFirst ? 'workspace_premium' : 'check_circle'}
               </span>
             </div>
-            <p className="font-bold tracking-widest uppercase mb-1"
-              style={{ fontSize: isBusinessOrFirst ? 11 : 10, color: `rgba(${accentRgb},0.95)` }}>
+            <p className="font-label-bold text-label-bold tracking-widest uppercase mb-1"
+              style={{ color: `rgba(${accentRgb},0.95)` }}>
               {isHeld ? 'Seat held — payment pending' : isBusinessOrFirst ? `${cabinLabel} confirmed` : 'Booking confirmed'}
             </p>
-            <h2 className="font-extrabold text-white mb-1"
-              style={{ fontSize: isBusinessOrFirst ? 26 : 22 }}>
+            <h2 className="font-headline-lg font-extrabold text-white mb-1"
+              style={{ fontSize: isBusinessOrFirst ? 28 : 24 }}>
               {fromName} {ret ? '↔' : '→'} {toName}
             </h2>
             <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
@@ -2766,22 +2768,22 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
                 border: `1px solid rgba(${accentRgb},${isBusinessOrFirst ? '0.55' : '0.35'})`,
                 boxShadow: isBusinessOrFirst ? `0 0 16px rgba(${accentRgb},0.2)` : 'none',
               }}>
-              {isBusinessOrFirst && <span style={{ color: accentHex, fontSize: 12 }}>✦</span>}
+              {isBusinessOrFirst && <span className="material-symbols-outlined" style={{ color: accentHex, fontSize: 14 }}>stars</span>}
               <span className="font-bold tracking-wide" style={{ fontSize: isBusinessOrFirst ? 13 : 11, color: accentHex }}>{cabinLabel}</span>
             </div>
           </div>
 
           {/* Tear-line divider */}
           <div className="relative flex items-center px-0 my-0">
-            <div className="w-6 h-6 rounded-full flex-shrink-0 -ml-3" style={{ background: '#F8FAFC' }} />
+            <div className="w-6 h-6 rounded-full flex-shrink-0 -ml-3 bg-surface-container-low" />
             <div className="flex-1 border-t-2 border-dashed mx-1" style={{ borderColor: 'rgba(255,255,255,0.1)' }} />
-            <div className="w-6 h-6 rounded-full flex-shrink-0 -mr-3" style={{ background: '#F8FAFC' }} />
+            <div className="w-6 h-6 rounded-full flex-shrink-0 -mr-3 bg-surface-container-low" />
           </div>
 
           {/* Reference + details */}
           <div className="px-8 pt-6 pb-8">
-            <p className="text-[10px] font-bold tracking-widest uppercase mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Booking reference</p>
-            <p className="text-5xl font-extrabold tracking-widest mb-5" style={{
+            <p className="text-[10px] font-bold tracking-widest uppercase mb-2 text-center" style={{ color: 'rgba(255,255,255,0.35)' }}>Booking reference</p>
+            <p className="font-display-lg text-4xl sm:text-5xl font-extrabold tracking-widest mb-5 text-center" style={{
               color: isBusinessOrFirst ? accentHex : 'white',
               textShadow: `0 0 40px rgba(${accentRgb},${isBusinessOrFirst ? '0.7' : '0.5'})`,
               letterSpacing: '0.15em',
@@ -2789,31 +2791,34 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
               {confirmation.reference}
             </p>
 
-            {/* Flight detail rows — one row per slice for round trips */}
+            {/* Flight legs — 2-col grid for round trips, 3-col single row for one-way */}
             {selectedOffer.slices && selectedOffer.slices.length > 1 ? (
-              <div className="space-y-3 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 {selectedOffer.slices.map((sl, si) => (
-                  <div key={si}>
-                    <p className="text-[9px] font-bold tracking-wider uppercase mb-1.5" style={{ color: `rgba(${accentRgb},0.75)` }}>
-                      {si === 0 ? '↗ Outbound' : '↙ Return'}
+                  <div key={si} className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <p className="flex items-center gap-1.5 text-[9px] font-bold tracking-wider uppercase mb-3" style={{ color: `rgba(${accentRgb},0.85)` }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>{si === 0 ? 'north_east' : 'south_west'}</span>
+                      {si === 0 ? 'Outbound' : 'Return'}
                     </p>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="flex items-center justify-between gap-2">
                       <div>
-                        <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>From</p>
-                        <p className="text-sm font-bold text-white">{sl.origin}</p>
-                        <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{sl.originCity}</p>
+                        <p className="text-lg font-bold text-white leading-none">{sl.origin}</p>
+                        <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>{sl.originCity}</p>
                       </div>
-                      <div className="text-center">
-                        <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Duration</p>
-                        <p className="text-sm font-bold text-white">{sl.duration}</p>
-                        <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                      <div className="flex flex-col items-center flex-shrink-0 px-1">
+                        <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{sl.duration}</span>
+                        <div className="flex items-center gap-1 my-1">
+                          <div className="w-1 h-1 rounded-full" style={{ background: accentHex }} />
+                          <div className="w-6 h-px" style={{ background: 'rgba(255,255,255,0.2)' }} />
+                          <div className="w-1 h-1 rounded-full" style={{ background: accentHex }} />
+                        </div>
+                        <span className="text-[9px] font-bold" style={{ color: accentHex }}>
                           {sl.stops === 0 ? 'Direct' : `${sl.stops} stop${sl.stops > 1 ? 's' : ''}`}
-                        </p>
+                        </span>
                       </div>
                       <div className="text-right">
-                        <p className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>To</p>
-                        <p className="text-sm font-bold text-white">{sl.destination}</p>
-                        <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{sl.destinationCity}</p>
+                        <p className="text-lg font-bold text-white leading-none">{sl.destination}</p>
+                        <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>{sl.destinationCity}</p>
                       </div>
                     </div>
                   </div>
@@ -2842,11 +2847,12 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
             )}
 
             {/* Cabin class row — clearly labeled */}
-            <div className="flex items-center justify-between mb-5 py-2.5 px-3 rounded-xl"
+            <div className="flex items-center justify-between mb-3 py-2.5 px-3 rounded-xl"
               style={{ background: `rgba(${accentRgb},0.12)`, border: `1px solid rgba(${accentRgb},0.3)` }}>
               <p className="text-[9px] font-bold tracking-wider uppercase" style={{ color: 'rgba(255,255,255,0.4)' }}>Cabin class</p>
-              <p className="text-sm font-extrabold" style={{ color: accentHex }}>
-                {isBusinessOrFirst ? '✦ ' : ''}{cabinLabel}
+              <p className="text-sm font-extrabold flex items-center gap-1" style={{ color: accentHex }}>
+                {isBusinessOrFirst && <span className="material-symbols-outlined" style={{ fontSize: 14 }}>stars</span>}
+                {cabinLabel}
               </p>
             </div>
 
@@ -2872,16 +2878,18 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
               }}>
                 {holdExpiryLabel ? (
                   <>
-                    <p className="text-xs font-bold text-center" style={{ color: holdExpiryUrgent ? '#FCA5A5' : '#FCD34D' }}>
-                      ⚠️ Hold expires in {holdExpiryLabel}
+                    <p className="flex items-center justify-center gap-1.5 text-xs font-bold text-center" style={{ color: holdExpiryUrgent ? '#FCA5A5' : '#FCD34D' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>warning</span>
+                      Hold expires in {holdExpiryLabel}
                     </p>
                     <p className="text-[10px] text-center mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
                       Your seat is not confirmed until payment is complete
                     </p>
                   </>
                 ) : (
-                  <p className="text-xs font-bold text-center" style={{ color: '#FCD34D' }}>
-                    ⚠️ Seat held — pay before the deadline to confirm
+                  <p className="flex items-center justify-center gap-1.5 text-xs font-bold text-center" style={{ color: '#FCD34D' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>warning</span>
+                    Seat held — pay before the deadline to confirm
                   </p>
                 )}
               </div>
@@ -2893,18 +2901,60 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
           </div>
         </div>
 
-        {/* CTA buttons */}
-        <div className="mt-4 space-y-2.5">
+        {/* Pro Tip */}
+        <div className="mt-stack-md bg-white p-5 rounded-xl pro-shadow border border-border-subtle flex gap-4 items-start">
+          <div className="bg-sky-blue/10 p-3 rounded-lg shrink-0">
+            <span className="material-symbols-outlined text-sky-blue" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
+          </div>
+          <div>
+            <h3 className="font-headline-md text-base text-pro-navy mb-1">Avi's Pro Tip</h3>
+            <p className="text-on-surface-variant text-sm leading-relaxed">
+              Check your email for your official e-ticket within a couple of hours. Downloading {firstSeg.airline}&apos;s
+              app now makes checking in and tracking any gate changes a lot easier on travel day.
+            </p>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-stack-md flex flex-col items-center gap-3">
           <button onClick={() => window.location.href = confirmation.orderId ? `/bookings/${confirmation.orderId}` : '/bookings'}
-            className="w-full py-3.5 rounded-2xl text-sm font-bold text-white transition-opacity hover:opacity-90"
+            className="w-full h-14 rounded-xl font-headline-md text-white transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
             style={{ background: isHeld ? 'linear-gradient(135deg, #D97706, #B45309)' : accentHex }}>
-            {isHeld ? 'Pay now to confirm seat →' : 'View booking details →'}
+            {isHeld ? 'Pay now to confirm seat' : 'View full booking details'}
+            <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
           </button>
+          <a href="/account" className="text-primary font-label-bold text-sm hover:underline py-1">Manage travel companions</a>
           <button onClick={onClear}
-            className="w-full py-3 rounded-2xl text-sm font-semibold transition-colors"
-            style={{ color: 'rgba(100,116,139,1)', background: 'white', border: '1.5px solid #E2E8F0' }}>
+            className="w-full py-3 rounded-xl text-sm font-semibold transition-colors bg-white border border-border-subtle text-on-surface-variant hover:border-outline">
             Search another flight
           </button>
+        </div>
+
+        {/* Complete your trip */}
+        <div className="mt-section-gap">
+          <h2 className="font-headline-lg text-pro-navy mb-stack-md">Complete your trip</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-stack-md">
+            <a href={hotelSearchUrl} className="bg-white rounded-xl border border-border-subtle p-5 pro-shadow flex flex-col hover:shadow-md transition-shadow group">
+              <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-primary">hotel</span>
+              </div>
+              <h4 className="text-pro-navy font-headline-md text-lg mb-1">Hotels in {toName}</h4>
+              <p className="text-on-surface-variant text-sm mb-4 flex-1">Real prices, sorted by best value — no fake discounts.</p>
+              <span className="text-primary font-label-bold text-sm flex items-center gap-1">
+                Search hotels <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              </span>
+            </a>
+            <a href="/cars" className="bg-white rounded-xl border border-border-subtle p-5 pro-shadow flex flex-col hover:shadow-md transition-shadow group">
+              <div className="bg-tertiary/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-tertiary">directions_car</span>
+              </div>
+              <h4 className="text-pro-navy font-headline-md text-lg mb-1">Rent a car</h4>
+              <p className="text-on-surface-variant text-sm mb-4 flex-1">Compare rental prices for your trip.</p>
+              <span className="text-tertiary font-label-bold text-sm flex items-center gap-1">
+                Search cars <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              </span>
+            </a>
+          </div>
         </div>
       </div>
     );
