@@ -459,7 +459,9 @@ export default function ManageBookingPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+      <div className="max-w-container-max mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="lg:col-span-2 space-y-4">
 
         {/* ── Route header ───────────────────────────────────────────── */}
         <div className={`rounded-2xl p-6 ${isPremiumCabin && !isCancelled ? '' : 'bg-white border border-border-subtle pro-shadow'}`}
@@ -768,79 +770,6 @@ export default function ManageBookingPage() {
           )}
         </Section>
 
-        {/* ── Payment ─────────────────────────────────────────────────── */}
-        <Section title="Payment" icon="receipt_long">
-          <div className="space-y-2">
-            {(() => {
-              // seat_selections: per-seat [{serviceId, designator, depCode, arrCode, price}] saved at booking time
-              // extras_amount: legacy total (kept for old bookings without seat_selections)
-              // Duffel GET order does NOT return pricing on services — never read svc.total_amount here.
-              const seatSels = booking.seat_selections ?? [];
-              const hasSeatSels = seatSels.length > 0;
-              const extrasTotal = hasSeatSels
-                ? seatSels.reduce((sum, ss) => sum + ss.price, 0)
-                : booking.extras_amount ?? 0;
-              const flightFare = Math.max(0, booking.total_amount - 10 - extrasTotal);
-              const svcs = order?.services ?? [];
-              const seatSvcs = svcs.filter(s => s.type === 'seat');
-              const pricePerSeat = seatSvcs.length > 0 ? extrasTotal / seatSvcs.length : 0;
-
-              type SeatLine = { key: string; label: string; price: number };
-              // New bookings: use seat_selections for exact per-seat prices, available immediately.
-              // Old bookings (no seat_selections): fall back to even split once order loads.
-              const seatLines: SeatLine[] = hasSeatSels
-                ? seatSels.map((ss, i) => ({
-                    key: ss.serviceId ?? String(i),
-                    label: `💺 Seat ${ss.designator}${ss.depCode && ss.arrCode ? ` · ${ss.depCode}→${ss.arrCode}` : ''}`.trim(),
-                    price: ss.price,
-                  }))
-                : orderLoading
-                  ? (extrasTotal > 0 ? [{ key: 'loading', label: '💺 Seat selection', price: extrasTotal }] : [])
-                  : seatSvcs.map((svc, i) => {
-                      const seg = allSegs.find(s => svc.segment_ids?.includes(s.id));
-                      const label = `💺 Seat ${svc.metadata?.designator ?? ''}${seg ? ` · ${seg.origin.iata_code}→${seg.destination.iata_code}` : ''}`.trim();
-                      return { key: svc.id ?? String(i), label, price: pricePerSeat };
-                    });
-
-              return (
-                <>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-on-surface-variant">Flight fare</span>
-                    <span className="text-sm text-pro-navy font-semibold">{fmtPrice(flightFare, booking.currency)}</span>
-                  </div>
-                  {seatLines.map(({ key, label, price }) => (
-                    <div key={key} className="flex justify-between items-center">
-                      <span className="text-sm text-on-surface-variant">{label}</span>
-                      <span className="text-sm font-semibold" style={{ color: price > 0 ? 'var(--color-primary)' : '#64748B' }}>
-                        {price > 0 ? `+${fmtPrice(price, booking.currency)}` : 'Free'}
-                      </span>
-                    </div>
-                  ))}
-                  {/* Non-seat services (bags etc.) — always wait for order */}
-                  {svcs.filter(s => s.type !== 'seat').map((svc, i) => (
-                    <div key={i} className="flex justify-between items-center">
-                      <span className="text-sm text-on-surface-variant capitalize">
-                        {svc.type === 'baggage' ? `Extra bag ×${svc.quantity}` : svc.type}
-                      </span>
-                      <span className="text-sm text-outline">included</span>
-                    </div>
-                  ))}
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-on-surface-variant">Service fee</span>
-                    <span className="text-sm text-pro-navy font-semibold">{fmtPrice(10, booking.currency)}</span>
-                  </div>
-                  <div className="border-t border-border-subtle pt-2 mt-2 flex justify-between items-center">
-                    <span className="text-base font-extrabold text-pro-navy">Total paid</span>
-                    <span className="text-xl font-extrabold" style={{ color: 'var(--color-primary)' }}>
-                      {fmtPrice(booking.total_amount, booking.currency)}
-                    </span>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </Section>
-
         {/* ── Passengers ──────────────────────────────────────────────── */}
         <Section title={`Passengers · ${booking.passengers_count}`} icon="group">
           {orderLoading && (
@@ -874,52 +803,6 @@ export default function ManageBookingPage() {
                 </div>
               ))}
               {orderError && <p className="text-xs text-outline mt-2">Full passport details unavailable — could not load order from Duffel.</p>}
-            </div>
-          )}
-        </Section>
-
-        {/* ── Cancellation ────────────────────────────────────────────── */}
-        <Section title="Cancellation" icon="cancel">
-          {cancelDone ? (
-            <div className="space-y-4">
-              <div className="rounded-xl p-5 text-center bg-savings-green/10">
-                <span className="material-symbols-outlined text-savings-green text-3xl mb-1" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                <p className="text-base font-extrabold text-savings-green">Booking cancelled</p>
-                <p className="text-xs text-on-surface-variant mt-1">
-                  {cancelRefund && cancelRefund.amount > 0
-                    ? `Your refund of ${fmtPrice(cancelRefund.amount, cancelRefund.currency)} will appear within 5–10 business days.`
-                    : 'If eligible, your refund will appear within 5–10 business days.'}
-                </p>
-              </div>
-              <button onClick={() => router.push('/bookings')}
-                className="w-full py-3 rounded-xl text-sm font-bold text-white bg-primary transition cursor-pointer">
-                ← Back to My Bookings
-              </button>
-            </div>
-          ) : isCancelled ? (
-            <div className="rounded-xl p-4 text-center bg-error/5">
-              <p className="text-base font-bold text-error">This booking has been cancelled</p>
-              <p className="text-xs text-on-surface-variant mt-1">If eligible, your refund will appear within 5–10 business days.</p>
-            </div>
-          ) : isPast ? (
-            <p className="text-sm text-outline">This flight has already departed. Cancellations are no longer available.</p>
-          ) : cp?.allowed === false ? (
-            <div className="rounded-xl px-4 py-3 bg-error/5 border border-error/20">
-              <p className="text-sm font-bold text-error">Non-refundable fare</p>
-              <p className="text-xs text-on-surface-variant mt-0.5">This ticket cannot be cancelled for a refund. Contact the airline for exceptions.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {cancelPolicyLabel && (
-                <div className="flex items-center gap-2 rounded-xl px-4 py-3" style={{ background: cancelPolicyLabel.bg }}>
-                  <span className="text-sm font-bold" style={{ color: cancelPolicyLabel.color }}>{cancelPolicyLabel.text}</span>
-                </div>
-              )}
-              <button onClick={() => { setCancelError(''); setShowCancelModal(true); }}
-                disabled={orderLoading}
-                className="w-full py-3 rounded-xl text-sm font-bold transition disabled:opacity-40 disabled:cursor-not-allowed bg-error/5 text-error border-[1.5px] border-error/20 cursor-pointer">
-                {orderLoading ? 'Loading…' : 'Cancel booking'}
-              </button>
             </div>
           )}
         </Section>
@@ -1220,14 +1103,141 @@ export default function ManageBookingPage() {
           );
         })()}
 
-        {/* ── Destination tips ────────────────────────────────────────── */}
-        <DestinationTipsSection
-          destinationCode={booking.destination_code}
-          destinationCity={booking.destination_city}
-          originCode={booking.origin_code}
-          order={order}
-        />
+        <div className="pb-8 lg:hidden" />
+        </div>
 
+        {/* ── Sidebar: Payment, Cancellation, Destination tips ─────────── */}
+        <div className="space-y-4 lg:sticky lg:top-4">
+
+          {/* ── Payment ─────────────────────────────────────────────────── */}
+          <Section title="Payment" icon="receipt_long">
+            <div className="space-y-2">
+              {(() => {
+                // seat_selections: per-seat [{serviceId, designator, depCode, arrCode, price}] saved at booking time
+                // extras_amount: legacy total (kept for old bookings without seat_selections)
+                // Duffel GET order does NOT return pricing on services — never read svc.total_amount here.
+                const seatSels = booking.seat_selections ?? [];
+                const hasSeatSels = seatSels.length > 0;
+                const extrasTotal = hasSeatSels
+                  ? seatSels.reduce((sum, ss) => sum + ss.price, 0)
+                  : booking.extras_amount ?? 0;
+                const flightFare = Math.max(0, booking.total_amount - 10 - extrasTotal);
+                const svcs = order?.services ?? [];
+                const seatSvcs = svcs.filter(s => s.type === 'seat');
+                const pricePerSeat = seatSvcs.length > 0 ? extrasTotal / seatSvcs.length : 0;
+
+                type SeatLine = { key: string; label: string; price: number };
+                // New bookings: use seat_selections for exact per-seat prices, available immediately.
+                // Old bookings (no seat_selections): fall back to even split once order loads.
+                const seatLines: SeatLine[] = hasSeatSels
+                  ? seatSels.map((ss, i) => ({
+                      key: ss.serviceId ?? String(i),
+                      label: `💺 Seat ${ss.designator}${ss.depCode && ss.arrCode ? ` · ${ss.depCode}→${ss.arrCode}` : ''}`.trim(),
+                      price: ss.price,
+                    }))
+                  : orderLoading
+                    ? (extrasTotal > 0 ? [{ key: 'loading', label: '💺 Seat selection', price: extrasTotal }] : [])
+                    : seatSvcs.map((svc, i) => {
+                        const seg = allSegs.find(s => svc.segment_ids?.includes(s.id));
+                        const label = `💺 Seat ${svc.metadata?.designator ?? ''}${seg ? ` · ${seg.origin.iata_code}→${seg.destination.iata_code}` : ''}`.trim();
+                        return { key: svc.id ?? String(i), label, price: pricePerSeat };
+                      });
+
+                return (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-on-surface-variant">Flight fare</span>
+                      <span className="text-sm text-pro-navy font-semibold">{fmtPrice(flightFare, booking.currency)}</span>
+                    </div>
+                    {seatLines.map(({ key, label, price }) => (
+                      <div key={key} className="flex justify-between items-center">
+                        <span className="text-sm text-on-surface-variant">{label}</span>
+                        <span className="text-sm font-semibold" style={{ color: price > 0 ? 'var(--color-primary)' : '#64748B' }}>
+                          {price > 0 ? `+${fmtPrice(price, booking.currency)}` : 'Free'}
+                        </span>
+                      </div>
+                    ))}
+                    {/* Non-seat services (bags etc.) — always wait for order */}
+                    {svcs.filter(s => s.type !== 'seat').map((svc, i) => (
+                      <div key={i} className="flex justify-between items-center">
+                        <span className="text-sm text-on-surface-variant capitalize">
+                          {svc.type === 'baggage' ? `Extra bag ×${svc.quantity}` : svc.type}
+                        </span>
+                        <span className="text-sm text-outline">included</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-on-surface-variant">Service fee</span>
+                      <span className="text-sm text-pro-navy font-semibold">{fmtPrice(10, booking.currency)}</span>
+                    </div>
+                    <div className="border-t border-border-subtle pt-2 mt-2 flex justify-between items-center">
+                      <span className="text-base font-extrabold text-pro-navy">Total paid</span>
+                      <span className="text-xl font-extrabold" style={{ color: 'var(--color-primary)' }}>
+                        {fmtPrice(booking.total_amount, booking.currency)}
+                      </span>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </Section>
+
+          {/* ── Cancellation ────────────────────────────────────────────── */}
+          <Section title="Cancellation" icon="cancel">
+            {cancelDone ? (
+              <div className="space-y-4">
+                <div className="rounded-xl p-5 text-center bg-savings-green/10">
+                  <span className="material-symbols-outlined text-savings-green text-3xl mb-1" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                  <p className="text-base font-extrabold text-savings-green">Booking cancelled</p>
+                  <p className="text-xs text-on-surface-variant mt-1">
+                    {cancelRefund && cancelRefund.amount > 0
+                      ? `Your refund of ${fmtPrice(cancelRefund.amount, cancelRefund.currency)} will appear within 5–10 business days.`
+                      : 'If eligible, your refund will appear within 5–10 business days.'}
+                  </p>
+                </div>
+                <button onClick={() => router.push('/bookings')}
+                  className="w-full py-3 rounded-xl text-sm font-bold text-white bg-primary transition cursor-pointer">
+                  ← Back to My Bookings
+                </button>
+              </div>
+            ) : isCancelled ? (
+              <div className="rounded-xl p-4 text-center bg-error/5">
+                <p className="text-base font-bold text-error">This booking has been cancelled</p>
+                <p className="text-xs text-on-surface-variant mt-1">If eligible, your refund will appear within 5–10 business days.</p>
+              </div>
+            ) : isPast ? (
+              <p className="text-sm text-outline">This flight has already departed. Cancellations are no longer available.</p>
+            ) : cp?.allowed === false ? (
+              <div className="rounded-xl px-4 py-3 bg-error/5 border border-error/20">
+                <p className="text-sm font-bold text-error">Non-refundable fare</p>
+                <p className="text-xs text-on-surface-variant mt-0.5">This ticket cannot be cancelled for a refund. Contact the airline for exceptions.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {cancelPolicyLabel && (
+                  <div className="flex items-center gap-2 rounded-xl px-4 py-3" style={{ background: cancelPolicyLabel.bg }}>
+                    <span className="text-sm font-bold" style={{ color: cancelPolicyLabel.color }}>{cancelPolicyLabel.text}</span>
+                  </div>
+                )}
+                <button onClick={() => { setCancelError(''); setShowCancelModal(true); }}
+                  disabled={orderLoading}
+                  className="w-full py-3 rounded-xl text-sm font-bold transition disabled:opacity-40 disabled:cursor-not-allowed bg-error/5 text-error border-[1.5px] border-error/20 cursor-pointer">
+                  {orderLoading ? 'Loading…' : 'Cancel booking'}
+                </button>
+              </div>
+            )}
+          </Section>
+
+          {/* ── Destination tips ────────────────────────────────────────── */}
+          <DestinationTipsSection
+            destinationCode={booking.destination_code}
+            destinationCity={booking.destination_city}
+            originCode={booking.origin_code}
+            order={order}
+          />
+        </div>
+
+        </div>
         <div className="pb-8" />
       </div>
     </div>
