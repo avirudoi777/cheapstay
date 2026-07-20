@@ -79,17 +79,32 @@ export default function AdminAdvisoriesPage() {
   }
 
   async function toggleActive(id: string, current: boolean) {
+    setError('');
     setAdvisories(prev => prev.map(a => a.id === id ? { ...a, is_active: !current } : a));
-    await fetch(`/api/admin/travel-advisories/${id}`, {
+    const res = await fetch(`/api/admin/travel-advisories/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: !current }),
     });
+    if (!res.ok) {
+      // Revert the optimistic update — the write didn't actually happen server-side.
+      setAdvisories(prev => prev.map(a => a.id === id ? { ...a, is_active: current } : a));
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? 'Failed to update advisory — it was not changed.');
+    }
   }
 
   async function deleteAdvisory(id: string) {
+    setError('');
+    const removed = advisories.find(a => a.id === id);
     setAdvisories(prev => prev.filter(a => a.id !== id));
-    await fetch(`/api/admin/travel-advisories/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/admin/travel-advisories/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      // Revert — the row is still in the database, don't let the UI lie about it.
+      if (removed) setAdvisories(prev => [...prev, removed].sort((a, b) => b.created_at.localeCompare(a.created_at)));
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? 'Failed to delete advisory — it still exists.');
+    }
   }
 
   if (checking || !authorized) {
