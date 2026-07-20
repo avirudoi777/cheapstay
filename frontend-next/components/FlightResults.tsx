@@ -521,6 +521,15 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
   const [searchError, setSearchError] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  // ── Travel advisories — manually curated by Avi, fetched once per mount
+  const [advisories, setAdvisories] = useState<{ id: string; title: string; message: string; affected_airports: string[]; link_url: string | null }[]>([]);
+  useEffect(() => {
+    fetch('/api/travel-advisories')
+      .then(r => r.ok ? r.json() : { advisories: [] })
+      .then(data => setAdvisories(data.advisories ?? []))
+      .catch(() => {});
+  }, []);
+
   // ── Date price strip
   const [activeDate, setActiveDate] = useState(depart);
   const [chipPrices, setChipPrices] = useState<Record<string, number | null>>({});
@@ -3352,6 +3361,30 @@ export default function FlightResults({ fromCode, toCode, fromName, toName, depa
               </div>
             </div>
           </div>
+          {/* Travel advisories — manually curated by Avi, matched by route */}
+          {advisories
+            .filter(a => a.affected_airports.includes(fromCode) || a.affected_airports.includes(toCode))
+            .map(a => (
+              <div key={a.id} className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl text-xs text-alert-orange bg-alert-orange/5 border border-alert-orange/20">
+                <span className="material-symbols-outlined text-[18px] flex-shrink-0">warning</span>
+                <div>
+                  <p className="font-bold">{a.title}</p>
+                  <p className="mt-0.5">
+                    {a.message}
+                    {a.link_url && (
+                      <>
+                        {' '}
+                        <a href={a.link_url} target="_blank" rel="noopener noreferrer"
+                          className="font-bold underline underline-offset-2 cursor-pointer">
+                          View details →
+                        </a>
+                      </>
+                    )}
+                  </p>
+                  <p className="mt-1 text-alert-orange/70">Information provided by CheapStay — always confirm current conditions with your airline.</p>
+                </div>
+              </div>
+            ))}
           {/* LCC disclaimer — shown for routes where AirAsia/Lion Air are common */}
           {(() => {
             const LCC_AIRPORTS = new Set(['BKK','DMK','SGN','HAN','DAD','CGK','DPS','SUB','KUL','KBR','PEN','SIN','MNL','CEB','BKI','HKT','CNX','USM','KHH','TPE','MFM','PNH','RGN','VTE']);
