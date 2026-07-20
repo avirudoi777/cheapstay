@@ -248,6 +248,10 @@ export async function POST(req: NextRequest) {
               totalAmount: parseFloat(order.total_amount),
               currency: order.total_currency,
               bookingId: savedRowId,
+              arrivalAt: lastSeg?.arriving_at ?? undefined,
+              originTerminal: firstSeg?.origin?.terminal ?? undefined,
+              destinationTerminal: lastSeg?.destination?.terminal ?? undefined,
+              cabinClass: firstSeg?.cabin_class ?? undefined,
             }),
           });
         }
