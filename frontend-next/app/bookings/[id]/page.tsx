@@ -106,11 +106,12 @@ function countryName(code: string) {
 
 // ── Section wrapper ───────────────────────────────────────────────────────────
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, icon, children }: { title: string; icon?: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-50">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{title}</p>
+    <div className="bg-white rounded-2xl border border-border-subtle pro-shadow overflow-hidden">
+      <div className="px-6 py-4 border-b border-border-subtle flex items-center gap-2">
+        {icon && <span className="material-symbols-outlined text-primary text-[18px]">{icon}</span>}
+        <p className="font-label-bold text-label-bold text-pro-navy uppercase tracking-widest">{title}</p>
       </div>
       <div className="px-6 py-5">{children}</div>
     </div>
@@ -410,7 +411,7 @@ export default function ManageBookingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#F8FAFC' }}>
+      <div className="min-h-screen flex items-center justify-center bg-surface-container-low">
         <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
       </div>
     );
@@ -430,9 +431,9 @@ export default function ManageBookingPage() {
     ? { allowed: orderRefund.allowed, penalty_amount: orderRefund.penalty_amount ? parseFloat(orderRefund.penalty_amount) : null, penalty_currency: orderRefund.penalty_currency ?? null }
     : booking.cancellation_policy;
   const cancelPolicyLabel = !cp ? null
-    : !cp.allowed ? { text: 'Non-refundable', color: '#DC2626', bg: '#FEF2F2' }
-    : cp.penalty_amount ? { text: `Cancel fee: ${fmtPrice(cp.penalty_amount, cp.penalty_currency ?? 'USD')}`, color: '#B45309', bg: '#FFFBEB' }
-    : { text: 'Free cancellation', color: '#15803D', bg: '#ECFDF5' };
+    : !cp.allowed ? { text: 'Non-refundable', color: 'var(--color-error)', bg: 'rgba(186,26,26,0.08)' }
+    : cp.penalty_amount ? { text: `Cancel fee: ${fmtPrice(cp.penalty_amount, cp.penalty_currency ?? 'USD')}`, color: 'var(--color-alert-orange)', bg: 'rgba(249,115,22,0.08)' }
+    : { text: 'Free cancellation', color: 'var(--color-savings-green)', bg: 'rgba(34,197,94,0.08)' };
 
   const firstSeg = order?.slices?.[0]?.segments?.[0];
   const allSegs = order?.slices?.flatMap(s => s.segments) ?? [];
@@ -444,15 +445,16 @@ export default function ManageBookingPage() {
   const premiumAccentRgb = isFirstClass ? '139,92,246' : '212,175,55';
 
   return (
-    <div className="min-h-screen" style={{ background: isPremiumCabin && !isCancelled ? '#080510' : '#F8FAFC' }}>
+    <div className={`min-h-screen ${isPremiumCabin && !isCancelled ? '' : 'bg-surface-container-low'}`} style={{ background: isPremiumCabin && !isCancelled ? '#080510' : undefined }}>
       {/* Top bar */}
       <div className="sticky top-0 z-10"
-        style={{ background: isPremiumCabin && !isCancelled ? 'rgba(8,5,16,0.9)' : '#fff', borderBottom: `1px solid ${isPremiumCabin && !isCancelled ? `rgba(${premiumAccentRgb},0.2)` : '#F1F5F9'}`, backdropFilter: 'blur(12px)' }}>
+        style={{ background: isPremiumCabin && !isCancelled ? 'rgba(8,5,16,0.9)' : '#fff', borderBottom: `1px solid ${isPremiumCabin && !isCancelled ? `rgba(${premiumAccentRgb},0.2)` : 'var(--color-border-subtle)'}`, backdropFilter: 'blur(12px)' }}>
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           <button onClick={() => router.push('/bookings')}
-            className="text-sm flex items-center gap-1.5 transition"
-            style={{ color: isPremiumCabin && !isCancelled ? `rgba(${premiumAccentRgb},0.8)` : '#9CA3AF' }}>
-            ← My Bookings
+            className={`text-sm flex items-center gap-1.5 transition cursor-pointer ${isPremiumCabin && !isCancelled ? '' : 'text-on-surface-variant hover:text-pro-navy'}`}
+            style={{ color: isPremiumCabin && !isCancelled ? `rgba(${premiumAccentRgb},0.8)` : undefined }}>
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            My Bookings
           </button>
         </div>
       </div>
@@ -460,7 +462,7 @@ export default function ManageBookingPage() {
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
 
         {/* ── Route header ───────────────────────────────────────────── */}
-        <div className="rounded-2xl p-6"
+        <div className={`rounded-2xl p-6 ${isPremiumCabin && !isCancelled ? '' : 'bg-white border border-border-subtle pro-shadow'}`}
           style={isPremiumCabin && !isCancelled
             ? {
                 background: isFirstClass
@@ -469,12 +471,12 @@ export default function ManageBookingPage() {
                 border: `1.5px solid rgba(${premiumAccentRgb},0.35)`,
                 boxShadow: `0 8px 32px rgba(${premiumAccentRgb},0.12)`,
               }
-            : { background: '#fff', border: '1px solid #F1F5F9', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            : undefined}>
 
           {/* Premium label */}
           {isPremiumCabin && !isCancelled && (
-            <div className="flex items-center gap-2 mb-3">
-              <span style={{ color: premiumAccent, fontSize: 12 }}>✦</span>
+            <div className="flex items-center gap-1.5 mb-3">
+              <span className="material-symbols-outlined" style={{ color: premiumAccent, fontSize: 14 }}>stars</span>
               <p className="text-[10px] font-bold tracking-widest uppercase" style={{ color: premiumAccent }}>
                 {isFirstClass ? 'First Class' : 'Business Class'}
               </p>
@@ -483,28 +485,27 @@ export default function ManageBookingPage() {
 
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-3xl font-extrabold tracking-tight"
-                  style={{ color: isPremiumCabin && !isCancelled ? '#fff' : '#111827' }}>
+              <div className="flex items-center gap-3 mb-1 flex-wrap">
+                <h1 className={`text-3xl font-extrabold tracking-tight ${isPremiumCabin && !isCancelled ? '' : 'text-pro-navy'}`}
+                  style={{ color: isPremiumCabin && !isCancelled ? '#fff' : undefined }}>
                   {booking.origin_code} → {booking.destination_code}
                 </h1>
-                <span className="text-xs font-bold px-3 py-1 rounded-full"
-                  style={isCancelled
-                    ? { background: '#FEE2E2', color: '#DC2626' }
-                    : isHeld
-                    ? { background: '#FEF3C7', color: '#B45309' }
-                    : isPast
-                    ? { background: '#F3F4F6', color: '#6B7280' }
-                    : isPremiumCabin
-                    ? { background: `rgba(${premiumAccentRgb},0.2)`, color: premiumAccent }
-                    : { background: '#ECFDF5', color: '#15803D' }}>
-                  {isCancelled ? 'Cancelled' : isHeld ? '⏳ Held — pay to confirm' : isPast ? 'Completed' : 'Confirmed ✓'}
+                <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                  isCancelled ? 'bg-error/10 text-error'
+                  : isHeld ? 'bg-alert-orange/10 text-alert-orange'
+                  : isPast ? 'bg-surface-container text-on-surface-variant'
+                  : isPremiumCabin ? ''
+                  : 'bg-savings-green/10 text-savings-green'}`}
+                  style={isPremiumCabin && !isCancelled ? { background: `rgba(${premiumAccentRgb},0.2)`, color: premiumAccent } : undefined}>
+                  {isCancelled ? 'Cancelled' : isHeld ? 'Held — pay to confirm' : isPast ? 'Completed' : 'Confirmed'}
                 </span>
               </div>
-              <p className="text-base" style={{ color: isPremiumCabin && !isCancelled ? 'rgba(255,255,255,0.55)' : '#6B7280' }}>
+              <p className={`text-base ${isPremiumCabin && !isCancelled ? '' : 'text-on-surface-variant'}`}
+                style={{ color: isPremiumCabin && !isCancelled ? 'rgba(255,255,255,0.55)' : undefined }}>
                 {booking.origin_city} → {booking.destination_city}
               </p>
-              <p className="text-sm mt-0.5" style={{ color: isPremiumCabin && !isCancelled ? 'rgba(255,255,255,0.4)' : '#9CA3AF' }}>
+              <p className={`text-sm mt-0.5 ${isPremiumCabin && !isCancelled ? '' : 'text-outline'}`}
+                style={{ color: isPremiumCabin && !isCancelled ? 'rgba(255,255,255,0.4)' : undefined }}>
                 {booking.airline} · {fmtDate(booking.departure_at)}
               </p>
               {!isCancelled && !isPast && (() => {
@@ -522,21 +523,20 @@ export default function ManageBookingPage() {
                   ? `Tomorrow · departing in ${hours}h ${mins}m`
                   : `Departing in ${days} day${days !== 1 ? 's' : ''}, ${hours}h`;
                 return (
-                  <span className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold px-3 py-1 rounded-full"
-                    style={isUrgent
-                      ? { background: '#FEF3C7', color: '#B45309' }
-                      : { background: '#ECFDF5', color: '#15803D' }}>
-                    {isUrgent ? '⏱' : '✈'} {label}
+                  <span className={`inline-flex items-center gap-1.5 mt-2 text-xs font-semibold px-3 py-1 rounded-full ${isUrgent ? 'bg-alert-orange/10 text-alert-orange' : 'bg-savings-green/10 text-savings-green'}`}>
+                    <span className="material-symbols-outlined text-[14px]">{isUrgent ? 'schedule' : 'flight'}</span>
+                    {label}
                   </span>
                 );
               })()}
             </div>
             <div className="text-right flex-shrink-0">
-              <p className="text-2xl font-extrabold"
-                style={{ color: isPremiumCabin && !isCancelled ? premiumAccent : '#DC2626' }}>
+              <p className={`text-2xl font-extrabold ${isPremiumCabin && !isCancelled ? '' : 'text-primary'}`}
+                style={{ color: isPremiumCabin && !isCancelled ? premiumAccent : undefined }}>
                 {fmtPrice(booking.total_amount, booking.currency)}
               </p>
-              <p className="text-xs" style={{ color: isPremiumCabin && !isCancelled ? 'rgba(255,255,255,0.4)' : '#9CA3AF' }}>
+              <p className={`text-xs ${isPremiumCabin && !isCancelled ? '' : 'text-outline'}`}
+                style={{ color: isPremiumCabin && !isCancelled ? 'rgba(255,255,255,0.4)' : undefined }}>
                 {booking.passengers_count} passenger{booking.passengers_count > 1 ? 's' : ''}
               </p>
             </div>
@@ -578,59 +578,42 @@ export default function ManageBookingPage() {
         <div className="no-print flex items-center gap-2 flex-wrap">
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition shadow-sm">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z" />
-            </svg>
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-pro-navy bg-white border border-border-subtle hover:bg-surface-container-low transition pro-shadow cursor-pointer">
+            <span className="material-symbols-outlined text-[18px]">print</span>
             Print
           </button>
           <a
             href={`mailto:?subject=Flight booking ${booking.booking_reference}&body=${encodeURIComponent(buildEmailBody())}`}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition shadow-sm">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-pro-navy bg-white border border-border-subtle hover:bg-surface-container-low transition pro-shadow">
+            <span className="material-symbols-outlined text-[18px]">mail</span>
             Email
           </a>
           <button
             onClick={shareBooking}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-white border border-gray-200 hover:bg-gray-50 transition shadow-sm"
-            style={{ color: shareCopied ? '#15803D' : '#374151' }}>
-            {shareCopied ? (
-              <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                Copied!
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-                Share
-              </>
-            )}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-white border border-border-subtle hover:bg-surface-container-low transition pro-shadow cursor-pointer"
+            style={{ color: shareCopied ? 'var(--color-savings-green)' : undefined }}>
+            <span className={`material-symbols-outlined text-[18px] ${shareCopied ? '' : 'text-pro-navy'}`}>{shareCopied ? 'check' : 'share'}</span>
+            {shareCopied ? 'Copied!' : 'Share'}
           </button>
         </div>
 
         {/* ── Flight details ──────────────────────────────────────────── */}
-        <Section title="Flight Details">
+        <Section title="Flight Details" icon="flight">
           {orderLoading && (
-            <div className="flex items-center gap-2 text-sm text-gray-400">
+            <div className="flex items-center gap-2 text-sm text-outline">
               <div className="w-4 h-4 border border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
               Loading live flight details…
             </div>
           )}
           {orderError && !orderLoading && (
-            <p className="text-sm text-gray-400">Could not load live details — showing saved info.</p>
+            <p className="text-sm text-outline">Could not load live details — showing saved info.</p>
           )}
           {order?.status === 'needs_review' && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 mb-2 flex items-start gap-3">
-              <span className="text-amber-500 text-lg shrink-0">⚠️</span>
+            <div className="rounded-2xl border border-alert-orange/25 bg-alert-orange/10 px-4 py-3 mb-2 flex items-start gap-3">
+              <span className="text-alert-orange text-lg shrink-0">⚠️</span>
               <div>
-                <p className="text-sm font-bold text-amber-800">Your flight has been changed by the airline</p>
-                <p className="text-xs text-amber-700 mt-0.5">The details below reflect the latest update. Contact the airline using your booking reference <strong>{booking.booking_reference}</strong> if you need to accept or reject these changes.</p>
+                <p className="text-sm font-bold text-alert-orange">Your flight has been changed by the airline</p>
+                <p className="text-xs text-alert-orange/90 mt-0.5">The details below reflect the latest update. Contact the airline using your booking reference <strong>{booking.booking_reference}</strong> if you need to accept or reject these changes.</p>
               </div>
             </div>
           )}
@@ -658,41 +641,41 @@ export default function ManageBookingPage() {
                   <div key={i}>
                   {i > 0 && (
                     <div className="flex items-center gap-2 my-4">
-                      <div className="flex-1 border-t border-dashed border-amber-200" />
-                      <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: '#FFFBEB', color: '#B45309' }}>
+                      <div className="flex-1 border-t border-dashed border-alert-orange/25" />
+                      <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: 'rgba(249,115,22,0.1)', color: 'var(--color-alert-orange)' }}>
                         Layover · {seg.origin.city_name ?? seg.origin.iata_code}
                       </span>
-                      <div className="flex-1 border-t border-dashed border-amber-200" />
+                      <div className="flex-1 border-t border-dashed border-alert-orange/25" />
                     </div>
                   )}
                   <div className="flex items-start gap-4">
                     {/* Dep */}
                     <div className="flex-1">
-                      <p className="text-2xl font-extrabold text-gray-900">{fmtTime(seg.departing_at)}</p>
-                      <p className="text-sm font-bold text-gray-700">{seg.origin.iata_code}</p>
-                      <p className="text-xs text-gray-400">{seg.origin.city_name ?? seg.origin.name}</p>
-                      {seg.origin.terminal && <p className="text-xs text-gray-400">Terminal {seg.origin.terminal}</p>}
-                      <p className="text-xs text-gray-400 mt-0.5">{fmtDate(seg.departing_at)}</p>
+                      <p className="text-2xl font-extrabold text-pro-navy">{fmtTime(seg.departing_at)}</p>
+                      <p className="text-sm font-bold text-on-surface-variant">{seg.origin.iata_code}</p>
+                      <p className="text-xs text-outline">{seg.origin.city_name ?? seg.origin.name}</p>
+                      {seg.origin.terminal && <p className="text-xs text-outline">Terminal {seg.origin.terminal}</p>}
+                      <p className="text-xs text-outline mt-0.5">{fmtDate(seg.departing_at)}</p>
                     </div>
                     {/* Duration */}
                     <div className="text-center pt-2">
                       {parseDuration(seg.duration) && (
-                        <p className="text-xs text-gray-400">{parseDuration(seg.duration)}</p>
+                        <p className="text-xs text-outline">{parseDuration(seg.duration)}</p>
                       )}
                       <div className="flex items-center gap-1 my-1">
                         <div className="w-2 h-2 rounded-full border-2" style={{ borderColor: 'var(--color-primary)' }} />
                         <div className="w-10 h-px" style={{ background: 'var(--color-primary)' }} />
                         <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary)' }} />
                       </div>
-                      <p className="text-[10px] text-gray-400">{seg.marketing_carrier.iata_code}</p>
+                      <p className="text-[10px] text-outline">{seg.marketing_carrier.iata_code}</p>
                     </div>
                     {/* Arr */}
                     <div className="flex-1 text-right">
-                      <p className="text-2xl font-extrabold text-gray-900">{fmtTime(seg.arriving_at)}</p>
-                      <p className="text-sm font-bold text-gray-700">{seg.destination.iata_code}</p>
-                      <p className="text-xs text-gray-400">{seg.destination.city_name ?? seg.destination.name}</p>
-                      {seg.destination.terminal && <p className="text-xs text-gray-400">Terminal {seg.destination.terminal}</p>}
-                      <p className="text-xs text-gray-400 mt-0.5">{fmtDate(seg.arriving_at)}</p>
+                      <p className="text-2xl font-extrabold text-pro-navy">{fmtTime(seg.arriving_at)}</p>
+                      <p className="text-sm font-bold text-on-surface-variant">{seg.destination.iata_code}</p>
+                      <p className="text-xs text-outline">{seg.destination.city_name ?? seg.destination.name}</p>
+                      {seg.destination.terminal && <p className="text-xs text-outline">Terminal {seg.destination.terminal}</p>}
+                      <p className="text-xs text-outline mt-0.5">{fmtDate(seg.arriving_at)}</p>
                     </div>
                   </div>
                   {/* Segment meta — cabin class + seat + airline */}
@@ -705,8 +688,8 @@ export default function ManageBookingPage() {
                       return (
                         <span className="text-[11px] px-2.5 py-1 rounded-full font-bold"
                           style={isBizFirst
-                            ? { background: '#FEF3C7', color: '#B45309' }
-                            : { background: '#F1F5F9', color: '#475569' }}>
+                            ? { background: 'rgba(249,115,22,0.12)', color: 'var(--color-alert-orange)' }
+                            : { background: 'var(--color-surface-container-low)', color: 'var(--color-on-surface-variant)' }}>
                           {isBizFirst ? '✦ ' : ''}{label}
                         </span>
                       );
@@ -718,23 +701,23 @@ export default function ManageBookingPage() {
                       if (seats.length > 0) {
                         return seats.map((s, si) => (
                           <span key={si} className="text-[11px] px-2.5 py-1 rounded-full font-bold"
-                            style={{ background: '#EFF6FF', color: '#1D4ED8' }}>
+                            style={{ background: 'rgba(56,189,248,0.12)', color: 'var(--color-tertiary)' }}>
                             💺 Seat {s.metadata?.designator ?? '—'}
                           </span>
                         ));
                       }
                       return null;
                     })()}
-                    <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#F1F5F9', color: '#475569' }}>
+                    <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: 'var(--color-surface-container-low)', color: 'var(--color-on-surface-variant)' }}>
                       ✈ {seg.marketing_carrier.name}
                     </span>
                     {seg.operating_carrier && seg.operating_carrier.iata_code !== seg.marketing_carrier.iata_code && (
-                      <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#F1F5F9', color: '#475569' }}>
+                      <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: 'var(--color-surface-container-low)', color: 'var(--color-on-surface-variant)' }}>
                         Operated by {seg.operating_carrier.name}
                       </span>
                     )}
                     {seg.aircraft && (
-                      <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#F1F5F9', color: '#475569' }}>
+                      <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: 'var(--color-surface-container-low)', color: 'var(--color-on-surface-variant)' }}>
                         {seg.aircraft.name}
                       </span>
                     )}
@@ -749,10 +732,10 @@ export default function ManageBookingPage() {
             <div className="space-y-3">
               <div className="flex items-start gap-4">
                 <div className="flex-1">
-                  <p className="text-2xl font-extrabold text-gray-900">{fmtTime(booking.departure_at)}</p>
-                  <p className="text-sm font-bold text-gray-700">{booking.origin_code}</p>
-                  <p className="text-xs text-gray-400">{booking.origin_city}</p>
-                  <p className="text-xs text-gray-400">{fmtDate(booking.departure_at)}</p>
+                  <p className="text-2xl font-extrabold text-pro-navy">{fmtTime(booking.departure_at)}</p>
+                  <p className="text-sm font-bold text-on-surface-variant">{booking.origin_code}</p>
+                  <p className="text-xs text-outline">{booking.origin_city}</p>
+                  <p className="text-xs text-outline">{fmtDate(booking.departure_at)}</p>
                 </div>
                 <div className="text-center pt-2">
                   <div className="flex items-center gap-1 my-1">
@@ -762,10 +745,10 @@ export default function ManageBookingPage() {
                   </div>
                 </div>
                 <div className="flex-1 text-right">
-                  <p className="text-2xl font-extrabold text-gray-900">{fmtTime(booking.arrival_at)}</p>
-                  <p className="text-sm font-bold text-gray-700">{booking.destination_code}</p>
-                  <p className="text-xs text-gray-400">{booking.destination_city}</p>
-                  <p className="text-xs text-gray-400">{fmtDate(booking.arrival_at)}</p>
+                  <p className="text-2xl font-extrabold text-pro-navy">{fmtTime(booking.arrival_at)}</p>
+                  <p className="text-sm font-bold text-on-surface-variant">{booking.destination_code}</p>
+                  <p className="text-xs text-outline">{booking.destination_city}</p>
+                  <p className="text-xs text-outline">{fmtDate(booking.arrival_at)}</p>
                 </div>
               </div>
               {booking.cabin_class && (() => {
@@ -775,7 +758,7 @@ export default function ManageBookingPage() {
                 return (
                   <div className="flex flex-wrap gap-2">
                     <span className="text-[11px] px-2.5 py-1 rounded-full font-bold"
-                      style={isBizFirst ? { background: '#FEF3C7', color: '#B45309' } : { background: '#F1F5F9', color: '#475569' }}>
+                      style={isBizFirst ? { background: 'rgba(249,115,22,0.12)', color: 'var(--color-alert-orange)' } : { background: 'var(--color-surface-container-low)', color: 'var(--color-on-surface-variant)' }}>
                       {isBizFirst ? '✦ ' : ''}{label}
                     </span>
                   </div>
@@ -786,7 +769,7 @@ export default function ManageBookingPage() {
         </Section>
 
         {/* ── Payment ─────────────────────────────────────────────────── */}
-        <Section title="Payment">
+        <Section title="Payment" icon="receipt_long">
           <div className="space-y-2">
             {(() => {
               // seat_selections: per-seat [{serviceId, designator, depCode, arrCode, price}] saved at booking time
@@ -822,12 +805,12 @@ export default function ManageBookingPage() {
               return (
                 <>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">Flight fare</span>
-                    <span className="text-sm text-gray-900 font-semibold">{fmtPrice(flightFare, booking.currency)}</span>
+                    <span className="text-sm text-on-surface-variant">Flight fare</span>
+                    <span className="text-sm text-pro-navy font-semibold">{fmtPrice(flightFare, booking.currency)}</span>
                   </div>
                   {seatLines.map(({ key, label, price }) => (
                     <div key={key} className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">{label}</span>
+                      <span className="text-sm text-on-surface-variant">{label}</span>
                       <span className="text-sm font-semibold" style={{ color: price > 0 ? 'var(--color-primary)' : '#64748B' }}>
                         {price > 0 ? `+${fmtPrice(price, booking.currency)}` : 'Free'}
                       </span>
@@ -836,18 +819,18 @@ export default function ManageBookingPage() {
                   {/* Non-seat services (bags etc.) — always wait for order */}
                   {svcs.filter(s => s.type !== 'seat').map((svc, i) => (
                     <div key={i} className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500 capitalize">
+                      <span className="text-sm text-on-surface-variant capitalize">
                         {svc.type === 'baggage' ? `Extra bag ×${svc.quantity}` : svc.type}
                       </span>
-                      <span className="text-sm text-gray-400">included</span>
+                      <span className="text-sm text-outline">included</span>
                     </div>
                   ))}
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">Service fee</span>
-                    <span className="text-sm text-gray-900 font-semibold">{fmtPrice(10, booking.currency)}</span>
+                    <span className="text-sm text-on-surface-variant">Service fee</span>
+                    <span className="text-sm text-pro-navy font-semibold">{fmtPrice(10, booking.currency)}</span>
                   </div>
-                  <div className="border-t border-gray-100 pt-2 mt-2 flex justify-between items-center">
-                    <span className="text-base font-extrabold text-gray-900">Total paid</span>
+                  <div className="border-t border-border-subtle pt-2 mt-2 flex justify-between items-center">
+                    <span className="text-base font-extrabold text-pro-navy">Total paid</span>
                     <span className="text-xl font-extrabold" style={{ color: 'var(--color-primary)' }}>
                       {fmtPrice(booking.total_amount, booking.currency)}
                     </span>
@@ -859,72 +842,71 @@ export default function ManageBookingPage() {
         </Section>
 
         {/* ── Passengers ──────────────────────────────────────────────── */}
-        <Section title={`Passengers · ${booking.passengers_count}`}>
+        <Section title={`Passengers · ${booking.passengers_count}`} icon="group">
           {orderLoading && (
-            <p className="text-sm text-gray-400">Loading passenger details…</p>
+            <p className="text-sm text-outline">Loading passenger details…</p>
           )}
           {(order?.passengers ?? []).length > 0 ? (
             <div className="space-y-4">
               {order!.passengers.map((p, i) => (
                 <PassengerCard key={p.id} passenger={p} index={i} />
               ))}
-              <div className="rounded-xl p-3 flex gap-2" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                <span className="text-sm">ℹ️</span>
-                <p className="text-xs text-gray-500">
+              <div className="rounded-xl p-3 flex gap-2" style={{ background: 'var(--color-surface-container-low)', border: '1px solid var(--color-border-subtle)' }}>
+                <span className="material-symbols-outlined text-tertiary text-[16px]">info</span>
+                <p className="text-xs text-on-surface-variant">
                   To change passenger details (name, passport), contact the airline directly using booking reference{' '}
-                  <span className="font-bold text-gray-700">{booking.booking_reference}</span>.
+                  <span className="font-bold text-on-surface-variant">{booking.booking_reference}</span>.
                 </p>
               </div>
             </div>
           ) : !orderLoading && (
             <div className="space-y-3">
               {booking.passenger_names.map((name, i) => (
-                <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                <div key={i} className="flex items-center gap-3 py-2 border-b border-border-subtle last:border-0">
                   <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
                     style={{ background: 'var(--color-primary)' }}>
                     {name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-gray-900 capitalize">{name}</p>
-                    <p className="text-xs text-gray-400">Passenger {i + 1}</p>
+                    <p className="text-sm font-bold text-pro-navy capitalize">{name}</p>
+                    <p className="text-xs text-outline">Passenger {i + 1}</p>
                   </div>
                 </div>
               ))}
-              {orderError && <p className="text-xs text-gray-400 mt-2">Full passport details unavailable — could not load order from Duffel.</p>}
+              {orderError && <p className="text-xs text-outline mt-2">Full passport details unavailable — could not load order from Duffel.</p>}
             </div>
           )}
         </Section>
 
         {/* ── Cancellation ────────────────────────────────────────────── */}
-        <Section title="Cancellation">
+        <Section title="Cancellation" icon="cancel">
           {cancelDone ? (
             <div className="space-y-4">
-              <div className="rounded-xl p-5 text-center" style={{ background: '#ECFDF5' }}>
-                <p className="text-2xl mb-1">✅</p>
-                <p className="text-base font-extrabold" style={{ color: '#15803D' }}>Booking cancelled</p>
-                <p className="text-xs text-gray-500 mt-1">
+              <div className="rounded-xl p-5 text-center bg-savings-green/10">
+                <span className="material-symbols-outlined text-savings-green text-3xl mb-1" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                <p className="text-base font-extrabold text-savings-green">Booking cancelled</p>
+                <p className="text-xs text-on-surface-variant mt-1">
                   {cancelRefund && cancelRefund.amount > 0
                     ? `Your refund of ${fmtPrice(cancelRefund.amount, cancelRefund.currency)} will appear within 5–10 business days.`
                     : 'If eligible, your refund will appear within 5–10 business days.'}
                 </p>
               </div>
               <button onClick={() => router.push('/bookings')}
-                className="w-full py-3 rounded-xl text-sm font-bold transition"
-                style={{ background: 'var(--color-primary)', color: '#fff' }}>
+                className="w-full py-3 rounded-xl text-sm font-bold text-white bg-primary transition cursor-pointer">
                 ← Back to My Bookings
               </button>
             </div>
           ) : isCancelled ? (
-            <div className="rounded-xl p-4 text-center" style={{ background: '#FEF2F2' }}>
-              <p className="text-base font-bold" style={{ color: '#DC2626' }}>This booking has been cancelled</p>
-              <p className="text-xs text-gray-500 mt-1">If eligible, your refund will appear within 5–10 business days.</p>
+            <div className="rounded-xl p-4 text-center bg-error/5">
+              <p className="text-base font-bold text-error">This booking has been cancelled</p>
+              <p className="text-xs text-on-surface-variant mt-1">If eligible, your refund will appear within 5–10 business days.</p>
             </div>
           ) : isPast ? (
-            <p className="text-sm text-gray-400">This flight has already departed. Cancellations are no longer available.</p>
+            <p className="text-sm text-outline">This flight has already departed. Cancellations are no longer available.</p>
           ) : cp?.allowed === false ? (
-            <div className="rounded-xl px-4 py-3" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-              <p className="text-sm font-bold" style={{ color: '#DC2626' }}>Non-refundable fare</p>
-              <p className="text-xs text-gray-500 mt-0.5">This ticket cannot be cancelled for a refund. Contact the airline for exceptions.</p>
+            <div className="rounded-xl px-4 py-3 bg-error/5 border border-error/20">
+              <p className="text-sm font-bold text-error">Non-refundable fare</p>
+              <p className="text-xs text-on-surface-variant mt-0.5">This ticket cannot be cancelled for a refund. Contact the airline for exceptions.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -935,8 +917,7 @@ export default function ManageBookingPage() {
               )}
               <button onClick={() => { setCancelError(''); setShowCancelModal(true); }}
                 disabled={orderLoading}
-                className="w-full py-3 rounded-xl text-sm font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FECACA' }}>
+                className="w-full py-3 rounded-xl text-sm font-bold transition disabled:opacity-40 disabled:cursor-not-allowed bg-error/5 text-error border-[1.5px] border-error/20 cursor-pointer">
                 {orderLoading ? 'Loading…' : 'Cancel booking'}
               </button>
             </div>
@@ -951,13 +932,11 @@ export default function ManageBookingPage() {
             <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden">
               {/* Header */}
               <div className="px-6 pt-7 pb-2">
-                <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4" style={{ background: '#FEF2F2' }}>
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="#DC2626" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                  </svg>
+                <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4 bg-error/10">
+                  <span className="material-symbols-outlined text-error text-[22px]">warning</span>
                 </div>
-                <p className="text-lg font-extrabold text-gray-900 mb-1">Cancel this booking?</p>
-                <p className="text-sm text-gray-400 font-medium">
+                <p className="text-lg font-extrabold text-pro-navy mb-1">Cancel this booking?</p>
+                <p className="text-sm text-outline font-medium">
                   {booking!.origin_code} → {booking!.destination_code} · {fmtDate(booking!.departure_at)}
                 </p>
               </div>
@@ -968,17 +947,17 @@ export default function ManageBookingPage() {
                   <div className="rounded-2xl px-4 py-3.5" style={{ background: cancelPolicyLabel.bg }}>
                     <p className="text-sm font-bold" style={{ color: cancelPolicyLabel.color }}>{cancelPolicyLabel.text}</p>
                     {cp?.penalty_amount && (
-                      <p className="text-xs text-gray-500 mt-1">This fee will be deducted from your refund.</p>
+                      <p className="text-xs text-on-surface-variant mt-1">This fee will be deducted from your refund.</p>
                     )}
                     {!cp?.penalty_amount && cp?.allowed && (
-                      <p className="text-xs text-gray-500 mt-1">You'll receive a full refund within 5–10 business days.</p>
+                      <p className="text-xs text-on-surface-variant mt-1">You'll receive a full refund within 5–10 business days.</p>
                     )}
                   </div>
                 )}
                 {cancelError && (
-                  <div className="mt-3 rounded-2xl px-4 py-3 bg-red-50 flex items-start gap-2">
-                    <span className="text-red-500 mt-0.5 shrink-0">⚠️</span>
-                    <p className="text-sm text-red-600">{cancelError}</p>
+                  <div className="mt-3 rounded-2xl px-4 py-3 bg-error/5 flex items-start gap-2">
+                    <span className="material-symbols-outlined text-error text-[18px] mt-0.5 shrink-0">warning</span>
+                    <p className="text-sm text-error">{cancelError}</p>
                   </div>
                 )}
               </div>
@@ -986,12 +965,12 @@ export default function ManageBookingPage() {
               {/* Buttons */}
               <div className="px-6 pb-7 flex gap-3">
                 <button onClick={() => setShowCancelModal(false)} disabled={cancelLoading}
-                  className="flex-1 py-3.5 rounded-2xl text-sm font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-40">
+                  className="flex-1 py-3.5 rounded-2xl text-sm font-bold bg-surface-container-low text-on-surface-variant hover:bg-surface-container transition disabled:opacity-40 cursor-pointer">
                   Never mind
                 </button>
                 <button onClick={cancelBooking} disabled={cancelLoading}
-                  className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white transition flex items-center justify-center gap-2"
-                  style={{ background: cancelLoading ? '#EF9999' : '#DC2626' }}>
+                  className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white transition flex items-center justify-center gap-2 cursor-pointer"
+                  style={{ background: cancelLoading ? 'rgba(186,26,26,0.6)' : 'var(--color-error)' }}>
                   {cancelLoading && (
                     <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -1007,23 +986,23 @@ export default function ManageBookingPage() {
 
         {/* ── Change conditions (from Duffel) ─────────────────────────── */}
         {order?.conditions?.change_before_departure && (
-          <Section title="Change Policy">
+          <Section title="Change Policy" icon="edit_calendar">
             <div className="flex items-center gap-2">
               {order.conditions.change_before_departure.allowed ? (
                 <>
-                  <span className="text-sm font-bold" style={{ color: 'var(--color-primary)' }}>Changes allowed</span>
+                  <span className="text-sm font-bold text-primary">Changes allowed</span>
                   {order.conditions.change_before_departure.penalty_amount && (
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-on-surface-variant">
                       · fee {fmtPrice(parseFloat(order.conditions.change_before_departure.penalty_amount), order.conditions.change_before_departure.penalty_currency ?? booking.currency)}
                     </span>
                   )}
                 </>
               ) : (
-                <span className="text-sm font-bold" style={{ color: '#DC2626' }}>No changes permitted</span>
+                <span className="text-sm font-bold text-error">No changes permitted</span>
               )}
             </div>
             {order.conditions.change_before_departure.allowed && (
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-outline mt-2">
                 To change your flights, contact the airline with reference {booking.booking_reference}.
               </p>
             )}
@@ -1055,45 +1034,43 @@ export default function ManageBookingPage() {
             }
           }
           return (
-            <Section title="Complete Your Booking">
-              <div className="rounded-xl p-4 mb-4" style={{
-                background: isUrgent ? '#FEF2F2' : '#FFFBEB',
-                border: `1px solid ${isUrgent ? '#FECACA' : '#FDE68A'}`,
-              }}>
-                <p className="text-sm font-bold" style={{ color: isUrgent ? '#991B1B' : '#92400E' }}>
-                  {isUrgent ? '🚨' : '⏳'} Your seat is held — payment required to confirm
+            <Section title="Complete Your Booking" icon="payments">
+              <div className={`rounded-xl p-4 mb-4 ${isUrgent ? 'bg-error/5 border border-error/20' : 'bg-alert-orange/10 border border-alert-orange/25'}`}>
+                <p className={`text-sm font-bold flex items-center gap-1.5 ${isUrgent ? 'text-error' : 'text-alert-orange'}`}>
+                  <span className="material-symbols-outlined text-[16px]">{isUrgent ? 'emergency' : 'schedule'}</span>
+                  Your seat is held — payment required to confirm
                 </p>
                 {expiryLabel && (
-                  <p className="text-base font-extrabold mt-1" style={{ color: isUrgent ? '#DC2626' : '#D97706' }}>
+                  <p className={`text-base font-extrabold mt-1 ${isUrgent ? 'text-error' : 'text-alert-orange'}`}>
                     {expiryLabel}
                   </p>
                 )}
                 {!expiryLabel && (
-                  <p className="text-xs mt-1" style={{ color: isUrgent ? '#991B1B' : '#92400E' }}>
+                  <p className={`text-xs mt-1 ${isUrgent ? 'text-error' : 'text-alert-orange'}`}>
                     Check your booking confirmation email for the payment deadline.
                   </p>
                 )}
-                <p className="text-xs mt-1.5" style={{ color: isUrgent ? '#B91C1C' : '#A16207' }}>
+                <p className={`text-xs mt-1.5 ${isUrgent ? 'text-error/80' : 'text-alert-orange/80'}`}>
                   Airlines release held seats automatically once the deadline passes.
                 </p>
               </div>
-              <p className="text-lg font-extrabold text-gray-900 mb-4">{fmtPrice(booking.total_amount, booking.currency)}</p>
-              {payHeldError && <p className="text-sm text-red-500 bg-red-50 rounded-xl px-3 py-2 mb-3">{payHeldError}</p>}
+              <p className="text-lg font-extrabold text-pro-navy mb-4">{fmtPrice(booking.total_amount, booking.currency)}</p>
+              {payHeldError && <p className="text-sm text-error bg-error/5 rounded-xl px-3 py-2 mb-3">{payHeldError}</p>}
               <button onClick={payHeldOrder} disabled={payHeldLoading}
-                className="w-full py-3.5 rounded-xl text-sm font-bold text-white transition disabled:opacity-60"
-                style={{ background: isUrgent ? 'linear-gradient(135deg, #DC2626, #B91C1C)' : 'linear-gradient(135deg, #D97706, #B45309)' }}>
+                className="w-full py-3.5 rounded-xl text-sm font-bold text-white transition disabled:opacity-60 cursor-pointer"
+                style={{ background: isUrgent ? 'var(--color-error)' : 'linear-gradient(135deg, #D97706, #B45309)' }}>
                 {payHeldLoading ? 'Processing…' : `Pay ${fmtPrice(booking.total_amount, booking.currency)} → Confirm seat`}
               </button>
             </Section>
           );
         })()}
         {payHeldDone && (
-          <Section title="Complete Your Booking">
+          <Section title="Complete Your Booking" icon="payments">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">✅</span>
+              <span className="material-symbols-outlined text-savings-green text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
               <div>
-                <p className="text-sm font-bold text-green-700">Payment confirmed!</p>
-                <p className="text-xs text-gray-400">Your booking is now confirmed.</p>
+                <p className="text-sm font-bold text-savings-green">Payment confirmed!</p>
+                <p className="text-xs text-outline">Your booking is now confirmed.</p>
               </div>
             </div>
           </Section>
@@ -1101,16 +1078,16 @@ export default function ManageBookingPage() {
 
         {/* ── Add bags (post-booking) ──────────────────────────────────── */}
         {!isCancelled && !isHeld && (
-          <Section title="Add Checked Baggage">
+          <Section title="Add Checked Baggage" icon="luggage">
             {bagsDone ? (
               <div className="flex items-center gap-3">
-                <span className="text-2xl">✅</span>
-                <p className="text-sm font-bold text-green-700">Bags added to your booking.</p>
+                <span className="material-symbols-outlined text-savings-green text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                <p className="text-sm font-bold text-savings-green">Bags added to your booking.</p>
               </div>
             ) : bagsLoading ? (
-              <p className="text-xs text-gray-400">Checking availability…</p>
+              <p className="text-xs text-outline">Checking availability…</p>
             ) : bagsChecked && bagServices.length === 0 ? (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-on-surface-variant">
                 Extra bags aren&apos;t available for this booking through Duffel. To add baggage, contact the airline directly.
               </p>
             ) : bagsChecked && bagServices.length > 0 ? (
@@ -1118,22 +1095,22 @@ export default function ManageBookingPage() {
                 {bagServices.map(svc => {
                   const qty = bagSelections[svc.id] ?? 0;
                   return (
-                    <div key={svc.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                    <div key={svc.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'var(--color-surface-container-low)', border: '1px solid var(--color-border-subtle)' }}>
                       <div>
-                        <p className="text-sm font-bold text-gray-800">{svc.maxWeightKg ? `${svc.maxWeightKg}kg bag` : 'Checked bag'}</p>
+                        <p className="text-sm font-bold text-pro-navy">{svc.maxWeightKg ? `${svc.maxWeightKg}kg bag` : 'Checked bag'}</p>
                         <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-primary)' }}>+{fmtPrice(svc.totalAmount, svc.totalCurrency)}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button onClick={() => setBagSelections(s => ({ ...s, [svc.id]: Math.max(0, (s[svc.id] ?? 0) - 1) }))}
-                          className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-sm font-bold text-gray-500 hover:border-teal transition">−</button>
+                          className="w-8 h-8 rounded-full border border-border-subtle flex items-center justify-center text-sm font-bold text-on-surface-variant hover:border-teal transition">−</button>
                         <span className="w-5 text-center text-sm font-bold tabular-nums">{qty}</span>
                         <button onClick={() => setBagSelections(s => ({ ...s, [svc.id]: Math.min(svc.maxQuantity, (s[svc.id] ?? 0) + 1) }))}
-                          className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-sm font-bold text-gray-500 hover:border-teal transition">+</button>
+                          className="w-8 h-8 rounded-full border border-border-subtle flex items-center justify-center text-sm font-bold text-on-surface-variant hover:border-teal transition">+</button>
                       </div>
                     </div>
                   );
                 })}
-                {bagsError && <p className="text-sm text-red-500">{bagsError}</p>}
+                {bagsError && <p className="text-sm text-error">{bagsError}</p>}
                 {Object.values(bagSelections).some(q => q > 0) && (
                   <button onClick={addBags} disabled={bagsSaving}
                     className="w-full py-3 rounded-xl text-sm font-bold text-white mt-2 transition disabled:opacity-60"
@@ -1148,19 +1125,19 @@ export default function ManageBookingPage() {
 
         {/* ── Name correction ──────────────────────────────────────────── */}
         {!isCancelled && order && order.passengers.length > 0 && (
-          <Section title="Passenger Name Correction">
+          <Section title="Passenger Name Correction" icon="badge">
             {nameDone ? (
               <div className="flex items-center gap-3">
-                <span className="text-2xl">✅</span>
-                <p className="text-sm font-bold text-green-700">Passenger details updated.</p>
+                <span className="material-symbols-outlined text-savings-green text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                <p className="text-sm font-bold text-savings-green">Passenger details updated.</p>
               </div>
             ) : nameUnavailable ? (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-on-surface-variant">
                 Name changes aren&apos;t available for this booking through Duffel. Please contact the airline directly to make corrections.
               </p>
             ) : (
               <>
-                <p className="text-xs text-gray-400 mb-3">Fix a typo in a passenger&apos;s name or update their phone number. Subject to airline approval.</p>
+                <p className="text-xs text-outline mb-3">Fix a typo in a passenger&apos;s name or update their phone number. Subject to airline approval.</p>
                 {!nameFormOpen ? (
                   <div className="space-y-2">
                     {order.passengers.map(p => (
@@ -1169,8 +1146,8 @@ export default function ManageBookingPage() {
                         setNameFields({ given_name: p.given_name, family_name: p.family_name, phone_number: p.phone_number ?? '' });
                         setNameFormOpen(true);
                       }}
-                        className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-teal/40 transition text-left">
-                        <span className="text-sm font-semibold text-gray-800 capitalize">{p.given_name} {p.family_name}</span>
+                        className="w-full flex items-center justify-between p-3 rounded-xl border border-border-subtle hover:border-teal/40 transition text-left">
+                        <span className="text-sm font-semibold text-pro-navy capitalize">{p.given_name} {p.family_name}</span>
                         <span className="text-xs text-teal font-semibold">Edit →</span>
                       </button>
                     ))}
@@ -1179,22 +1156,22 @@ export default function ManageBookingPage() {
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">First name</label>
+                        <label className="block text-xs font-semibold text-on-surface-variant mb-1">First name</label>
                         <input value={nameFields.given_name} onChange={e => setNameFields(f => ({ ...f, given_name: e.target.value }))}
-                          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                          className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">Last name</label>
+                        <label className="block text-xs font-semibold text-on-surface-variant mb-1">Last name</label>
                         <input value={nameFields.family_name} onChange={e => setNameFields(f => ({ ...f, family_name: e.target.value }))}
-                          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                          className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1">Phone number</label>
+                      <label className="block text-xs font-semibold text-on-surface-variant mb-1">Phone number</label>
                       <input type="tel" value={nameFields.phone_number} onChange={e => setNameFields(f => ({ ...f, phone_number: e.target.value }))}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                        className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
                     </div>
-                    {nameError && <p className="text-sm text-red-500">{nameError}</p>}
+                    {nameError && <p className="text-sm text-error">{nameError}</p>}
                     <div className="flex gap-2">
                       <button onClick={saveNameCorrection} disabled={nameSaving}
                         className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition disabled:opacity-60"
@@ -1202,7 +1179,7 @@ export default function ManageBookingPage() {
                         {nameSaving ? 'Saving…' : 'Save changes'}
                       </button>
                       <button onClick={() => setNameFormOpen(false)}
-                        className="py-2.5 px-4 rounded-xl text-sm font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
+                        className="py-2.5 px-4 rounded-xl text-sm font-semibold bg-surface-container-low text-on-surface-variant hover:bg-surface-container transition">
                         Cancel
                       </button>
                     </div>
@@ -1232,7 +1209,7 @@ export default function ManageBookingPage() {
               <span className="text-2xl flex-shrink-0">🛂</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-navy">Know before you fly to {dest.name}</p>
-                <p className="text-xs text-gray-500 mt-0.5">Visa rules, vaccine requirements, and arrival tips for {booking.destination_city}.</p>
+                <p className="text-xs text-on-surface-variant mt-0.5">Visa rules, vaccine requirements, and arrival tips for {booking.destination_city}.</p>
               </div>
               <a href={`/fly-to/${dest.slug}`}
                 className="text-xs font-bold text-white px-4 py-2 rounded-lg whitespace-nowrap flex-shrink-0 transition-opacity hover:opacity-90"
@@ -1471,12 +1448,12 @@ function DestinationTipsSection({
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xl">{guide?.flag ?? '🌍'}</span>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Suggested for your trip</p>
-                <p className="text-xl font-extrabold text-gray-900">{destinationCity}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-outline">Suggested for your trip</p>
+                <p className="text-xl font-extrabold text-pro-navy">{destinationCity}</p>
               </div>
             </div>
             {arrival?.cityIntro && (
-              <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">{arrival.cityIntro}</p>
+              <p className="text-sm text-on-surface-variant mt-1.5 leading-relaxed">{arrival.cityIntro}</p>
             )}
           </div>
 
@@ -1584,9 +1561,9 @@ function DestinationTipsSection({
           {arrival && (
             <div className="flex items-start gap-1.5 px-1">
               <span className="text-xs mt-0.5 flex-shrink-0">📍</span>
-              <p className="text-xs text-gray-500 leading-relaxed">
+              <p className="text-xs text-on-surface-variant leading-relaxed">
                 {arrival.rideShare.pickupNote}{' · '}
-                <span className="font-semibold text-gray-700">{arrival.rideShare.estimatedCost}</span>
+                <span className="font-semibold text-on-surface-variant">{arrival.rideShare.estimatedCost}</span>
               </p>
             </div>
           )}
@@ -1596,21 +1573,21 @@ function DestinationTipsSection({
             <div className="flex gap-2 items-start rounded-xl px-4 py-3"
               style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
               <span className="text-sm flex-shrink-0 mt-0.5">⚠️</span>
-              <p className="text-xs leading-relaxed text-amber-800">{arrival.watchOut}</p>
+              <p className="text-xs leading-relaxed text-alert-orange">{arrival.watchOut}</p>
             </div>
           )}
 
           {/* Local Know-How */}
           {guide && guide.tips.length > 0 && (
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 px-1">Local Know-How</p>
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-outline mb-2 px-1">Local Know-How</p>
+              <div className="bg-white rounded-2xl border border-border-subtle shadow-sm divide-y divide-gray-50">
                 {guide.tips.map((tip, i) => (
                   <div key={i} className="flex gap-3 px-4 py-3">
                     <span className="text-base flex-shrink-0 mt-0.5">{tip.icon}</span>
                     <div>
-                      <p className="text-sm font-bold text-gray-800">{tip.title}</p>
-                      <p className="text-xs mt-0.5 text-gray-500">{tip.desc}</p>
+                      <p className="text-sm font-bold text-pro-navy">{tip.title}</p>
+                      <p className="text-xs mt-0.5 text-on-surface-variant">{tip.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -1633,25 +1610,25 @@ function PassengerCard({ passenger: p, index }: { passenger: DuffelPassenger; in
   const doc = p.identity_documents?.[0];
 
   return (
-    <div className="rounded-xl border border-gray-100 overflow-hidden">
+    <div className="rounded-xl border border-border-subtle overflow-hidden">
       <button
         onClick={() => setExpanded(e => !e)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-left">
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-container-low transition text-left">
         <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
           style={{ background: 'var(--color-primary)' }}>
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-gray-900 capitalize">
+          <p className="text-sm font-bold text-pro-navy capitalize">
             {p.title ? p.title.charAt(0).toUpperCase() + p.title.slice(1) + ' ' : ''}{p.given_name} {p.family_name}
           </p>
-          <p className="text-xs text-gray-400">Passenger {index + 1}</p>
+          <p className="text-xs text-outline">Passenger {index + 1}</p>
         </div>
-        <span className="text-gray-300 text-xs">{expanded ? '▲' : '▼'}</span>
+        <span className="material-symbols-outlined text-outline text-[18px]">{expanded ? 'expand_less' : 'expand_more'}</span>
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 pt-1 space-y-3 border-t border-gray-50">
+        <div className="px-4 pb-4 pt-1 space-y-3 border-t border-border-subtle">
           <div className="grid grid-cols-2 gap-x-6 gap-y-2">
             <Field label="Gender" value={p.gender === 'm' ? 'Male' : p.gender === 'f' ? 'Female' : p.gender} />
             <Field label="Date of birth" value={p.born_on ? new Date(p.born_on).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'} />
@@ -1660,8 +1637,8 @@ function PassengerCard({ passenger: p, index }: { passenger: DuffelPassenger; in
           </div>
 
           {doc && (
-            <div className="rounded-xl p-3 mt-1" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Travel Document</p>
+            <div className="rounded-xl p-3 mt-1" style={{ background: 'var(--color-surface-container-low)', border: '1px solid var(--color-border-subtle)' }}>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-outline mb-2">Travel Document</p>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
                 <Field label="Type" value={doc.type.charAt(0).toUpperCase() + doc.type.slice(1)} />
                 <Field label="Number" value={doc.unique_identifier} mono />
@@ -1679,8 +1656,8 @@ function PassengerCard({ passenger: p, index }: { passenger: DuffelPassenger; in
 function Field({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{label}</p>
-      <p className={`text-sm text-gray-800 font-medium mt-0.5 ${mono ? 'font-mono' : ''}`}>{value || '—'}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-outline">{label}</p>
+      <p className={`text-sm text-pro-navy font-medium mt-0.5 ${mono ? 'font-mono' : ''}`}>{value || '—'}</p>
     </div>
   );
 }

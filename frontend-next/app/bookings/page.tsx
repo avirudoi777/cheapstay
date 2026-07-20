@@ -33,10 +33,10 @@ interface FlightBooking {
 
 function cancellationBadge(policy: CancellationPolicy | null) {
   if (!policy) return null;
-  if (!policy.allowed) return { label: 'Non-refundable', bg: '#FEE2E2', color: '#DC2626', icon: '✗' };
-  if (!policy.penalty_amount) return { label: 'Free cancellation', bg: '#ECFDF5', color: '#15803D', icon: '✓' };
+  if (!policy.allowed) return { label: 'Non-refundable', className: 'bg-error/10 text-error', icon: 'block' };
+  if (!policy.penalty_amount) return { label: 'Free cancellation', className: 'bg-savings-green/10 text-savings-green', icon: 'check_circle' };
   const fee = fmtPrice(policy.penalty_amount, policy.penalty_currency ?? 'USD');
-  return { label: `Cancel for ${fee} fee`, bg: '#FFFBEB', color: '#B45309', icon: '~' };
+  return { label: `Cancel for ${fee} fee`, className: 'bg-alert-orange/10 text-alert-orange', icon: 'info' };
 }
 
 function fmtCabin(c: string | null) {
@@ -55,6 +55,10 @@ function fmtTime(iso: string) {
 }
 function fmtPrice(amount: number, currency: string) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
+}
+function daysUntil(iso: string) {
+  const diff = new Date(iso).getTime() - Date.now();
+  return Math.ceil(diff / 86400000);
 }
 
 export default function BookingsPage() {
@@ -139,10 +143,10 @@ export default function BookingsPage() {
 
   if (!authChecked || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#F8FAFC' }}>
+      <div className="min-h-screen flex items-center justify-center bg-surface-container-low">
         <div className="text-center space-y-3">
           <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mx-auto" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
-          <p className="text-sm text-gray-400">Loading your bookings…</p>
+          <p className="text-sm text-on-surface-variant">Loading your bookings…</p>
         </div>
       </div>
     );
@@ -154,66 +158,112 @@ export default function BookingsPage() {
   const cancelled = bookings.filter(b => b.status === 'cancelled');
 
   return (
-    <div className="min-h-screen" style={{ background: '#F8FAFC' }}>
+    <div className="min-h-screen bg-surface-container-low">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-3xl mx-auto px-4 py-6">
-          <button onClick={() => router.push('/')} className="text-sm text-gray-400 hover:text-gray-600 mb-4 flex items-center gap-1">
-            ← Back to search
+      <div className="bg-white border-b border-border-subtle">
+        <div className="max-w-container-max mx-auto px-gutter py-6">
+          <button onClick={() => router.push('/')} className="text-sm text-on-surface-variant hover:text-pro-navy mb-4 flex items-center gap-1.5 cursor-pointer">
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Back to search
           </button>
-          <h1 className="text-2xl font-extrabold text-gray-900">My Bookings</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Your flight bookings made through CheapStay</p>
+          <h1 className="font-headline-lg text-headline-lg text-pro-navy">My Bookings</h1>
+          <p className="text-sm text-on-surface-variant mt-0.5">Your flight bookings made through CheapStay</p>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-8">
-        {bookings.length === 0 && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
-            <p className="text-4xl mb-3">✈️</p>
-            <p className="text-base font-bold text-gray-700">No bookings yet</p>
-            <p className="text-sm text-gray-400 mt-1 mb-5">Your flight bookings will appear here</p>
+      <div className="max-w-container-max mx-auto px-gutter py-stack-md">
+        {bookings.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-border-subtle pro-shadow p-10 text-center max-w-3xl mx-auto">
+            <span className="material-symbols-outlined text-primary text-5xl mb-3">flight</span>
+            <p className="text-base font-bold text-pro-navy">No bookings yet</p>
+            <p className="text-sm text-on-surface-variant mt-1 mb-5">Your flight bookings will appear here</p>
             <button onClick={() => router.push('/')}
-              className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
-              style={{ background: 'var(--color-primary)' }}>
+              className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-primary hover:opacity-90 transition-opacity cursor-pointer">
               Search flights →
             </button>
           </div>
-        )}
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            {/* Bookings list */}
+            <div className="lg:col-span-2 space-y-8">
+              {held.length > 0 && (
+                <section>
+                  <p className="font-label-bold text-label-bold text-alert-orange uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[16px]">schedule</span>
+                    Held — payment required
+                  </p>
+                  <div className="space-y-3">
+                    {held.map(b => <BookingCard key={b.id} booking={b} />)}
+                  </div>
+                </section>
+              )}
 
-        {held.length > 0 && (
-          <section>
-            <p className="text-xs font-bold text-amber-500 uppercase tracking-wide mb-3">⏳ Held — payment required</p>
-            <div className="space-y-3">
-              {held.map(b => <BookingCard key={b.id} booking={b} />)}
-            </div>
-          </section>
-        )}
+              {upcoming.length > 0 && (
+                <section>
+                  <p className="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-widest mb-3">Upcoming</p>
+                  <div className="space-y-3">
+                    {upcoming.map(b => <BookingCard key={b.id} booking={b} />)}
+                  </div>
+                </section>
+              )}
 
-        {upcoming.length > 0 && (
-          <section>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Upcoming</p>
-            <div className="space-y-3">
-              {upcoming.map(b => <BookingCard key={b.id} booking={b} />)}
-            </div>
-          </section>
-        )}
+              {past.length > 0 && (
+                <section>
+                  <p className="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-widest mb-3">Past trips</p>
+                  <div className="space-y-3">
+                    {past.map(b => <BookingCard key={b.id} booking={b} />)}
+                  </div>
+                </section>
+              )}
 
-        {past.length > 0 && (
-          <section>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Past trips</p>
-            <div className="space-y-3">
-              {past.map(b => <BookingCard key={b.id} booking={b} />)}
+              {cancelled.length > 0 && (
+                <section>
+                  <p className="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-widest mb-3">Cancelled</p>
+                  <div className="space-y-3 opacity-60">
+                    {cancelled.map(b => <BookingCard key={b.id} booking={b} />)}
+                  </div>
+                </section>
+              )}
             </div>
-          </section>
-        )}
 
-        {cancelled.length > 0 && (
-          <section>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Cancelled</p>
-            <div className="space-y-3 opacity-60">
-              {cancelled.map(b => <BookingCard key={b.id} booking={b} />)}
+            {/* Sidebar */}
+            <div className="space-y-6">
+              <div className="bg-white p-5 rounded-xl pro-shadow border border-border-subtle flex gap-4 items-start">
+                <div className="bg-sky-blue/10 p-3 rounded-lg shrink-0">
+                  <span className="material-symbols-outlined text-sky-blue" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
+                </div>
+                <div>
+                  <h3 className="font-headline-md text-base text-pro-navy mb-1">Avi&apos;s Pro Tip</h3>
+                  <p className="text-on-surface-variant text-sm leading-relaxed">
+                    Online check-in usually opens 24 hours before departure — set a reminder so you can lock in a
+                    free seat before the airline starts charging for the good ones.
+                  </p>
+                </div>
+              </div>
+
+              <Link href="/consult" className="block bg-white rounded-xl border border-border-subtle p-5 pro-shadow hover:shadow-md transition-shadow group">
+                <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                  <span className="material-symbols-outlined text-primary">call</span>
+                </div>
+                <h4 className="text-pro-navy font-headline-md text-lg mb-1">Need help with a booking?</h4>
+                <p className="text-on-surface-variant text-sm mb-4">Book a 1-on-1 call with Avi for route planning and booking hacks.</p>
+                <span className="text-primary font-label-bold text-sm flex items-center gap-1">
+                  Book a call <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                </span>
+              </Link>
+
+              <Link href="/shop" className="block bg-white rounded-xl border border-border-subtle p-5 pro-shadow hover:shadow-md transition-shadow group">
+                <div className="bg-tertiary/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                  <span className="material-symbols-outlined text-tertiary">luggage</span>
+                </div>
+                <h4 className="text-pro-navy font-headline-md text-lg mb-1">Shop travel gear</h4>
+                <p className="text-on-surface-variant text-sm mb-4">Avi&apos;s picks for luggage, tech, and travel essentials.</p>
+                <span className="text-tertiary font-label-bold text-sm flex items-center gap-1">
+                  Browse the shop <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                </span>
+              </Link>
             </div>
-          </section>
+          </div>
         )}
       </div>
     </div>
@@ -227,9 +277,20 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
   const badge = cancellationBadge(b.cancellation_policy);
   const isPremium = b.cabin_class === 'business' || b.cabin_class === 'first';
   const isFirst = b.cabin_class === 'first';
+  const daysOut = daysUntil(b.departure_at);
+
+  const statusClass = isCancelled
+    ? 'bg-error/10 text-error'
+    : isHeld
+    ? 'bg-alert-orange/10 text-alert-orange'
+    : isPast
+    ? 'bg-surface-container text-on-surface-variant'
+    : isPremium
+    ? ''
+    : 'bg-savings-green/10 text-savings-green';
 
   return (
-    <div className="rounded-2xl overflow-hidden"
+    <div className={`rounded-2xl overflow-hidden ${isPremium && !isCancelled ? '' : 'bg-white border border-border-subtle pro-shadow'}`}
       style={isPremium && !isCancelled
         ? {
             background: isFirst
@@ -238,12 +299,12 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
             border: `1.5px solid ${isFirst ? 'rgba(139,92,246,0.45)' : 'rgba(212,175,55,0.45)'}`,
             boxShadow: `0 4px 24px ${isFirst ? 'rgba(139,92,246,0.15)' : 'rgba(212,175,55,0.12)'}`,
           }
-        : { background: '#fff', border: '1px solid #F1F5F9', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+        : undefined}>
 
       {/* Premium banner */}
       {isPremium && !isCancelled && (
-        <div className="px-5 pt-3 pb-0 flex items-center gap-2">
-          <span style={{ color: isFirst ? '#A78BFA' : '#D4AF37', fontSize: 11 }}>✦</span>
+        <div className="px-5 pt-3 pb-0 flex items-center gap-1.5">
+          <span className="material-symbols-outlined" style={{ color: isFirst ? '#A78BFA' : '#D4AF37', fontSize: 14 }}>stars</span>
           <p className="text-[10px] font-bold tracking-widest uppercase"
             style={{ color: isFirst ? '#A78BFA' : '#D4AF37' }}>
             {isFirst ? 'First Class' : 'Business Class'}
@@ -255,57 +316,53 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
       <div className="p-5 pb-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-1">
-              <p className="text-xl font-extrabold flex items-center gap-2"
-                style={{ color: isPremium && !isCancelled ? '#fff' : '#111827' }}>
+            <div className="flex items-center gap-3 mb-1 flex-wrap">
+              <p className={`text-xl font-extrabold flex items-center gap-2 ${isPremium && !isCancelled ? '' : 'text-pro-navy'}`}
+                style={{ color: isPremium && !isCancelled ? '#fff' : undefined }}>
                 {b.origin_code}
-                <span className="flex items-center gap-1 font-normal">
-                  <svg className="w-4 h-4" style={{ color: isPremium && !isCancelled ? (isFirst ? '#A78BFA' : '#D4AF37') : 'var(--color-primary)' }} viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1l3.5 1v-1.5L13 19v-5.5z"/>
-                  </svg>
+                <span className="material-symbols-outlined text-[18px]" style={{ color: isPremium && !isCancelled ? (isFirst ? '#A78BFA' : '#D4AF37') : 'var(--color-primary)' }}>
+                  flight_takeoff
                 </span>
                 {b.destination_code}
               </p>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                style={isCancelled
-                  ? { background: '#FEE2E2', color: '#DC2626' }
-                  : isHeld
-                  ? { background: '#FEF3C7', color: '#B45309' }
-                  : isPast
-                  ? { background: '#F3F4F6', color: '#6B7280' }
-                  : isPremium
-                  ? { background: isFirst ? 'rgba(139,92,246,0.2)' : 'rgba(212,175,55,0.2)', color: isFirst ? '#C4B5FD' : '#D4AF37' }
-                  : { background: '#ECFDF5', color: '#15803D' }}>
-                {isCancelled ? 'Cancelled' : isHeld ? '⏳ Held' : isPast ? 'Completed' : 'Confirmed ✓'}
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusClass}`}
+                style={isPremium && !isCancelled ? { background: isFirst ? 'rgba(139,92,246,0.2)' : 'rgba(212,175,55,0.2)', color: isFirst ? '#C4B5FD' : '#D4AF37' } : undefined}>
+                {isCancelled ? 'Cancelled' : isHeld ? 'Held' : isPast ? 'Completed' : 'Confirmed'}
               </span>
+              {!isPast && !isCancelled && (
+                <span className="text-[10px] font-semibold text-on-surface-variant" style={isPremium ? { color: 'rgba(255,255,255,0.4)' } : undefined}>
+                  {daysOut === 0 ? 'Today' : daysOut === 1 ? 'Tomorrow' : daysOut > 0 ? `In ${daysOut} days` : ''}
+                </span>
+              )}
             </div>
-            <p className="text-sm" style={{ color: isPremium && !isCancelled ? 'rgba(255,255,255,0.55)' : '#6B7280' }}>
+            <p className={`text-sm ${isPremium && !isCancelled ? '' : 'text-on-surface-variant'}`}
+              style={{ color: isPremium && !isCancelled ? 'rgba(255,255,255,0.55)' : undefined }}>
               {b.origin_city} → {b.destination_city}
             </p>
-            <p className="text-xs mt-0.5 flex items-center gap-1.5 flex-wrap"
-              style={{ color: isPremium && !isCancelled ? 'rgba(255,255,255,0.4)' : '#9CA3AF' }}>
+            <p className={`text-xs mt-0.5 flex items-center gap-1.5 flex-wrap ${isPremium && !isCancelled ? '' : 'text-outline'}`}
+              style={{ color: isPremium && !isCancelled ? 'rgba(255,255,255,0.4)' : undefined }}>
               <span>{b.airline}</span>
               {!isPremium && fmtCabin(b.cabin_class) && (
-                <span className="font-semibold px-1.5 py-0.5 rounded text-[10px]"
-                  style={{ background: '#F1F5F9', color: '#475569' }}>
+                <span className="font-semibold px-1.5 py-0.5 rounded text-[10px] bg-surface-container-low text-on-surface-variant">
                   {fmtCabin(b.cabin_class)}
                 </span>
               )}
               <span>· {fmtDate(b.departure_at)} · {fmtTime(b.departure_at)}</span>
             </p>
             {badge && !isCancelled && (
-              <span className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold px-2.5 py-1 rounded-full"
-                style={{ background: badge.bg, color: badge.color }}>
-                {badge.icon} {badge.label}
+              <span className={`inline-flex items-center gap-1 mt-2 text-[11px] font-bold px-2.5 py-1 rounded-full ${badge.className}`}>
+                <span className="material-symbols-outlined text-[13px]">{badge.icon}</span>
+                {badge.label}
               </span>
             )}
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-xl font-extrabold"
-              style={{ color: isPremium && !isCancelled ? (isFirst ? '#C4B5FD' : '#D4AF37') : '#DC2626' }}>
+            <p className={`text-xl font-extrabold ${isPremium && !isCancelled ? '' : 'text-primary'}`}
+              style={{ color: isPremium && !isCancelled ? (isFirst ? '#C4B5FD' : '#D4AF37') : undefined }}>
               {fmtPrice(b.total_amount, b.currency)}
             </p>
-            <p className="text-[10px]" style={{ color: isPremium && !isCancelled ? 'rgba(255,255,255,0.4)' : '#9CA3AF' }}>
+            <p className={`text-[10px] ${isPremium && !isCancelled ? '' : 'text-outline'}`}
+              style={{ color: isPremium && !isCancelled ? 'rgba(255,255,255,0.4)' : undefined }}>
               {b.passengers_count} passenger{b.passengers_count > 1 ? 's' : ''}
             </p>
           </div>
@@ -315,11 +372,10 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
         {b.passenger_names?.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3">
             {b.passenger_names.map((name, i) => (
-              <span key={i} className="text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize"
-                style={isPremium && !isCancelled
-                  ? { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.65)' }
-                  : { background: '#F1F5F9', color: '#475569' }}>
-                👤 {name}
+              <span key={i} className={`text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize flex items-center gap-1 ${isPremium && !isCancelled ? '' : 'bg-surface-container-low text-on-surface-variant'}`}
+                style={isPremium && !isCancelled ? { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.65)' } : undefined}>
+                <span className="material-symbols-outlined text-[13px]">person</span>
+                {name}
               </span>
             ))}
           </div>
@@ -327,26 +383,26 @@ function BookingCard({ booking: b }: { booking: FlightBooking }) {
       </div>
 
       {/* Footer bar */}
-      <div className="px-5 py-3 flex items-center justify-between"
+      <div className={`px-5 py-3 flex items-center justify-between ${isPremium && !isCancelled ? '' : 'bg-surface-container-low border-t border-border-subtle'}`}
         style={isPremium && !isCancelled
           ? { background: 'rgba(0,0,0,0.25)', borderTop: `1px solid ${isFirst ? 'rgba(139,92,246,0.25)' : 'rgba(212,175,55,0.25)'}` }
-          : { background: '#F8FAFC', borderTop: '1px solid #F1F5F9' }}>
+          : undefined}>
         <div>
-          <p className="text-[10px] uppercase tracking-wide"
-            style={{ color: isPremium && !isCancelled ? 'rgba(255,255,255,0.35)' : '#9CA3AF' }}>
+          <p className={`text-[10px] uppercase tracking-wide ${isPremium && !isCancelled ? '' : 'text-outline'}`}
+            style={{ color: isPremium && !isCancelled ? 'rgba(255,255,255,0.35)' : undefined }}>
             Booking ref
           </p>
-          <p className="text-sm font-extrabold font-mono tracking-wide"
-            style={{ color: isPremium && !isCancelled ? '#fff' : '#111827' }}>
+          <p className={`text-sm font-extrabold font-mono tracking-wide ${isPremium && !isCancelled ? '' : 'text-pro-navy'}`}
+            style={{ color: isPremium && !isCancelled ? '#fff' : undefined }}>
             {b.booking_reference}
           </p>
         </div>
         <Link href={`/bookings/${b.id}`}
-          className="text-xs font-bold px-4 py-2 rounded-lg transition"
+          className={`text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1 ${isPremium && !isCancelled ? '' : 'text-primary bg-primary/10 border border-primary/20'}`}
           style={isPremium && !isCancelled
             ? { color: isFirst ? '#C4B5FD' : '#D4AF37', background: isFirst ? 'rgba(139,92,246,0.18)' : 'rgba(212,175,55,0.15)', border: `1px solid ${isFirst ? 'rgba(139,92,246,0.35)' : 'rgba(212,175,55,0.35)'}` }
-            : { color: 'var(--color-primary)', background: '#ECFDF5', border: '1px solid #BBF7D0' }}>
-          Manage →
+            : undefined}>
+          Manage <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
         </Link>
       </div>
     </div>
