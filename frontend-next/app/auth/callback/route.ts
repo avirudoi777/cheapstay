@@ -19,15 +19,21 @@ export async function GET(request: Request) {
       if (user) {
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('onboarding_done')
+          .select('onboarding_done, welcome_email_sent_at')
           .eq('id', user.id)
           .single();
 
-        // !profile = no profile row = brand new user. Send welcome email before redirect.
+        // A DB trigger on auth.users creates the user_profiles row at signup,
+        // before confirmation — so `!profile` doesn't mean "new user" here.
+        // welcome_email_sent_at is the actual "have we sent this yet" flag.
         // Must await — Vercel kills the function the moment the response is sent.
-        if (!profile && user.email) {
+        if (!profile?.welcome_email_sent_at && user.email) {
           const name = user.user_metadata?.full_name || user.user_metadata?.name || '';
           await sendEmail({ to: user.email, ...welcomeEmail({ name }) });
+          await supabase
+            .from('user_profiles')
+            .update({ welcome_email_sent_at: new Date().toISOString() })
+            .eq('id', user.id);
         }
 
         if (!profile?.onboarding_done) {
