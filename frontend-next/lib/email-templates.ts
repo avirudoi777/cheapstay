@@ -45,20 +45,49 @@ function button(label: string, href: string, variant: 'primary' | 'secondary' = 
 
 export function welcomeEmail({ name }: { name: string }): { subject: string; html: string } {
   const subject = `Welcome to CheapStay${name ? `, ${name}` : ''}!`;
+  const perk = (icon: string, text: string) => `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;">
+      <tr>
+        <td style="width:44px;vertical-align:middle;">
+          <div style="width:36px;height:36px;background:#EFF6FF;border-radius:50%;text-align:center;line-height:36px;font-size:16px;">${icon}</div>
+        </td>
+        <td style="vertical-align:middle;padding-left:6px;">
+          <p style="margin:0;font-size:14px;font-weight:600;color:${NAVY};">${text}</p>
+        </td>
+      </tr>
+    </table>`;
+
   const html = layout(
     'Find cheap flights, hotel deals, and travel tools — all in one place.',
     `
-    <h1 style="margin:0 0 16px;font-size:22px;color:${NAVY};">Welcome${name ? `, ${name}` : ''} 👋</h1>
-    <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#475569;">
-      Your CheapStay account is ready. We help travellers find cheaper flights and hotel deals — your account saves your passport details, travel companions, and booking history so checkout is faster every time.
+    <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:${NAVY};">Welcome${name ? `, ${name}` : ''} 👋</h1>
+    <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#475569;">
+      Your CheapStay account is ready — passport details, travel companions, and booking history are all saved, so checkout is faster every time.
     </p>
-    <ul style="margin:0 0 24px;padding-left:18px;font-size:14px;line-height:1.8;color:#475569;">
-      <li>✈️ Search &amp; book flights with real-time prices</li>
-      <li>🏨 Browse hotel deals and go straight to checkout</li>
-      <li>🛂 Save passenger details once, auto-fill every booking</li>
-      <li>💺 Seat selection, baggage, trip management — all in one place</li>
-    </ul>
-    ${button('Start exploring →', SITE_URL)}
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border-radius:14px;margin-bottom:24px;border:1px solid #EEF1F5;">
+      <tr><td style="padding:22px;">
+        <table role="presentation" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="width:52px;vertical-align:top;">
+              <img src="${SITE_URL}/avi-profile.jpg" width="44" height="44" alt="Avi" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid ${TEAL_ACCENT};display:block;" />
+            </td>
+            <td style="vertical-align:top;padding-left:6px;">
+              <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:${TEAL_ACCENT};text-transform:uppercase;letter-spacing:0.05em;">A message from Avi</p>
+              <p style="margin:0;font-size:13px;line-height:1.6;color:#334155;font-style:italic;">&ldquo;I built CheapStay because I was tired of paying tourist prices. You now have access to the same Thai-IP pricing tricks, layover guides, and booking hacks I use myself.&rdquo;</p>
+            </td>
+          </tr>
+        </table>
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 14px;font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">What you can do now</p>
+    ${perk('&#9992;&#65039;', 'Search &amp; book flights with real-time prices')}
+    ${perk('&#127968;', 'Compare hotel prices and go straight to checkout')}
+    ${perk('&#128179;', 'Check visa &amp; entry requirements for your passport')}
+    ${perk('&#128717;&#65039;', 'Real layover and airport lounge guides at 95+ airports')}
+
+    <div style="margin-top:20px;">${button('Start exploring &#8594;', SITE_URL)}</div>
     <p style="margin:16px 0 0;font-size:12px;color:#94A3B8;">If this ends up in Promotions, move it to your inbox so you never miss a booking confirmation.</p>
     `
   );
