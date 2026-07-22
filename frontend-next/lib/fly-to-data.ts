@@ -9,10 +9,20 @@ export interface FlyToDestination {
   airportCode: string;
   airportName: string;
   img: string;
+  // Live weather/clock widget — coordinates are for the arrival AIRPORT CITY,
+  // not the political capital (they diverge for Indonesia/Vietnam/UAE below).
+  timezone: string;   // IANA tz, e.g. 'Asia/Bangkok'
+  lat: number;
+  lng: number;
   // Accuracy tracking
   last_verified: string | null;   // ISO date of last human review, null = unverified
   sources: string[];              // URLs used to verify the content
   recheck_note?: string;          // hint for next reviewer (e.g. "recheck monthly")
+  localApps?: {
+    name: string;
+    category: 'ride-share' | 'payment' | 'maps';
+    note: string;
+  }[];
   entry: {
     visaFreeCountries: string;
     visaOnArrival: string;
@@ -44,6 +54,9 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'BKK',
     airportName: 'Suvarnabhumi Airport (BKK)',
     img: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=1200&h=600&fit=crop&auto=format',
+    timezone: 'Asia/Bangkok',
+    lat: 13.7563,
+    lng: 100.5018,
     last_verified: '2026-07-04',
     // Recheck monthly — Cabinet approved a tiered visa rollback on May 19 2026 but
     // it takes effect only 15 days after Royal Gazette publication, which had NOT
@@ -53,6 +66,10 @@ export const FLY_TO: Record<string, FlyToDestination> = {
       'https://thethaiger.com/guides/visa-information/thailand-visa-exemption',
       'https://en.wikipedia.org/wiki/Visa_policy_of_Thailand',
       'https://travelhealthpro.org.uk/country/221/thailand',
+    ],
+    localApps: [
+      { name: 'Grab', category: 'ride-share', note: 'Available at Suvarnabhumi’s designated pickup zone — the safest fixed-price option from the airport.' },
+      { name: 'PromptPay', category: 'payment', note: 'Thailand’s national QR payment system — many shops and street vendors display a PromptPay QR code for instant bank transfers.' },
     ],
     entry: {
       visaFreeCountries:
@@ -126,10 +143,17 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'NRT',
     airportName: 'Narita International Airport (NRT) / Haneda Airport (HND)',
     img: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200&h=600&fit=crop&auto=format',
+    timezone: 'Asia/Tokyo',
+    lat: 35.6762,
+    lng: 139.6503,
     last_verified: '2026-07-04',
     sources: [
       'https://www.mofa.go.jp/j_info/visit/visa/short/novisa.html',
       'https://travelhealthpro.org.uk/country/109/japan',
+    ],
+    localApps: [
+      { name: 'GO / Uber', category: 'ride-share', note: 'Ride-hailing exists but is limited compared to the West — regular metered taxis are more common and reliable in most cities.' },
+      { name: 'Suica / Pasmo', category: 'payment', note: 'Rechargeable IC card for trains, buses, and convenience stores — buy at the airport, essential for getting around.' },
     ],
     entry: {
       visaFreeCountries:
@@ -177,10 +201,18 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'DPS',
     airportName: 'Ngurah Rai International Airport, Bali (DPS)',
     img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1200&h=600&fit=crop&auto=format',
+    // Denpasar/Bali (DPS), not Jakarta — different timezone (WITA, not WIB)
+    timezone: 'Asia/Makassar',
+    lat: -8.6705,
+    lng: 115.2126,
     last_verified: '2026-07-04',
     sources: [
       'https://www.travelvax.com.au/holiday-traveller/vaccination-requirements/indonesia',
       'https://www.gov.uk/foreign-travel-advice/indonesia/entry-requirements',
+    ],
+    localApps: [
+      { name: 'Grab / Gojek', category: 'ride-share', note: 'Gojek is Indonesia-founded and often has better coverage in Bali; Grab is also widely used — compare prices in both apps.' },
+      { name: 'GoPay / OVO', category: 'payment', note: 'Popular local e-wallets for cafes, parking, and small vendors — link a card in-app or top up with cash.' },
     ],
     entry: {
       visaFreeCountries: '[VERIFY: Indonesia offers visa-free entry to approx. 169 nationalities for 30 days — confirm at Indonesia immigration website]',
@@ -218,10 +250,18 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'SGN',
     airportName: 'Tan Son Nhat Airport, Ho Chi Minh City (SGN) / Noi Bai Airport, Hanoi (HAN)',
     img: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=1200&h=600&fit=crop&auto=format',
+    // Ho Chi Minh City (SGN, the primary listed airport), not Hanoi
+    timezone: 'Asia/Ho_Chi_Minh',
+    lat: 10.8231,
+    lng: 106.6297,
     last_verified: '2026-07-04',
     sources: [
       'https://evisa.xuatnhapcanh.gov.vn',
       'https://travelhealthpro.org.uk/country/238/vietnam',
+    ],
+    localApps: [
+      { name: 'Grab', category: 'ride-share', note: 'The safest fixed-price option in Ho Chi Minh City and Hanoi — avoid unmarked taxis, which are known to overcharge tourists.' },
+      { name: 'MoMo', category: 'payment', note: 'Vietnam’s leading e-wallet, widely used for cafes and convenience stores — mostly requires a local bank link, less useful for short visits.' },
     ],
     entry: {
       visaFreeCountries:
@@ -270,11 +310,18 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'DXB',
     airportName: 'Dubai International Airport (DXB)',
     img: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200&h=600&fit=crop&auto=format',
+    // Dubai (DXB), not Abu Dhabi
+    timezone: 'Asia/Dubai',
+    lat: 25.2048,
+    lng: 55.2708,
     last_verified: '2026-07-04',
     sources: [
       'https://u.ae/en/information-and-services/visa-and-emirates-id/do-you-need-an-entry-permit-to-visit-the-uae',
       'https://www.gov.uk/foreign-travel-advice/united-arab-emirates/entry-requirements',
       'https://travelhealthpro.org.uk/country/233/united-arab-emirates',
+    ],
+    localApps: [
+      { name: 'Careem', category: 'ride-share', note: 'The dominant ride-hailing app in Dubai, alongside Uber — both are reliable and widely used.' },
     ],
     entry: {
       visaFreeCountries:
@@ -321,10 +368,17 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'SIN',
     airportName: 'Singapore Changi Airport (SIN)',
     img: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=1200&h=600&fit=crop&auto=format',
+    timezone: 'Asia/Singapore',
+    lat: 1.3521,
+    lng: 103.8198,
     last_verified: '2026-07-04',
     sources: [
       'https://www.ica.gov.sg/enter-transit-depart/entering-singapore/visa-requirements',
       'https://travelhealthpro.org.uk/country/196/singapore',
+    ],
+    localApps: [
+      { name: 'Grab', category: 'ride-share', note: 'Available at designated pickup zones outside Changi arrivals — the standard fixed-price ride app.' },
+      { name: 'PayNow / GrabPay', category: 'payment', note: 'Singapore is one of the most cashless cities in Asia — most hawker stalls and shops accept these alongside credit cards.' },
     ],
     entry: {
       visaFreeCountries:
@@ -370,11 +424,18 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'DEL',
     airportName: 'Indira Gandhi International Airport, Delhi (DEL) / Chhatrapati Shivaji Maharaj Airport, Mumbai (BOM)',
     img: 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=1200&h=600&fit=crop&auto=format',
+    timezone: 'Asia/Kolkata',
+    lat: 28.6139,
+    lng: 77.2090,
     last_verified: '2026-07-04',
     sources: [
       'https://indianvisaonline.gov.in/evisa/tvoa.html',
       'https://travelhealthpro.org.uk/country/103/india',
       'https://www.gov.uk/foreign-travel-advice/india/entry-requirements',
+    ],
+    localApps: [
+      { name: 'Ola / Uber', category: 'ride-share', note: 'Both work well in Delhi and Mumbai — use the pre-paid taxi booth in arrivals if you prefer a fixed-rate option instead.' },
+      { name: 'Paytm / UPI', category: 'payment', note: 'India’s dominant digital payment system — most shops display a UPI QR code, though it typically requires an Indian bank account to use.' },
     ],
     entry: {
       visaFreeCountries:
@@ -425,10 +486,17 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'ICN',
     airportName: 'Incheon International Airport (ICN)',
     img: 'https://images.unsplash.com/photo-1538485399081-7191377e8241?w=1200&h=600&fit=crop&auto=format',
+    timezone: 'Asia/Seoul',
+    lat: 37.5665,
+    lng: 126.9780,
     last_verified: '2026-07-04',
     sources: [
       'https://www.visa.go.kr/openPage.do?MENU_ID=10101',
       'https://travelhealthpro.org.uk/country/110/south-korea',
+    ],
+    localApps: [
+      { name: 'Kakao T', category: 'ride-share', note: 'South Korea’s dominant ride-hailing app — Uber has limited coverage, Kakao T is what locals actually use.' },
+      { name: 'Naver Map / KakaoMap', category: 'maps', note: 'Google Maps turn-by-turn directions don’t work well in South Korea due to data-export restrictions — download one of these instead before you land.' },
     ],
     entry: {
       visaFreeCountries:
