@@ -22,6 +22,7 @@ export interface FlyToDestination {
     name: string;
     category: 'ride-share' | 'payment' | 'maps';
     note: string;
+    url: string;   // real official site/app link
   }[];
   entry: {
     visaFreeCountries: string;
@@ -68,8 +69,8 @@ export const FLY_TO: Record<string, FlyToDestination> = {
       'https://travelhealthpro.org.uk/country/221/thailand',
     ],
     localApps: [
-      { name: 'Grab', category: 'ride-share', note: 'Available at Suvarnabhumi’s designated pickup zone — the safest fixed-price option from the airport.' },
-      { name: 'PromptPay', category: 'payment', note: 'Thailand’s national QR payment system — many shops and street vendors display a PromptPay QR code for instant bank transfers.' },
+      { name: 'Grab', category: 'ride-share', note: 'Available at Suvarnabhumi’s designated pickup zone — the safest fixed-price option from the airport.', url: 'https://www.grab.com/th/' },
+      { name: 'PromptPay', category: 'payment', note: 'Thailand’s national QR payment system — many shops and street vendors display a PromptPay QR code for instant bank transfers.', url: 'https://www.bot.or.th/en/our-roles/payment-systems/promptpay.html' },
     ],
     entry: {
       visaFreeCountries:
@@ -152,8 +153,8 @@ export const FLY_TO: Record<string, FlyToDestination> = {
       'https://travelhealthpro.org.uk/country/109/japan',
     ],
     localApps: [
-      { name: 'GO / Uber', category: 'ride-share', note: 'Ride-hailing exists but is limited compared to the West — regular metered taxis are more common and reliable in most cities.' },
-      { name: 'Suica / Pasmo', category: 'payment', note: 'Rechargeable IC card for trains, buses, and convenience stores — buy at the airport, essential for getting around.' },
+      { name: 'GO', category: 'ride-share', note: 'Japan’s dominant taxi-hailing app — ride-share is limited compared to the West, but GO works with regular metered taxis and is widely used.', url: 'https://go.mo-t.com/en/' },
+      { name: 'Suica', category: 'payment', note: 'Rechargeable IC card for trains, buses, and convenience stores — buy at the airport, essential for getting around.', url: 'https://www.jreast.co.jp/e/pass/suica.html' },
     ],
     entry: {
       visaFreeCountries:
@@ -211,8 +212,10 @@ export const FLY_TO: Record<string, FlyToDestination> = {
       'https://www.gov.uk/foreign-travel-advice/indonesia/entry-requirements',
     ],
     localApps: [
-      { name: 'Grab / Gojek', category: 'ride-share', note: 'Gojek is Indonesia-founded and often has better coverage in Bali; Grab is also widely used — compare prices in both apps.' },
-      { name: 'GoPay / OVO', category: 'payment', note: 'Popular local e-wallets for cafes, parking, and small vendors — link a card in-app or top up with cash.' },
+      { name: 'Grab', category: 'ride-share', note: 'Widely used across Bali — compare prices with Gojek before booking.', url: 'https://www.grab.com/id/' },
+      { name: 'Gojek', category: 'ride-share', note: 'Indonesia-founded and often has better coverage in Bali than Grab — worth having both apps installed.', url: 'https://www.gojek.com/en-id/' },
+      { name: 'GoPay', category: 'payment', note: 'Gojek’s e-wallet, accepted at cafes, parking, and small vendors — top up in-app.', url: 'https://www.gopay.co.id/' },
+      { name: 'OVO', category: 'payment', note: 'A second popular local e-wallet, widely accepted alongside GoPay.', url: 'https://www.ovo.id/' },
     ],
     entry: {
       visaFreeCountries: '[VERIFY: Indonesia offers visa-free entry to approx. 169 nationalities for 30 days — confirm at Indonesia immigration website]',
@@ -260,8 +263,8 @@ export const FLY_TO: Record<string, FlyToDestination> = {
       'https://travelhealthpro.org.uk/country/238/vietnam',
     ],
     localApps: [
-      { name: 'Grab', category: 'ride-share', note: 'The safest fixed-price option in Ho Chi Minh City and Hanoi — avoid unmarked taxis, which are known to overcharge tourists.' },
-      { name: 'MoMo', category: 'payment', note: 'Vietnam’s leading e-wallet, widely used for cafes and convenience stores — mostly requires a local bank link, less useful for short visits.' },
+      { name: 'Grab', category: 'ride-share', note: 'The safest fixed-price option in Ho Chi Minh City and Hanoi — avoid unmarked taxis, which are known to overcharge tourists.', url: 'https://www.grab.com/vn/' },
+      { name: 'MoMo', category: 'payment', note: 'Vietnam’s leading e-wallet, widely used for cafes and convenience stores — mostly requires a local bank link, less useful for short visits.', url: 'https://momo.vn/' },
     ],
     entry: {
       visaFreeCountries:
@@ -321,7 +324,8 @@ export const FLY_TO: Record<string, FlyToDestination> = {
       'https://travelhealthpro.org.uk/country/233/united-arab-emirates',
     ],
     localApps: [
-      { name: 'Careem', category: 'ride-share', note: 'The dominant ride-hailing app in Dubai, alongside Uber — both are reliable and widely used.' },
+      { name: 'Careem', category: 'ride-share', note: 'The dominant ride-hailing app in Dubai, alongside Uber — both are reliable and widely used.', url: 'https://www.careem.com/' },
+      { name: 'Uber', category: 'ride-share', note: 'Also widely available in Dubai — compare prices with Careem.', url: 'https://www.uber.com/ae/en/' },
     ],
     entry: {
       visaFreeCountries:
@@ -377,8 +381,8 @@ export const FLY_TO: Record<string, FlyToDestination> = {
       'https://travelhealthpro.org.uk/country/196/singapore',
     ],
     localApps: [
-      { name: 'Grab', category: 'ride-share', note: 'Available at designated pickup zones outside Changi arrivals — the standard fixed-price ride app.' },
-      { name: 'PayNow / GrabPay', category: 'payment', note: 'Singapore is one of the most cashless cities in Asia — most hawker stalls and shops accept these alongside credit cards.' },
+      { name: 'Grab', category: 'ride-share', note: 'Available at designated pickup zones outside Changi arrivals — the standard fixed-price ride app, also covers GrabPay for cashless payment.', url: 'https://www.grab.com/sg/' },
+      { name: 'PayNow', category: 'payment', note: 'Singapore is one of the most cashless cities in Asia — PayNow QR codes are accepted at most hawker stalls and shops alongside credit cards.', url: 'https://www.abs.org.sg/consumer-banking/pay-now' },
     ],
     entry: {
       visaFreeCountries:
@@ -434,8 +438,9 @@ export const FLY_TO: Record<string, FlyToDestination> = {
       'https://www.gov.uk/foreign-travel-advice/india/entry-requirements',
     ],
     localApps: [
-      { name: 'Ola / Uber', category: 'ride-share', note: 'Both work well in Delhi and Mumbai — use the pre-paid taxi booth in arrivals if you prefer a fixed-rate option instead.' },
-      { name: 'Paytm / UPI', category: 'payment', note: 'India’s dominant digital payment system — most shops display a UPI QR code, though it typically requires an Indian bank account to use.' },
+      { name: 'Ola', category: 'ride-share', note: 'Works well in Delhi and Mumbai — use the pre-paid taxi booth in arrivals if you prefer a fixed-rate option instead.', url: 'https://www.olacabs.com/' },
+      { name: 'Uber', category: 'ride-share', note: 'Also widely available in major Indian cities.', url: 'https://www.uber.com/in/en/' },
+      { name: 'Paytm', category: 'payment', note: 'India’s leading digital wallet and UPI app — most shops display a QR code, though it typically requires an Indian bank account to use.', url: 'https://paytm.com/' },
     ],
     entry: {
       visaFreeCountries:
@@ -495,8 +500,9 @@ export const FLY_TO: Record<string, FlyToDestination> = {
       'https://travelhealthpro.org.uk/country/110/south-korea',
     ],
     localApps: [
-      { name: 'Kakao T', category: 'ride-share', note: 'South Korea’s dominant ride-hailing app — Uber has limited coverage, Kakao T is what locals actually use.' },
-      { name: 'Naver Map / KakaoMap', category: 'maps', note: 'Google Maps turn-by-turn directions don’t work well in South Korea due to data-export restrictions — download one of these instead before you land.' },
+      { name: 'Kakao T', category: 'ride-share', note: 'South Korea’s dominant ride-hailing app — Uber has limited coverage, Kakao T is what locals actually use.', url: 'https://www.kakaomobility.com/en/service/taxi' },
+      { name: 'Naver Map', category: 'maps', note: 'Google Maps turn-by-turn directions don’t work well in South Korea due to data-export restrictions — download this instead before you land.', url: 'https://map.naver.com/' },
+      { name: 'KakaoMap', category: 'maps', note: 'A second reliable navigation option, widely used alongside Naver Map.', url: 'https://map.kakao.com/' },
     ],
     entry: {
       visaFreeCountries:

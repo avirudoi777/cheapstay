@@ -8,6 +8,7 @@ import { FLY_TO_HOTEL_MAP } from '@/lib/fly-to-hotel-map';
 import { CARD_DB, DEFAULT_CARDS } from '@/lib/card-offers';
 import WeatherClock from '@/components/WeatherClock';
 import CardOfferCard from '@/components/CardOfferCard';
+import LocalAppCard from '@/components/LocalAppCard';
 
 export const revalidate = 86400;
 
@@ -68,20 +69,21 @@ export default async function FlyToPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
 
       {/* Hero */}
-      <div className="relative h-64 sm:h-80 overflow-hidden">
+      <div className="relative min-h-[420px] sm:min-h-[480px] flex items-end overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={dest.img} alt={dest.name} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/20" />
-        <div className="absolute bottom-6 left-0 right-0 px-4">
+        <img src={dest.img} alt={dest.name} className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
+        <div className="relative z-10 w-full px-4 pb-8">
           <div className="max-w-4xl mx-auto">
-            <p className="text-white/70 text-xs mb-1">Travel requirements</p>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="bg-teal-accent text-white px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider">Expert guide</span>
+              {verifiedDate && <span className="text-sky-blue text-[11px] font-bold">Verified: {verifiedDate}</span>}
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">
               {dest.flag} Flying to {dest.name}
             </h1>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-              <p className="text-white/80 text-sm">Visa · Health · Arrival · Flights</p>
-              <WeatherClock timezone={dest.timezone} lat={dest.lat} lng={dest.lng} />
-            </div>
+            <p className="text-white/80 text-sm sm:text-base mt-2 max-w-xl">Visa · Health · Arrival · Flights — everything you need before you fly.</p>
+            <WeatherClock timezone={dest.timezone} lat={dest.lat} lng={dest.lng} />
           </div>
         </div>
       </div>
@@ -134,27 +136,45 @@ export default async function FlyToPage({ params }: Props) {
 
         {/* Travel Essentials bento */}
         <section>
-          <h2 className="font-headline-md text-headline-md text-pro-navy mb-4">Travel essentials</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-xl border border-border-subtle">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-6">
+            <div>
+              <h2 className="font-headline-lg text-2xl text-pro-navy mb-1">Travel essentials</h2>
+              <p className="text-sm text-on-surface-variant">Scannable data for the efficient traveler.</p>
+            </div>
+            {dest.sources.length > 0 && (
+              <p className="text-xs text-on-surface-variant italic">
+                Sources: {dest.sources.map(url => new URL(url).hostname).join(', ')}
+              </p>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-xl border border-border-subtle pro-shadow">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-6">
                 <span className="material-symbols-outlined text-primary">password</span>
               </div>
-              <h3 className="font-headline-md text-base text-pro-navy mb-2">Visa-free entry</h3>
-              <p className="text-sm text-on-surface-variant">{dest.entry.visaFreeCountries}</p>
+              <h3 className="font-headline-md text-base text-pro-navy mb-3">Visa-free entry</h3>
+              <p className="text-sm text-on-surface-variant mb-4">{dest.entry.visaFreeCountries}</p>
+              <div className="p-3 bg-surface-container-low rounded-lg border-l-4 border-alert-orange">
+                <p className="text-xs font-bold text-pro-navy">{dest.entry.visaOnArrival}</p>
+              </div>
             </div>
-            <div className="bg-white p-5 rounded-xl border border-border-subtle">
-              <div className="w-10 h-10 bg-tertiary/10 rounded-lg flex items-center justify-center mb-4">
+            <div className="bg-white p-6 rounded-xl border border-border-subtle pro-shadow">
+              <div className="w-12 h-12 bg-tertiary/10 rounded-lg flex items-center justify-center mb-6">
                 <span className="material-symbols-outlined text-tertiary">medical_services</span>
               </div>
-              <h3 className="font-headline-md text-base text-pro-navy mb-2">Health &amp; vaccines</h3>
-              <p className="text-sm text-on-surface-variant">{dest.health.yellowFever}</p>
+              <h3 className="font-headline-md text-base text-pro-navy mb-3">Health &amp; vaccines</h3>
+              <p className="text-sm text-on-surface-variant mb-4">{dest.health.vaccines}</p>
+              <div className="flex items-center gap-2 text-error font-bold mb-2 text-sm">
+                <span className="material-symbols-outlined text-lg">warning</span>
+                <span>Yellow fever</span>
+              </div>
+              <p className="text-xs text-on-surface-variant">{dest.health.yellowFever}</p>
             </div>
-            <div className="bg-pro-navy p-5 rounded-xl text-white">
-              <div className="w-10 h-10 bg-teal-accent rounded-lg flex items-center justify-center mb-4">
+            <div className="bg-pro-navy p-6 rounded-xl text-white pro-shadow">
+              <div className="w-12 h-12 bg-teal-accent rounded-lg flex items-center justify-center mb-6">
                 <span className="material-symbols-outlined text-white">gavel</span>
               </div>
-              <h3 className="font-headline-md text-base text-sky-blue mb-2">Customs</h3>
+              <h3 className="font-headline-md text-base text-sky-blue mb-3">Customs</h3>
               <p className="text-sm text-white/80">{dest.arrival.customs}</p>
             </div>
           </div>
@@ -190,61 +210,66 @@ export default async function FlyToPage({ params }: Props) {
         {/* Local apps */}
         {dest.localApps && dest.localApps.length > 0 && (
           <section>
-            <h2 className="font-headline-md text-headline-md text-pro-navy mb-4">Essential local apps</h2>
+            <h2 className="font-headline-lg text-2xl text-pro-navy mb-1">Essential local apps</h2>
+            <p className="text-sm text-on-surface-variant mb-6">Download these before you land — tap a card to open the real app or site.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {dest.localApps.map(app => (
-                <div key={app.name} className="bg-white p-5 rounded-xl border border-border-subtle">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="material-symbols-outlined text-primary text-xl">
-                      {app.category === 'ride-share' ? 'directions_car' : app.category === 'payment' ? 'contactless' : 'map'}
-                    </span>
-                    <h3 className="font-headline-md text-sm text-pro-navy">{app.name}</h3>
-                  </div>
-                  <p className="text-sm text-on-surface-variant">{app.note}</p>
-                </div>
+                <LocalAppCard key={app.name} {...app} />
               ))}
             </div>
           </section>
         )}
 
         {/* Arrival & Connectivity */}
-        <section className="bg-white rounded-2xl border border-border-subtle p-6">
-          <h2 className="text-base font-bold text-pro-navy mb-4 flex items-center gap-2">
-            <span>✈️</span> Arriving at {dest.airportName}
-          </h2>
-          <div className="space-y-3 text-sm">
-            <Row label="Currency">{dest.arrival.currency}</Row>
-            <Row label="SIM card">{dest.arrival.simCard}</Row>
-            <Row label="Transport">{dest.arrival.transport}</Row>
+        <section>
+          <h2 className="font-headline-lg text-2xl text-pro-navy mb-6">Arriving at {dest.airportName}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center">
+                <span className="material-symbols-outlined text-pro-navy">wifi</span>
+              </div>
+              <div>
+                <h3 className="font-headline-md text-base text-pro-navy mb-2">SIM &amp; connectivity</h3>
+                <p className="text-sm text-on-surface-variant mb-2">{dest.arrival.simCard}</p>
+                <p className="text-sm text-on-surface-variant">{dest.arrival.currency}</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center">
+                <span className="material-symbols-outlined text-pro-navy">directions_transit</span>
+              </div>
+              <div>
+                <h3 className="font-headline-md text-base text-pro-navy mb-2">Getting into town</h3>
+                <p className="text-sm text-on-surface-variant">{dest.arrival.transport}</p>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* Search flights CTA */}
-        <div className="bg-white rounded-2xl border border-border-subtle p-5 flex flex-col sm:flex-row items-center gap-4">
-          <div className="flex-1">
-            <p className="font-bold text-pro-navy text-sm">Search flights to {dest.name}</p>
-            <p className="text-xs text-on-surface-variant mt-0.5">Compare prices across all airlines · seats &amp; baggage included</p>
-          </div>
-          <Link href={`/?to=${dest.airportCode}`}
-            className="text-sm font-bold text-white px-5 py-2.5 rounded-xl transition-opacity hover:opacity-90 whitespace-nowrap bg-primary">
-            Search flights →
-          </Link>
-        </div>
-
-        {/* Search hotels CTA — only when a matching /hotels/[city] page exists */}
-        {hotelMatch && (
-          <div className="bg-white rounded-2xl border border-border-subtle p-5 flex flex-col sm:flex-row items-center gap-4">
-            <div className="flex-1">
-              <p className="font-bold text-pro-navy text-sm">Cheap hotels in {hotelMatch.cityName}</p>
-              <p className="text-xs text-on-surface-variant mt-0.5">Real prices, sorted by best value</p>
-            </div>
-            <Link href={`/hotels/${hotelMatch.citySlug}`}
-              className="text-sm font-bold text-white px-5 py-2.5 rounded-xl transition-opacity hover:opacity-90 whitespace-nowrap"
-              style={{ background: 'var(--color-tertiary)' }}>
-              View hotels →
+        {/* Search modules */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="bg-white border border-border-subtle rounded-xl p-6 sm:p-8 pro-shadow group hover:border-teal-accent transition-colors">
+            <span className="material-symbols-outlined text-teal-accent text-4xl mb-6 block">flight_takeoff</span>
+            <h3 className="font-headline-lg text-xl text-pro-navy mb-3">Search flights to {dest.name}</h3>
+            <p className="text-sm text-on-surface-variant mb-6">Compare real-time prices across all airlines · seats &amp; baggage included</p>
+            <Link href={`/?to=${dest.airportCode}`}
+              className="w-full bg-pro-navy text-white py-3.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 group-hover:bg-teal-accent transition-colors">
+              Search flights <span className="material-symbols-outlined text-base">arrow_forward</span>
             </Link>
           </div>
-        )}
+
+          {hotelMatch && (
+            <div className="bg-white border border-border-subtle rounded-xl p-6 sm:p-8 pro-shadow group hover:border-teal-accent transition-colors">
+              <span className="material-symbols-outlined text-teal-accent text-4xl mb-6 block">hotel</span>
+              <h3 className="font-headline-lg text-xl text-pro-navy mb-3">Cheap hotels in {hotelMatch.cityName}</h3>
+              <p className="text-sm text-on-surface-variant mb-6">Real prices, sorted by best value</p>
+              <Link href={`/hotels/${hotelMatch.citySlug}`}
+                className="w-full bg-pro-navy text-white py-3.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 group-hover:bg-teal-accent transition-colors">
+                View hotels <span className="material-symbols-outlined text-base">arrow_forward</span>
+              </Link>
+            </div>
+          )}
+        </section>
 
         {/* Real card offers */}
         <section className="rounded-2xl overflow-hidden border border-tertiary/20 bg-gradient-to-br from-sky-blue/10 to-primary/5">

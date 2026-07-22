@@ -33,8 +33,23 @@ export default function WeatherClock({ timezone, lat, lng }: Props) {
   if (!time) return null;
 
   return (
-    <span className="text-white/80 text-sm">
-      {time} local time{weather ? ` · ${weather.temp}°C · ${weather.humidity}% humidity` : ''}
-    </span>
+    <div className="flex flex-wrap gap-3 mt-4">
+      <div className="bg-white/10 backdrop-blur-md rounded-lg px-4 py-3 border border-white/10 flex items-center gap-3">
+        <span className="material-symbols-outlined text-teal-accent">schedule</span>
+        <div>
+          <p className="text-[10px] text-white/60 uppercase tracking-wide">Current time</p>
+          <p className="font-headline-md text-lg text-white">{time}</p>
+        </div>
+      </div>
+      {weather && (
+        <div className="bg-white/10 backdrop-blur-md rounded-lg px-4 py-3 border border-white/10 flex items-center gap-3">
+          <span className="material-symbols-outlined text-teal-accent">thermostat</span>
+          <div>
+            <p className="text-[10px] text-white/60 uppercase tracking-wide">Weather</p>
+            <p className="font-headline-md text-lg text-white">{weather.temp}°C · {weather.humidity}%</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
