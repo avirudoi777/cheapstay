@@ -73,6 +73,10 @@ export const analytics = {
     track('onboarding_complete', { travel_styles: styles, budget, trips_per_year: trips, has_passport: hasPassport });
   },
 
+  onboardingSkipped(atStep: number) {
+    track('onboarding_skipped', { step: atStep });
+  },
+
   blogScroll(depth: '50' | '100', title: string, slug: string) {
     track(`blog_read_${depth}`, { article_title: title, slug });
   },
