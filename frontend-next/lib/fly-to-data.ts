@@ -9,8 +9,9 @@ export interface FlyToDestination {
   airportCode: string;
   airportName: string;
   img: string;
-  // Live weather/clock widget — coordinates are for the arrival AIRPORT CITY,
-  // not the political capital (they diverge for Indonesia/Vietnam/UAE below).
+  // Live weather/clock widget + arrival map — coordinates are for the arrival
+  // AIRPORT ITSELF, not the political capital or the wider city (they diverge
+  // for Indonesia/Vietnam/UAE especially — see per-country comments below).
   timezone: string;   // IANA tz, e.g. 'Asia/Bangkok'
   lat: number;
   lng: number;
@@ -55,9 +56,10 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'BKK',
     airportName: 'Suvarnabhumi Airport (BKK)',
     img: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=1200&h=600&fit=crop&auto=format',
+    // Coordinates are for Suvarnabhumi Airport itself (BKK), not central Bangkok
     timezone: 'Asia/Bangkok',
-    lat: 13.7563,
-    lng: 100.5018,
+    lat: 13.6900,
+    lng: 100.7501,
     last_verified: '2026-07-04',
     // Recheck monthly — Cabinet approved a tiered visa rollback on May 19 2026 but
     // it takes effect only 15 days after Royal Gazette publication, which had NOT
@@ -144,9 +146,10 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'NRT',
     airportName: 'Narita International Airport (NRT) / Haneda Airport (HND)',
     img: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200&h=600&fit=crop&auto=format',
+    // Coordinates are for Narita Airport itself (NRT), not central Tokyo
     timezone: 'Asia/Tokyo',
-    lat: 35.6762,
-    lng: 139.6503,
+    lat: 35.7719,
+    lng: 140.3929,
     last_verified: '2026-07-04',
     sources: [
       'https://www.mofa.go.jp/j_info/visit/visa/short/novisa.html',
@@ -202,10 +205,11 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'DPS',
     airportName: 'Ngurah Rai International Airport, Bali (DPS)',
     img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1200&h=600&fit=crop&auto=format',
-    // Denpasar/Bali (DPS), not Jakarta — different timezone (WITA, not WIB)
+    // Coordinates are for Ngurah Rai Airport itself (DPS), Bali — not Jakarta
+    // (different timezone too: WITA, not WIB)
     timezone: 'Asia/Makassar',
-    lat: -8.6705,
-    lng: 115.2126,
+    lat: -8.7482,
+    lng: 115.1671,
     last_verified: '2026-07-04',
     sources: [
       'https://www.travelvax.com.au/holiday-traveller/vaccination-requirements/indonesia',
@@ -253,10 +257,10 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'SGN',
     airportName: 'Tan Son Nhat Airport, Ho Chi Minh City (SGN) / Noi Bai Airport, Hanoi (HAN)',
     img: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=1200&h=600&fit=crop&auto=format',
-    // Ho Chi Minh City (SGN, the primary listed airport), not Hanoi
+    // Coordinates are for Tan Son Nhat Airport itself (SGN), Ho Chi Minh City — not Hanoi
     timezone: 'Asia/Ho_Chi_Minh',
-    lat: 10.8231,
-    lng: 106.6297,
+    lat: 10.8188,
+    lng: 106.6520,
     last_verified: '2026-07-04',
     sources: [
       'https://evisa.xuatnhapcanh.gov.vn',
@@ -313,10 +317,10 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'DXB',
     airportName: 'Dubai International Airport (DXB)',
     img: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200&h=600&fit=crop&auto=format',
-    // Dubai (DXB), not Abu Dhabi
+    // Coordinates are for Dubai International Airport itself (DXB), not Abu Dhabi
     timezone: 'Asia/Dubai',
-    lat: 25.2048,
-    lng: 55.2708,
+    lat: 25.2532,
+    lng: 55.3657,
     last_verified: '2026-07-04',
     sources: [
       'https://u.ae/en/information-and-services/visa-and-emirates-id/do-you-need-an-entry-permit-to-visit-the-uae',
@@ -372,9 +376,10 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'SIN',
     airportName: 'Singapore Changi Airport (SIN)',
     img: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=1200&h=600&fit=crop&auto=format',
+    // Coordinates are for Changi Airport itself (SIN), not central Singapore
     timezone: 'Asia/Singapore',
-    lat: 1.3521,
-    lng: 103.8198,
+    lat: 1.3644,
+    lng: 103.9915,
     last_verified: '2026-07-04',
     sources: [
       'https://www.ica.gov.sg/enter-transit-depart/entering-singapore/visa-requirements',
@@ -428,9 +433,10 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'DEL',
     airportName: 'Indira Gandhi International Airport, Delhi (DEL) / Chhatrapati Shivaji Maharaj Airport, Mumbai (BOM)',
     img: 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=1200&h=600&fit=crop&auto=format',
+    // Coordinates are for Indira Gandhi Airport itself (DEL), not central Delhi
     timezone: 'Asia/Kolkata',
-    lat: 28.6139,
-    lng: 77.2090,
+    lat: 28.5562,
+    lng: 77.1000,
     last_verified: '2026-07-04',
     sources: [
       'https://indianvisaonline.gov.in/evisa/tvoa.html',
@@ -491,9 +497,10 @@ export const FLY_TO: Record<string, FlyToDestination> = {
     airportCode: 'ICN',
     airportName: 'Incheon International Airport (ICN)',
     img: 'https://images.unsplash.com/photo-1538485399081-7191377e8241?w=1200&h=600&fit=crop&auto=format',
+    // Coordinates are for Incheon Airport itself (ICN), not central Seoul
     timezone: 'Asia/Seoul',
-    lat: 37.5665,
-    lng: 126.9780,
+    lat: 37.4602,
+    lng: 126.4407,
     last_verified: '2026-07-04',
     sources: [
       'https://www.visa.go.kr/openPage.do?MENU_ID=10101',

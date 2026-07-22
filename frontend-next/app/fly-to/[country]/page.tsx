@@ -223,24 +223,43 @@ export default async function FlyToPage({ params }: Props) {
         {/* Arrival & Connectivity */}
         <section>
           <h2 className="font-headline-lg text-2xl text-pro-navy mb-6">Arriving at {dest.airportName}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            <div className="flex gap-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center">
-                <span className="material-symbols-outlined text-pro-navy">wifi</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div className="space-y-8">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center">
+                  <span className="material-symbols-outlined text-pro-navy">wifi</span>
+                </div>
+                <div>
+                  <h3 className="font-headline-md text-base text-pro-navy mb-2">SIM &amp; connectivity</h3>
+                  <p className="text-sm text-on-surface-variant mb-2">{dest.arrival.simCard}</p>
+                  <p className="text-sm text-on-surface-variant">{dest.arrival.currency}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-headline-md text-base text-pro-navy mb-2">SIM &amp; connectivity</h3>
-                <p className="text-sm text-on-surface-variant mb-2">{dest.arrival.simCard}</p>
-                <p className="text-sm text-on-surface-variant">{dest.arrival.currency}</p>
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center">
+                  <span className="material-symbols-outlined text-pro-navy">directions_transit</span>
+                </div>
+                <div>
+                  <h3 className="font-headline-md text-base text-pro-navy mb-2">Getting into town</h3>
+                  <p className="text-sm text-on-surface-variant">{dest.arrival.transport}</p>
+                </div>
               </div>
             </div>
-            <div className="flex gap-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center">
-                <span className="material-symbols-outlined text-pro-navy">directions_transit</span>
-              </div>
-              <div>
-                <h3 className="font-headline-md text-base text-pro-navy mb-2">Getting into town</h3>
-                <p className="text-sm text-on-surface-variant">{dest.arrival.transport}</p>
+
+            <div className="rounded-2xl overflow-hidden pro-shadow relative border border-border-subtle">
+              <iframe
+                src={`https://www.google.com/maps?q=${dest.lat},${dest.lng}&z=12&output=embed`}
+                className="w-full aspect-[4/3]"
+                style={{ border: 0 }}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title={`Map of ${dest.airportName}`}
+              />
+              <div className="absolute bottom-4 left-4 right-4 bg-white p-3 rounded-xl shadow-lg">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-teal-accent text-lg">location_on</span>
+                  <span className="font-bold text-sm text-pro-navy">{dest.airportName}</span>
+                </div>
               </div>
             </div>
           </div>
