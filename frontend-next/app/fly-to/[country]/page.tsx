@@ -23,6 +23,20 @@ const AVI_TIPS: Record<string, string> = {
   singapore: "Don't rush through Changi. If you've got a layover, Jewel's Rain Vortex and the early baggage-storage counter are worth the detour before you clear immigration.",
   india: "Get your SIM at the dedicated airport telecom counter, not from a street vendor — bring your passport and a photo, it's a 15-minute process that saves you a headache later.",
   'south-korea': "Download KakaoMap or Naver Map before you land — Google Maps directions barely work in Korea, and it's the one thing that catches first-time visitors off guard.",
+  philippines: "NAIA's traffic is the real story here, not the airport itself — budget an extra hour either direction and just accept it. Grab from the designated zone, every time — don't let anyone talk you into a random cab outside.",
+  malaysia: "The MDAC catches people out because it feels like a formality you can skip if you're visa-free — you can't, and immigration will actually stop you without it. Do it the morning of your flight, takes five minutes.",
+  taiwan: "Buy an EasyCard the second you land — it's not just transit, it's basically a debit card for 7-Elevens, which in Taiwan means it's a debit card for half your meals. And don't go looking for Grab here — it's not a ride option yet, just open Uber.",
+  'usa-new-york': "The AirTrain-plus-subway routine sounds simple until you're doing it with a suitcase on the stairs. If it's your first trip or you've got more than a carry-on, just eat the cost of the flat-rate cab — $90-120 door-to-door after a long flight is worth it.",
+  'usa-los-angeles': "LAX-it catches a lot of first-timers off guard — you can't request Uber and wait at the curb like at most airports. Wait until you're actually standing in the LAX-it lot and see your lane number before you tap request, or your driver will circle and cancel.",
+  'usa-miami': "If you're staying in South Beach, skip Metrorail entirely — it stops in Downtown, well short of the beach, and you'll end up paying for a rideshare for the last leg anyway. Just book the Uber straight from the airport curb.",
+  'mexico-cancun': "The taxi guys inside CUN arrivals will quote you $60-100 for a 20-minute ride to the Hotel Zone like it's the only option — it isn't. The ADO bus counter is right there too, and it's a fraction of the price for basically the same trip.",
+  'brazil-rio': "If you're American, Canadian, or Australian, get the e-Visa sorted weeks out, not days — Brazil's checked this requirement on and off so many times that it's tempting to assume it'll be waived by the time you fly. It won't be, and the airline will turn you away at check-in without it.",
+  'argentina-buenos-aires': "Ezeiza being 40km out of town caught me off guard the first time — I'd budgeted for a quick hop like most capital airports and ended up eating into my first afternoon. Build the extra hour into your plans.",
+  'colombia-bogota': "Nobody warns you about the altitude. Bogotá's at 2,640 meters and I felt it — mild headache, out of breath walking uphill to my hotel. Take the first evening slow, drink water instead of pisco, and you'll be fine by day two.",
+  uk: "Buy your Elizabeth line ticket with the same contactless card or phone you'll use all week — London auto-caps your daily fare, so you never have to think about it again after landing. I skip Heathrow Express unless I've booked it weeks ahead.",
+  france: "Roissybus — the cheap direct bus everyone's old blog post tells you to take from CDG to Opéra — stopped running in March 2026. RER B is the only real train option into the city now, and it's fine, just budget an extra 10 minutes.",
+  'italy-rome': "Don't be surprised when 'Uber' in Rome shows you a licensed taxi or an NCC chauffeur car at taxi-like prices — it's not the cheap rideshare you're used to elsewhere, and that's just how Italian law works.",
+  'netherlands-amsterdam': "Skip the airport SIM kiosk if you can wait 20 minutes — the same KPN or Vodafone SIM is noticeably cheaper at a phone shop in the city center than at Schiphol Plaza.",
 };
 
 export async function generateStaticParams() {
